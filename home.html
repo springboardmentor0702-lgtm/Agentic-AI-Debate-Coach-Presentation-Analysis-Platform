@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Rashi Goel - B.Tech Student Portfolio">
+    <title>Rashi Goel | Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-effects">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">Rashi<span>.</span></a>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#skills">Skills</a></li>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#contact" class="btn-primary-sm">Contact Me</a></li>
+            </ul>
+            <div class="menu-toggle">
+                <i class="ri-menu-line"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content reveal">
+            <h2 class="greeting">Hello, World! I am</h2>
+            <h1 class="name">Rashi Goel</h1>
+            <h3 class="role">I am a <span class="typing-text"></span><span class="cursor">&nbsp;</span></h3>
+            <p class="bio">
+                Passionate about building scalable applications and exploring the forefront of modern technologies. Turning ideas into beautiful, interactive, and efficient digital experiences.
+            </p>
+            <div class="hero-cta">
+                <a href="#projects" class="btn-primary">View My Work</a>
+                <a href="#contact" class="btn-secondary">Let's Talk</a>
+            </div>
+            <div class="social-links">
+                <a href="#" aria-label="GitHub"><i class="ri-github-fill"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="ri-linkedin-fill"></i></a>
+                <a href="#" aria-label="Twitter"><i class="ri-twitter-fill"></i></a>
+            </div>
+        </div>
+        <div class="hero-image reveal">
+            <div class="image-wrapper">
+                <img src="assets/profile.png" alt="Rashi Goel Profile">
+                <div class="glass-badge badge-1">
+                    <i class="ri-code-s-slash-line"></i>
+                    <span>Developer</span>
+                </div>
+                <div class="glass-badge badge-2">
+                    <i class="ri-graduation-cap-line"></i>
+                    <span>B.Tech</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="section-header reveal">
+            <h2>About <span>Me</span></h2>
+        </div>
+        <div class="about-grid reveal">
+            <div class="about-text glass-card">
+                <h3>My Journey</h3>
+                <p>
+                    I'm a dedicated B.Tech student with a strong foundation in computer science principles. I thrive in environments that challenge me to solve complex problems and learn quickly.
+                </p>
+                <p>
+                    When I'm not studying or debugging code, I love to contribute to open-source, stay updated with the latest tech trends, and ideate on projects that could make a difference. 
+                </p>
+                <div class="about-stats">
+                    <div class="stat">
+                        <span class="stat-number">5+</span>
+                        <span class="stat-text">Projects Completed</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">3+</span>
+                        <span class="stat-text">Hackathons</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section id="skills" class="skills">
+        <div class="section-header reveal">
+            <h2>My <span>Arsenal</span></h2>
+            <p>Technologies I work with to bring ideas to life</p>
+        </div>
+        <div class="skills-grid reveal">
+            <div class="skill-card glass-card hoverable">
+                <i class="ri-braces-line skill-icon"></i>
+                <h3>Languages</h3>
+                <p>C++, Java, Python, JavaScript</p>
+            </div>
+            <div class="skill-card glass-card hoverable">
+                <i class="ri-layout-4-line skill-icon"></i>
+                <h3>Frontend</h3>
+                <p>HTML5, CSS3, React, Tailwind</p>
+            </div>
+            <div class="skill-card glass-card hoverable">
+                <i class="ri-server-line skill-icon"></i>
+                <h3>Backend</h3>
+                <p>Node.js, Express, MongoDB, SQL</p>
+            </div>
+            <div class="skill-card glass-card hoverable">
+                <i class="ri-tools-line skill-icon"></i>
+                <h3>Tools</h3>
+                <p>Git, GitHub, VS Code, Figma</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="projects">
+        <div class="section-header reveal">
+            <h2>Featured <span>Projects</span></h2>
+        </div>
+        <div class="projects-grid">
+            <!-- Project 1 -->
+            <div class="project-card glass-card hoverable reveal">
+                <div class="project-image" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">
+                    <i class="ri-rocket-line" style="font-size: 4rem; color: white;"></i>
+                </div>
+                <div class="project-info">
+                    <div class="tags">
+                        <span>React</span>
+                        <span>Node.js</span>
+                    </div>
+                    <h3>EduTrack Platform</h3>
+                    <p>A comprehensive tracking system built for university students to manage assignments, deadlines, and grades effectively.</p>
+                    <a href="#" class="project-link">View Source <i class="ri-arrow-right-line"></i></a>
+                </div>
+            </div>
+            <!-- Project 2 -->
+            <div class="project-card glass-card hoverable reveal">
+                <div class="project-image" style="background: linear-gradient(135deg, #a855f7, #ec4899);">
+                    <i class="ri-robot-line" style="font-size: 4rem; color: white;"></i>
+                </div>
+                <div class="project-info">
+                    <div class="tags">
+                        <span>Python</span>
+                        <span>ML</span>
+                    </div>
+                    <h3>AI Quiz Generator</h3>
+                    <p>An intelligent tool that reads documents and automatically generates flashcards and quizzes using Natural Language Processing.</p>
+                    <a href="#" class="project-link">View Source <i class="ri-arrow-right-line"></i></a>
+                </div>
+            </div>
+            <!-- Project 3 -->
+            <div class="project-card glass-card hoverable reveal">
+                <div class="project-image" style="background: linear-gradient(135deg, #10b981, #06b6d4);">
+                    <i class="ri-smartphone-line" style="font-size: 4rem; color: white;"></i>
+                </div>
+                <div class="project-info">
+                    <div class="tags">
+                        <span>HTML</span>
+                        <span>CSS</span>
+                    </div>
+                    <h3>Modern Portfolio</h3>
+                    <p>A sleek, responsive, and highly interactive user interface designed to showcase academic and independent tech projects.</p>
+                    <a href="#" class="project-link">View Source <i class="ri-arrow-right-line"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="section-header reveal">
+            <h2>Get In <span>Touch</span></h2>
+            <p>I'm currently looking for new opportunities and collaborations.</p>
+        </div>
+        <div class="contact-container glass-card reveal">
+            <form class="contact-form" onsubmit="event.preventDefault();">
+                <div class="form-group">
+                    <input type="text" id="name" placeholder="Your Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Your Email" required>
+                </div>
+                <div class="form-group">
+                    <textarea id="message" rows="5" placeholder="Your Message" required></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Send Message <i class="ri-send-plane-fill"></i></button>
+            </form>
+            <div class="contact-info">
+                <div class="info-item">
+                    <i class="ri-mail-line"></i>
+                    <span>rashi.goel@example.com</span>
+                </div>
+                <div class="info-item">
+                    <i class="ri-map-pin-line"></i>
+                    <span>India</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Rashi Goel. Built with passion &lt;3</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
