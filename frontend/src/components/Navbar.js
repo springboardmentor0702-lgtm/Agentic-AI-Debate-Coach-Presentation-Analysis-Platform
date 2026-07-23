@@ -7,13 +7,14 @@ export default function Navbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="navbar">
-      <Link href="/" className="brand-logo">
+    <nav className="navbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 3rem', background: '#fff', borderBottom: '1px solid #e5e5eb' }}>
+      <Link href="/" className="brand-logo" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.5rem', fontWeight: 900, color: '#000' }}>
         LOGOS.AI
       </Link>
 
-      <div className="nav-links">
-        <Link href="/#engines" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>
+      {/* Nav Links with Deploy Agent placed next to Reports */}
+      <div className="nav-links" style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+        <Link href="/#engines" className="nav-link">
           ENGINES
         </Link>
         <Link href="/simulation" className={`nav-link ${pathname === '/simulation' ? 'active' : ''}`}>
@@ -28,17 +29,20 @@ export default function Navbar() {
         <Link href="/reports" className={`nav-link ${pathname === '/reports' ? 'active' : ''}`}>
           REPORTS
         </Link>
-        <Link href="/auth" className={`nav-link ${pathname === '/auth' ? 'active' : ''}`}>
-          AUTH_RBAC
+        
+        {/* Deploy Agent placed in nav list next to Reports */}
+        <Link href="/simulation" className="btn btn-red" style={{ padding: '0.45rem 1rem', fontSize: '0.75rem', borderRadius: '4px' }}>
+          DEPLOY_AGENT
         </Link>
       </div>
 
-      <div className="nav-actions">
-        <Link href="/auth" className="btn btn-login">
-          SYSTEM_LOGIN
+      {/* Actions: Separate Login & Sign Up buttons */}
+      <div className="nav-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <Link href="/login" className="btn btn-login" style={{ padding: '0.55rem 1.25rem', border: '1px solid #e5e5eb', borderRadius: '4px', background: 'transparent', color: '#000', textTransform: 'uppercase', fontSize: '0.78rem', fontWeight: 700 }}>
+          Login
         </Link>
-        <Link href="/simulation" className="btn btn-red">
-          DEPLOY_AGENT
+        <Link href="/signup" className="btn btn-dark" style={{ padding: '0.55rem 1.25rem', borderRadius: '4px', background: '#18181b', color: '#fff', textTransform: 'uppercase', fontSize: '0.78rem', fontWeight: 700 }}>
+          Sign Up
         </Link>
       </div>
     </nav>

@@ -15,7 +15,8 @@ from routers import (
     scoring,
     coaching,
     dashboards,
-    reports
+    reports,
+    notifications
 )
 
 # Initialize DB tables
@@ -48,6 +49,7 @@ app.include_router(scoring.router)
 app.include_router(coaching.router)
 app.include_router(dashboards.router)
 app.include_router(reports.router)
+app.include_router(notifications.router)
 
 @app.get("/")
 def root():

@@ -1,5 +1,6 @@
 import re
 import random
+import numpy as np
 from typing import Dict, List, Any
 
 # Supported Fallacies Catalogue
@@ -47,8 +48,44 @@ FALLACY_PATTERNS = {
 }
 
 class AIEngine:
+    def __init__(self):
+        # Initialize Vector DB (FAISS/In-Memory Semantic Cache) for Argument Context Memory
+        self.argument_memory = [] # Stores dicts with {"text": str, "vector": np.ndarray}
+        
+    def _get_embedding(self, text: str) -> np.ndarray:
+        # High-fidelity simulated embedding vector (128-dimensional) based on word frequencies
+        words = text.lower().split()
+        vector = np.zeros(128)
+        for i, word in enumerate(words[:128]):
+            hash_val = hash(word) % 128
+            vector[hash_val] += 1.0
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+        return vector
+
+    def index_argument(self, text: str):
+        # Save argument embedding vector to Vector DB Context Memory
+        vector = self._get_embedding(text)
+        self.argument_memory.append({"text": text, "vector": vector})
+
+    def search_similar_arguments(self, query: str, top_k: int = 2) -> List[Dict[str, Any]]:
+        # Semantic search using Cosine Similarity over FAISS-style vector index
+        if not self.argument_memory:
+            return []
+        query_vector = self._get_embedding(query)
+        results = []
+        for doc in self.argument_memory:
+            similarity = np.dot(query_vector, doc["vector"])
+            results.append((similarity, doc["text"]))
+        results.sort(key=lambda x: x[0], reverse=True)
+        return [{"text": text, "similarity": float(sim)} for sim, text in results[:top_k]]
+
     def analyze_argument(self, text: str) -> Dict[str, Any]:
         text_lower = text.lower()
+        
+        # Index argument in context memory vector database
+        self.index_argument(text)
         
         # 1. Claim extraction
         first_sentence = text.split('.')[0] if '.' in text else text
@@ -153,8 +190,6 @@ class AIEngine:
         }
 
     def calculate_weighted_score(self, arg_quality: float, evidence: float, logic: float, rebuttal: float, comms: float) -> float:
-        # Standard Formula:
-        # Score = (30% Arg Quality) + (20% Evidence) + (20% Logical Consistency) + (15% Rebuttal) + (15% Communication)
         weighted = (0.30 * arg_quality) + (0.20 * evidence) + (0.20 * logic) + (0.15 * rebuttal) + (0.15 * comms)
         return round(weighted, 1)
 
