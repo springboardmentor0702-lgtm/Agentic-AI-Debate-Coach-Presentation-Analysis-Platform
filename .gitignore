@@ -7,19 +7,27 @@ web_modules/
 .next/
 out/
 build/
+dist/
 
 # Local env files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 
-# Debug logs
+# Debug & system logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+logs/
+*.log
+
+# Code coverage
+coverage/
+.coverage
+
+# IDE settings
+.vscode/
+.idea/
 
 # Python cache & environments
 __pycache__/
