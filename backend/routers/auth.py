@@ -173,3 +173,32 @@ def oauth2_login(provider: str = "Google", email: Optional[str] = None, role: Op
 @router.get("/profile/me", response_model=schemas.UserProfileResponse)
 def get_my_profile(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+@router.put("/profile/me", response_model=schemas.UserProfileResponse)
+def update_my_profile(
+    full_name: Optional[str] = None,
+    experience_level: Optional[str] = None,
+    preferred_topics: Optional[str] = None,
+    presentation_domains: Optional[str] = None,
+    learning_goals: Optional[str] = None,
+    coaching_preferences: Optional[str] = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if full_name is not None:
+        current_user.full_name = full_name
+    if experience_level is not None:
+        current_user.experience_level = experience_level
+    if preferred_topics is not None:
+        current_user.preferred_topics = preferred_topics
+    if presentation_domains is not None:
+        current_user.presentation_domains = presentation_domains
+    if learning_goals is not None:
+        current_user.learning_goals = learning_goals
+    if coaching_preferences is not None:
+        current_user.coaching_preferences = coaching_preferences
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user

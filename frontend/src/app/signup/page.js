@@ -20,12 +20,17 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('Learner');
   const [goal, setGoal] = useState('');
   const [topics, setTopics] = useState('');
 
+  // Custom Dropdown States
+  const [role, setRole] = useState('Learner');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const rolesList = ['Learner', 'Debate Coach', 'Educator', 'Administrator'];
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -55,7 +60,6 @@ export default function SignUpPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Registration failed.");
 
-      // If optional learning goal provided, call profile edit endpoint
       if (goal || topics) {
         await fetch(`http://localhost:8000/api/v1/auth/profile/me?learning_goals=${encodeURIComponent(goal)}&preferred_topics=${encodeURIComponent(topics)}`, {
           method: "PUT",
@@ -67,11 +71,11 @@ export default function SignUpPage() {
       }
 
       localStorage.setItem('logos_ai_jwt', data.access_token);
-      setMessage({ type: 'success', text: `Account created! Redirecting to ${role} Dashboard...` });
+      setMessage({ type: 'success', text: `Account created successfully! Redirecting...` });
       
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1500);
+      }, 1200);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -92,7 +96,7 @@ export default function SignUpPage() {
       
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1500);
+      }, 1200);
     } catch (e) {
       setMessage({ type: 'error', text: "OAuth2 sign up failed." });
     } finally {
@@ -109,9 +113,9 @@ export default function SignUpPage() {
         </div>
       )}
 
-      <div style={{ width: '100%', maxWidth: '460px', background: '#FFFFFF', borderRadius: '24px', padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB' }}>
-        <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center' }}>
-          Create Account
+      <div style={{ width: '100%', maxWidth: '460px', background: '#FFFFFF', borderRadius: '24px', padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB', position: 'relative' }}>
+        <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center', color: '#111827' }}>
+          Sign Up
         </h2>
 
         <form onSubmit={handleSignUp}>
@@ -121,10 +125,10 @@ export default function SignUpPage() {
             <input
               type="text"
               required
-              placeholder="Dr. Eleanor Vance"
+              placeholder="Enter your full name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
@@ -134,10 +138,10 @@ export default function SignUpPage() {
             <input
               type="email"
               required
-              placeholder="vance@logos.ai"
+              placeholder="Enter your email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
@@ -151,7 +155,7 @@ export default function SignUpPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
               />
             </div>
             <div>
@@ -162,24 +166,102 @@ export default function SignUpPage() {
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
               />
             </div>
           </div>
 
-          {/* Role Selection */}
-          <div style={{ marginBottom: '1.25rem' }}>
+          {/* Custom Select Role Dropdown Component */}
+          <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Select Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', background: '#FFF', boxSizing: 'border-box' }}
+            
+            <div
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              style={{
+                width: '100%',
+                padding: '0.85rem 3rem 0.85rem 1.25rem',
+                borderRadius: '12px',
+                border: '1px solid #E5E7EB',
+                background: '#FFFFFF',
+                fontSize: '0.9rem',
+                color: '#111827',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                boxSizing: 'border-box',
+                userSelect: 'none',
+                position: 'relative'
+              }}
             >
-              <option value="Learner">Learner</option>
-              <option value="Debate Coach">Debate Coach</option>
-              <option value="Educator">Educator</option>
-              <option value="Administrator">Administrator</option>
-            </select>
+              <span>{role}</span>
+              
+              {/* Down Arrow with spacious padding on the right */}
+              <span 
+                style={{ 
+                  position: 'absolute',
+                  right: '1.5rem',
+                  fontSize: '0.75rem',
+                  color: '#6B7280',
+                  transition: 'transform 0.2s', 
+                  transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' 
+                }}
+              >
+                ▼
+              </span>
+            </div>
+
+            {isDropdownOpen && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  background: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+                  marginTop: '0.5rem',
+                  zIndex: 100,
+                  padding: '4px',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {rolesList.map((r) => (
+                  <div
+                    key={r}
+                    onClick={() => {
+                      setRole(r);
+                      setIsDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '8px',
+                      fontSize: '0.9rem',
+                      color: role === r ? 'var(--accent-red)' : '#374151',
+                      background: role === r ? '#FEF2F2' : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      fontWeight: role === r ? 600 : 400
+                    }}
+                    onMouseEnter={(e) => {
+                      if (role !== r) {
+                        e.target.style.background = '#F3F4F6';
+                        e.target.style.color = '#111827';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (role !== r) {
+                        e.target.style.background = 'transparent';
+                        e.target.style.color = '#374151';
+                      }
+                    }}
+                  >
+                    {r}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Optional Learning Goals */}
@@ -190,7 +272,7 @@ export default function SignUpPage() {
               placeholder="Reduce filler words, Master counterarguments"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
@@ -202,17 +284,17 @@ export default function SignUpPage() {
               placeholder="Technology, AI, Politics, Ethics"
               value={topics}
               onChange={(e) => setTopics(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
           {/* Create Account Button */}
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', background: '#18181B', color: '#FFFFFF', border: 'none', fontWeight: 600, cursor: 'pointer', marginBottom: '1rem' }}>
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', background: '#18181B', color: '#FFFFFF', border: 'none', fontWeight: 600, cursor: 'pointer', marginBottom: '1rem', fontSize: '0.95rem' }}>
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
 
           {/* Google Sign Up */}
-          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
+          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifycontent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
             <GoogleLogo /> Sign Up with Google
           </button>
 
