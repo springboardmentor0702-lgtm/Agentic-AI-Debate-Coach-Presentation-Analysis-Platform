@@ -32,7 +32,7 @@
 
 ---
 
-## 📂 Folder Structure
+##  📂 Folder Structure
 
 ```
 Agentic-AI-Debate-Coach/
