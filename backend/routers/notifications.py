@@ -1,40 +1,28 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-import models
+from services.notification_service import get_notifications_for_user, mark_notification_read
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["Notification & Engagement System"])
 
 @router.get("/my-alerts")
-def get_user_notifications(user_id: int = 1):
-    # Simulated database-backed active notification triggers
+def get_user_notifications(user_id: int = 1, db: Session = Depends(get_db)):
+    notifications = get_notifications_for_user(db, user_id)
     return [
         {
-            "id": 1,
-            "category": "Session Reminder",
-            "title": "Upcoming Debate Match",
-            "message": "Your Oxford-style debate session on 'AI Governance' is scheduled in 30 minutes.",
-            "timestamp": "Just now",
-            "read": False
-        },
-        {
-            "id": 2,
-            "category": "Feedback Alert",
-            "title": "Analysis Ready",
-            "message": "Coach Sofia Vance left detailed logic audit feedback on your last debate rebuttal.",
-            "timestamp": "2 hours ago",
-            "read": False
-        },
-        {
-            "id": 3,
-            "category": "Milestone Alert",
-            "title": "Milestone Achieved: Fallacy Shield Master",
-            "message": "Congratulations! You have completed 5 consecutive debate simulations with 0 fallacies flagged.",
-            "timestamp": "1 day ago",
-            "read": True
+            "id": notification.id,
+            "category": notification.category,
+            "title": notification.title,
+            "message": notification.message,
+            "timestamp": notification.created_at.isoformat() if notification.created_at else None,
+            "read": notification.read,
         }
-      ]
+        for notification in notifications
+    ]
 
 @router.post("/read/{notification_id}")
-def mark_notification_as_read(notification_id: int):
+def mark_notification_as_read(notification_id: int, db: Session = Depends(get_db)):
+    notification = mark_notification_read(db, notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found.")
     return {"status": "success", "message": f"Notification {notification_id} marked as read."}

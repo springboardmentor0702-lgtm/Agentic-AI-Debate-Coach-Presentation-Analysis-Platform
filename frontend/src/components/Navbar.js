@@ -26,6 +26,9 @@ export default function Navbar() {
         <Link href="/dashboard" className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}>
           ANALYTICS
         </Link>
+        <Link href="/debates" className={`nav-link ${pathname.startsWith('/debates') ? 'active' : ''}`}>
+          DEBATES
+        </Link>
         <Link href="/reports" className={`nav-link ${pathname === '/reports' ? 'active' : ''}`}>
           REPORTS
         </Link>

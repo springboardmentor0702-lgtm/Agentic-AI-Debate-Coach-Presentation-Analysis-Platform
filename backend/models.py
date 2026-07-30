@@ -19,6 +19,10 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     sessions = relationship("DebateSession", back_populates="user")
+    participants = relationship("DebateParticipant", back_populates="user")
+    invitations_sent = relationship("DebateInvitation", back_populates="inviter", foreign_keys="DebateInvitation.inviter_user_id")
+    invitations_received = relationship("DebateInvitation", back_populates="invited_user", foreign_keys="DebateInvitation.invited_user_id")
+    notifications = relationship("Notification", back_populates="user")
 
 class DebateSession(Base):
     __tablename__ = "debate_sessions"
@@ -27,16 +31,98 @@ class DebateSession(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     title = Column(String, nullable=False)
     topic = Column(Text, nullable=False)
-    format = Column(String, default="AI Simulation") # 1-on-1, Parliamentary, Oxford, Policy, Public Forum, AI Simulation
+    description = Column(Text, default="")
+    format = Column(String, default="AI Simulation") # One-on-One, Parliamentary, Oxford, Policy, Public Forum, AI Simulation
     assigned_position = Column(String, default="Affirmative") # Affirmative, Negative
-    status = Column(String, default="Active") # Active, Completed, Scheduled
+    status = Column(String, default="Active") # Draft, Scheduled, Live, Completed, Cancelled, Active (legacy)
     scheduled_at = Column(DateTime, default=datetime.utcnow)
+    timezone = Column(String, default="UTC")
+    duration_minutes = Column(Integer, default=60)
+    visibility = Column(String, default="Private")
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="sessions")
     analyses = relationship("ArgumentAnalysis", back_populates="session")
     presentation_metrics = relationship("PresentationMetric", back_populates="session")
     performance_scores = relationship("PerformanceScore", back_populates="session")
+    participants = relationship("DebateParticipant", back_populates="session", cascade="all, delete-orphan")
+    invitations = relationship("DebateInvitation", back_populates="session", cascade="all, delete-orphan")
+    recordings = relationship("DebateRecording", back_populates="session", cascade="all, delete-orphan")
+
+
+class DebateParticipant(Base):
+    __tablename__ = "debate_participants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("debate_sessions.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    invited_email = Column(String, nullable=True)
+    display_name = Column(String, nullable=True)
+    position = Column(String, nullable=True)
+    team = Column(String, nullable=True)
+    participant_role = Column(String, default="Participant")
+    is_active = Column(Boolean, default=True)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+    left_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    session = relationship("DebateSession", back_populates="participants")
+    user = relationship("User", back_populates="participants")
+
+
+class DebateInvitation(Base):
+    __tablename__ = "debate_invitations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("debate_sessions.id"), nullable=False)
+    inviter_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    invited_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    invited_email = Column(String, nullable=True)
+    status = Column(String, default="Pending")
+    position = Column(String, nullable=True)
+    team = Column(String, nullable=True)
+    message = Column(Text, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    responded_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    session = relationship("DebateSession", back_populates="invitations")
+    inviter = relationship("User", back_populates="invitations_sent", foreign_keys=[inviter_user_id])
+    invited_user = relationship("User", back_populates="invitations_received", foreign_keys=[invited_user_id])
+
+
+class DebateRecording(Base):
+    __tablename__ = "debate_recordings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("debate_sessions.id"), nullable=False)
+    recording_type = Column(String, default="audio")
+    recording_path = Column(Text, nullable=True)
+    uploaded_file_name = Column(String, nullable=True)
+    transcript = Column(Text, nullable=True)
+    duration_seconds = Column(Float, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("DebateSession", back_populates="recordings")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    category = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    related_entity_type = Column(String, nullable=True)
+    related_entity_id = Column(Integer, nullable=True)
+    read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="notifications")
 
 class ArgumentAnalysis(Base):
     __tablename__ = "argument_analyses"

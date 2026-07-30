@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import engine, Base
+from db_migrations import sync_debate_session_schema
 import models
 
 from routers import (
@@ -20,6 +21,7 @@ from routers import (
 )
 
 # Initialize DB tables
+sync_debate_session_schema(engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
