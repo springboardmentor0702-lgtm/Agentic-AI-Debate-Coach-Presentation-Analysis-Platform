@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DebateStatusBadge } from '../../components/debates/DebateSessionComponents';
+import { DebateStatusBadge, InvitationsModal } from '../../components/debates/DebateSessionComponents';
 import { formatDateTime, getCurrentUserFromToken, requestJson } from '../../lib/debateApi';
 
 export default function DebateListPage() {
@@ -12,6 +12,11 @@ export default function DebateListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [invitationModalOpen, setInvitationModalOpen] = useState(false);
+  const [sentInvitations, setSentInvitations] = useState([]);
+  const [receivedInvitations, setReceivedInvitations] = useState([]);
+  const [invitationLoading, setInvitationLoading] = useState(false);
+  const [invitationError, setInvitationError] = useState('');
 
   useEffect(() => {
     const currentUser = getCurrentUserFromToken();
@@ -45,6 +50,38 @@ export default function DebateListPage() {
     }
   };
 
+  const loadInvitations = async () => {
+    setInvitationModalOpen(true);
+    setInvitationLoading(true);
+    setInvitationError('');
+    try {
+      const [sent, received] = await Promise.all([
+        requestJson('/api/v1/sessions/invitations?scope=sent', { method: 'GET' }),
+        requestJson('/api/v1/sessions/invitations?scope=received', { method: 'GET' }),
+      ]);
+      setSentInvitations(sent);
+      setReceivedInvitations(received);
+    } catch (err) {
+      setInvitationError('Unable to load invitations.');
+    } finally {
+      setInvitationLoading(false);
+    }
+  };
+
+  const refreshInvitations = async () => {
+    await loadInvitations();
+  };
+
+  const handleAcceptInvitation = async (invitation) => {
+    await requestJson(`/api/v1/sessions/invitations/${invitation.id}/accept`, { method: 'PATCH' });
+    await refreshInvitations();
+  };
+
+  const handleDeclineInvitation = async (invitation) => {
+    await requestJson(`/api/v1/sessions/invitations/${invitation.id}/decline`, { method: 'PATCH' });
+    await refreshInvitations();
+  };
+
   if (loading) {
     return <div style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', fontWeight: 700, color: '#6b7280' }}>Loading debate sessions...</div>;
   }
@@ -56,7 +93,10 @@ export default function DebateListPage() {
           <div className="badge-red-pill">Debate Session Management</div>
           <h1 className="font-display" style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '0.5rem' }}>Debate List</h1>
         </div>
-        <Link href="/debates/new" className="btn btn-dark">Create Debate</Link>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button type="button" onClick={loadInvitations} className="btn btn-login">Invitations</button>
+          <Link href="/debates/new" className="btn btn-dark">Create Debate</Link>
+        </div>
       </div>
 
       {message ? <div style={{ background: '#dcfce7', color: '#166534', padding: '0.9rem 1rem', borderRadius: '12px', marginBottom: '1rem' }}>{message}</div> : null}
@@ -87,6 +127,18 @@ export default function DebateListPage() {
           </div>
         ))}
       </div>
+
+      <InvitationsModal
+        open={invitationModalOpen}
+        onClose={() => setInvitationModalOpen(false)}
+        sentInvitations={sentInvitations}
+        receivedInvitations={receivedInvitations}
+        loading={invitationLoading}
+        error={invitationError}
+        onAccept={handleAcceptInvitation}
+        onDecline={handleDeclineInvitation}
+        onRefresh={refreshInvitations}
+      />
     </div>
   );
 }

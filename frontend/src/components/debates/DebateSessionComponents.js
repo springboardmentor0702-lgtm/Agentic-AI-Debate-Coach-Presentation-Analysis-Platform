@@ -106,7 +106,7 @@ export function PositionAssignment({ position, team, onPositionChange, onTeamCha
   );
 }
 
-export function ParticipantList({ participants = [], onRemove, canManage = false }) {
+export function ParticipantList({ participants = [], onRemove, canManage = false, creatorUserId = null }) {
   return (
     <div style={{ display: 'grid', gap: '0.75rem' }}>
       {participants.length === 0 ? (
@@ -117,10 +117,13 @@ export function ParticipantList({ participants = [], onRemove, canManage = false
             <div>
               <div style={{ fontWeight: 700, color: '#111827' }}>{participant.display_name || participant.invited_email || `User ${participant.user_id}`}</div>
               <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                {participant.position || 'Unassigned'} {participant.team ? `• ${participant.team}` : ''} {participant.is_active ? '• Active' : '• Left'}
+                {participant.position || 'Unassigned'} {participant.team ? `• ${participant.team}` : ''}
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.2rem' }}>
+                {participant.participant_role || 'Invited Participant'} • {participant.invitation_status || 'Pending'}
               </div>
             </div>
-            {canManage && onRemove ? (
+            {canManage && onRemove && participant.user_id !== creatorUserId ? (
               <button type="button" onClick={() => onRemove(participant)} style={{ border: '1px solid #fecaca', background: '#fff1f2', color: '#b91c1c', borderRadius: '10px', padding: '0.55rem 0.85rem', cursor: 'pointer', fontWeight: 700 }}>
                 Remove
               </button>
@@ -128,6 +131,84 @@ export function ParticipantList({ participants = [], onRemove, canManage = false
           </div>
         ))
       )}
+    </div>
+  );
+}
+
+function formatInvitationDate(value) {
+  if (!value) return 'Today';
+  try {
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export function InvitationsModal({ open, onClose, sentInvitations = [], receivedInvitations = [], loading = false, error = '', onAccept, onDecline, onRefresh }) {
+  const [activeTab, setActiveTab] = useState('sent');
+
+  if (!open) return null;
+
+  const sentTabActive = activeTab === 'sent';
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(9, 9, 11, 0.55)', zIndex: 60, display: 'grid', placeItems: 'center', padding: '1rem' }}>
+      <div style={{ width: 'min(900px, 100%)', background: '#fff', borderRadius: '22px', padding: '1.5rem', border: '1px solid #e5e7eb', boxShadow: '0 24px 80px rgba(0,0,0,0.18)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 900, marginBottom: '0.25rem' }}>Invitations</h3>
+            <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>View invitations you sent and invitations you received.</p>
+          </div>
+          <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: '1.5rem', cursor: 'pointer', color: '#6b7280' }}>×</button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+          <button type="button" onClick={() => setActiveTab('sent')} style={{ border: 'none', background: 'transparent', padding: '0.4rem 0.25rem', fontWeight: 800, color: sentTabActive ? '#111827' : '#9ca3af', cursor: 'pointer', opacity: sentTabActive ? 1 : 0.65 }}>
+            Sent
+          </button>
+          <button type="button" onClick={() => setActiveTab('received')} style={{ border: 'none', background: 'transparent', padding: '0.4rem 0.25rem', fontWeight: 800, color: !sentTabActive ? '#111827' : '#9ca3af', cursor: 'pointer', opacity: !sentTabActive ? 1 : 0.65 }}>
+            Received
+          </button>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: '2rem', color: '#6b7280' }}>Loading invitations...</div>
+        ) : error ? (
+          <div style={{ padding: '1rem', borderRadius: '12px', background: '#fee2e2', color: '#991b1b' }}>{error}</div>
+        ) : (
+          <div style={{ display: 'grid', gap: '0.85rem', maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.2rem' }}>
+            {(sentTabActive ? sentInvitations : receivedInvitations).length === 0 ? (
+              <div style={{ color: '#6b7280', padding: '1rem 0' }}>No invitations found.</div>
+            ) : (
+              (sentTabActive ? sentInvitations : receivedInvitations).map((invitation) => (
+                <div key={invitation.id} style={{ border: '1px solid #e5e7eb', borderRadius: '16px', padding: '1rem', background: '#fff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'start', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#111827', marginBottom: '0.25rem' }}>{invitation.session_title || 'Debate Invitation'}</div>
+                      <div style={{ color: '#6b7280', fontSize: '0.88rem' }}>
+                        {sentTabActive ? `Invited: ${invitation.invited_name || invitation.invited_email || 'Unknown'}` : `Invited By: ${invitation.inviter_name || 'Unknown'}`}
+                      </div>
+                      <div style={{ color: '#6b7280', fontSize: '0.88rem', marginTop: '0.25rem' }}>Status: {invitation.status}</div>
+                      <div style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '0.25rem' }}>Sent: {formatInvitationDate(invitation.created_at)}</div>
+                    </div>
+                    {!sentTabActive && invitation.status === 'Pending' ? (
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button type="button" onClick={() => onAccept?.(invitation)} className="btn btn-red" style={{ padding: '0.55rem 0.8rem' }}>Accept</button>
+                        <button type="button" onClick={() => onDecline?.(invitation)} className="btn btn-login" style={{ padding: '0.55rem 0.8rem' }}>Decline</button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
+          <button type="button" onClick={onRefresh} className="btn btn-login">Refresh</button>
+          <button type="button" onClick={onClose} className="btn btn-dark">Close</button>
+        </div>
+      </div>
     </div>
   );
 }

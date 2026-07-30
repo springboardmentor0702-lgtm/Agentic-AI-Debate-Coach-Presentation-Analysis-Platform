@@ -27,6 +27,11 @@ def sync_debate_session_schema(engine) -> None:
     if "updated_at" not in existing_columns:
         statements.append(f"ALTER TABLE debate_sessions ADD COLUMN updated_at {_timestamp_type(engine)} DEFAULT CURRENT_TIMESTAMP")
 
+    if "invitation_status" not in existing_columns and "debate_participants" in table_names:
+        participant_columns = {column["name"] for column in inspector.get_columns("debate_participants")}
+        if "invitation_status" not in participant_columns:
+            statements.append("ALTER TABLE debate_participants ADD COLUMN invitation_status VARCHAR DEFAULT 'Pending'")
+
     if not statements:
         return
 

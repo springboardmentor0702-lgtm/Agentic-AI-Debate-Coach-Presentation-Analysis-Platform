@@ -62,6 +62,7 @@ class DebateParticipant(Base):
     position = Column(String, nullable=True)
     team = Column(String, nullable=True)
     participant_role = Column(String, default="Participant")
+    invitation_status = Column(String, default="Pending")
     is_active = Column(Boolean, default=True)
     joined_at = Column(DateTime, default=datetime.utcnow)
     left_at = Column(DateTime, nullable=True)

@@ -142,6 +142,148 @@ def _serialize_recording(recording: models.DebateRecording) -> dict:
         "created_at": recording.created_at,
     }
 
+
+def _serialize_participant_with_status(participant: models.DebateParticipant) -> dict:
+    invitation_status = participant.invitation_status or "Pending"
+    if participant.participant_role == "Creator":
+        invitation_status = "Active"
+    return {
+        "id": participant.id,
+        "session_id": participant.session_id,
+        "user_id": participant.user_id,
+        "invited_email": participant.invited_email,
+        "display_name": participant.display_name,
+        "position": participant.position,
+        "team": participant.team,
+        "participant_role": participant.participant_role or "Invited Participant",
+        "invitation_status": invitation_status,
+        "is_active": participant.is_active if participant.participant_role != "Creator" else True,
+        "joined_at": participant.joined_at,
+        "left_at": participant.left_at,
+        "created_at": participant.created_at,
+        "updated_at": participant.updated_at,
+    }
+
+
+def _serialize_invitation_with_names(db: Session, invitation: models.DebateInvitation, session: models.DebateSession) -> dict:
+    inviter = db.query(models.User).filter(models.User.id == invitation.inviter_user_id).first()
+    invited_user = None
+    if invitation.invited_user_id:
+        invited_user = db.query(models.User).filter(models.User.id == invitation.invited_user_id).first()
+    elif invitation.invited_email:
+        invited_user = db.query(models.User).filter(models.User.email == invitation.invited_email).first()
+
+    return {
+        "id": invitation.id,
+        "session_id": invitation.session_id,
+        "inviter_user_id": invitation.inviter_user_id,
+        "invited_user_id": invitation.invited_user_id,
+        "invited_email": invitation.invited_email,
+        "status": invitation.status,
+        "session_title": session.title,
+        "inviter_name": inviter.full_name if inviter else None,
+        "invited_name": invited_user.full_name if invited_user else None,
+        "position": invitation.position,
+        "team": invitation.team,
+        "message": invitation.message,
+        "expires_at": invitation.expires_at,
+        "responded_at": invitation.responded_at,
+        "created_at": invitation.created_at,
+        "updated_at": invitation.updated_at,
+    }
+
+
+def _sync_session_participants(db: Session, session: models.DebateSession) -> list[dict]:
+    participant_rows = db.query(models.DebateParticipant).filter(models.DebateParticipant.session_id == session.id).all()
+    invitation_rows = db.query(models.DebateInvitation).filter(models.DebateInvitation.session_id == session.id).all()
+
+    creator = db.query(models.User).filter(models.User.id == session.user_id).first()
+    participant_map: dict[str, models.DebateParticipant] = {}
+    changed = False
+
+    for participant in participant_rows:
+        key = str(participant.user_id) if participant.user_id is not None else participant.invited_email or f"participant-{participant.id}"
+        participant_map[key] = participant
+
+    creator_key = str(session.user_id)
+    if creator_key not in participant_map:
+        creator_participant = models.DebateParticipant(
+            session_id=session.id,
+            user_id=session.user_id,
+            display_name=creator.full_name if creator else session.title,
+            position=session.assigned_position,
+            team="Creator",
+            participant_role="Creator",
+            invitation_status="Active",
+            is_active=True,
+            joined_at=session.created_at or datetime.utcnow(),
+        )
+        db.add(creator_participant)
+        db.flush()
+        participant_map[creator_key] = creator_participant
+        changed = True
+    else:
+        creator_participant = participant_map[creator_key]
+        creator_participant.participant_role = "Creator"
+        creator_participant.invitation_status = "Active"
+        creator_participant.is_active = True
+        creator_participant.position = creator_participant.position or session.assigned_position
+        creator_participant.team = creator_participant.team or "Creator"
+        creator_participant.display_name = creator_participant.display_name or (creator.full_name if creator else session.title)
+        db.add(creator_participant)
+        changed = True
+
+    for invitation in invitation_rows:
+        invited_user = None
+        if invitation.invited_user_id:
+            invited_user = db.query(models.User).filter(models.User.id == invitation.invited_user_id).first()
+        elif invitation.invited_email:
+            invited_user = db.query(models.User).filter(models.User.email == invitation.invited_email).first()
+
+        key = str(invitation.invited_user_id) if invitation.invited_user_id is not None else invitation.invited_email or f"invitation-{invitation.id}"
+        participant = participant_map.get(key)
+        if not participant:
+            participant = models.DebateParticipant(
+                session_id=session.id,
+                user_id=invited_user.id if invited_user else invitation.invited_user_id,
+                invited_email=invitation.invited_email or (invited_user.email if invited_user else None),
+                display_name=(invited_user.full_name if invited_user else invitation.invited_email),
+                position=invitation.position,
+                team=invitation.team,
+                participant_role="Invited Participant",
+                invitation_status=invitation.status if invitation.status in {"Pending", "Accepted", "Declined"} else "Pending",
+                is_active=invitation.status == "Accepted",
+                joined_at=invitation.responded_at or invitation.created_at,
+                left_at=invitation.responded_at if invitation.status == "Declined" else None,
+            )
+            db.add(participant)
+            db.flush()
+            participant_map[key] = participant
+            changed = True
+        else:
+            participant.participant_role = "Creator" if participant.user_id == session.user_id else "Invited Participant"
+            if participant.user_id != session.user_id:
+                participant.invitation_status = invitation.status
+                participant.position = participant.position or invitation.position
+                participant.team = participant.team or invitation.team
+                participant.display_name = participant.display_name or (invited_user.full_name if invited_user else invitation.invited_email)
+                if invitation.status == "Accepted":
+                    participant.is_active = True
+                    participant.left_at = None
+                elif invitation.status == "Declined":
+                    participant.is_active = False
+                    participant.left_at = invitation.responded_at or datetime.utcnow()
+                else:
+                    participant.is_active = False
+                db.add(participant)
+                changed = True
+
+    if changed:
+        db.commit()
+
+    refreshed_participants = db.query(models.DebateParticipant).filter(models.DebateParticipant.session_id == session.id).order_by(models.DebateParticipant.created_at.asc()).all()
+    return [_serialize_participant_with_status(participant) for participant in refreshed_participants]
+
 @router.post("/create", response_model=schemas.DebateSessionResponse)
 def create_debate_session(session_data: schemas.DebateSessionCreate, user_id: int = 1, db: Session = Depends(get_db)):
     if session_data.format and session_data.format not in SUPPORTED_FORMATS:
@@ -169,9 +311,10 @@ def create_debate_session(session_data: schemas.DebateSessionCreate, user_id: in
         session_id=session.id,
         user_id=user_id,
         display_name=creator_user.full_name if creator_user else None,
-        participant_role="Owner",
+        participant_role="Creator",
         position=session.assigned_position,
         team="Creator",
+        invitation_status="Active",
         is_active=True,
         joined_at=datetime.utcnow(),
     )
@@ -206,7 +349,15 @@ def get_session_details(session_id: int, db: Session = Depends(get_db)):
     session = db.query(models.DebateSession).filter(models.DebateSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Debate session not found.")
-    return _serialize_session(session)
+    participants = _sync_session_participants(db, session)
+    invitations = [
+        _serialize_invitation_with_names(db, invitation, session)
+        for invitation in db.query(models.DebateInvitation).filter(models.DebateInvitation.session_id == session_id).order_by(models.DebateInvitation.created_at.asc()).all()
+    ]
+    payload = _serialize_session(session)
+    payload["participants"] = participants
+    payload["invitations"] = invitations
+    return payload
 
 
 @router.put("/{session_id}", response_model=schemas.DebateSessionDetailResponse)
@@ -319,6 +470,43 @@ def invite_participant(session_id: int, payload: schemas.DebateInvitationCreate,
     db.commit()
     db.refresh(invitation)
 
+    participant = (
+        db.query(models.DebateParticipant)
+        .filter(
+            models.DebateParticipant.session_id == session.id,
+            (
+                (models.DebateParticipant.user_id == invitation.invited_user_id)
+                if invitation.invited_user_id is not None
+                else models.DebateParticipant.invited_email == invitation.invited_email
+            ),
+        )
+        .first()
+    )
+    if not participant:
+        participant = models.DebateParticipant(
+            session_id=session.id,
+            user_id=invited_user.id if invited_user else invitation.invited_user_id,
+            invited_email=invitation.invited_email,
+            display_name=invited_user.full_name if invited_user else invitation.invited_email,
+            position=invitation.position,
+            team=invitation.team,
+            participant_role="Invited Participant",
+            invitation_status="Pending",
+            is_active=False,
+            joined_at=invitation.created_at,
+        )
+    else:
+        participant.invited_email = invitation.invited_email or participant.invited_email
+        participant.display_name = participant.display_name or (invited_user.full_name if invited_user else invitation.invited_email)
+        participant.position = invitation.position or participant.position
+        participant.team = invitation.team or participant.team
+        participant.participant_role = "Invited Participant"
+        participant.invitation_status = "Pending"
+        participant.is_active = False
+    db.add(participant)
+    db.commit()
+    db.refresh(participant)
+
     if invited_user:
         create_notification(
             db=db,
@@ -338,13 +526,15 @@ def invite_participant(session_id: int, payload: schemas.DebateInvitationCreate,
         related_entity_type="debate_invitation",
         related_entity_id=invitation.id,
     )
-    return invitation
+    return _serialize_invitation_with_names(db, invitation, session)
 
 
 @router.get("/{session_id}/participants", response_model=List[schemas.DebateParticipantResponse])
 def get_session_participants(session_id: int, db: Session = Depends(get_db)):
-    participants = db.query(models.DebateParticipant).filter(models.DebateParticipant.session_id == session_id).all()
-    return participants
+    session = db.query(models.DebateSession).filter(models.DebateSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Debate session not found.")
+    return _sync_session_participants(db, session)
 
 
 @router.delete("/{session_id}/participants/{participant_id}")
@@ -359,9 +549,12 @@ def remove_session_participant(session_id: int, participant_id: int, db: Session
         raise HTTPException(status_code=404, detail="Participant not found.")
     if not _is_owner_or_admin(current_user, session):
         raise HTTPException(status_code=403, detail="Only the creator can remove participants.")
+    if participant.user_id == session.user_id:
+        raise HTTPException(status_code=400, detail="The creator cannot remove themselves.")
 
     participant.is_active = False
     participant.left_at = datetime.utcnow()
+    participant.invitation_status = "Declined"
     db.add(participant)
     db.commit()
     return {"status": "success", "message": "Participant removed."}
@@ -401,7 +594,8 @@ def join_session(session_id: int, db: Session = Depends(get_db), current_user: m
             session_id=session_id,
             user_id=current_user.id,
             display_name=current_user.full_name,
-            participant_role="Participant",
+            participant_role="Invited Participant",
+            invitation_status="Active",
             is_active=True,
             joined_at=datetime.utcnow(),
         )
@@ -409,6 +603,7 @@ def join_session(session_id: int, db: Session = Depends(get_db), current_user: m
         participant.is_active = True
         participant.left_at = None
         participant.joined_at = participant.joined_at or datetime.utcnow()
+        participant.invitation_status = "Active"
     db.add(participant)
     db.commit()
     db.refresh(participant)
@@ -442,6 +637,8 @@ def leave_session(session_id: int, db: Session = Depends(get_db), current_user: 
 
     participant.is_active = False
     participant.left_at = datetime.utcnow()
+    if participant.participant_role != "Creator":
+        participant.invitation_status = "Declined"
     db.add(participant)
     db.commit()
 
@@ -501,17 +698,34 @@ def get_session_recordings(session_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/invitations", response_model=List[schemas.DebateInvitationResponse])
-def get_my_invitations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    invitations = (
-        db.query(models.DebateInvitation)
-        .filter(
+def get_my_invitations(scope: Optional[str] = "received", db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    base_query = db.query(models.DebateInvitation)
+    if scope == "sent":
+        invitations = base_query.filter(models.DebateInvitation.inviter_user_id == current_user.id).order_by(models.DebateInvitation.created_at.desc()).all()
+    elif scope == "all":
+        sent_invitations = base_query.filter(models.DebateInvitation.inviter_user_id == current_user.id).all()
+        received_invitations = base_query.filter(
             (models.DebateInvitation.invited_user_id == current_user.id) |
             (models.DebateInvitation.invited_email == current_user.email)
-        )
-        .order_by(models.DebateInvitation.created_at.desc())
-        .all()
-    )
-    return invitations
+        ).all()
+        merged = {invitation.id: invitation for invitation in sent_invitations + received_invitations}
+        invitations = list(merged.values())
+    else:
+        invitations = base_query.filter(
+            (models.DebateInvitation.invited_user_id == current_user.id) |
+            (models.DebateInvitation.invited_email == current_user.email)
+        ).order_by(models.DebateInvitation.created_at.desc()).all()
+
+    session_ids = {invitation.session_id for invitation in invitations}
+    sessions_by_id = {
+        session.id: session
+        for session in db.query(models.DebateSession).filter(models.DebateSession.id.in_(session_ids)).all()
+    }
+    return [
+        _serialize_invitation_with_names(db, invitation, sessions_by_id.get(invitation.session_id))
+        for invitation in invitations
+        if sessions_by_id.get(invitation.session_id)
+    ]
 
 
 @router.patch("/invitations/{invitation_id}/accept", response_model=schemas.DebateInvitationActionResponse)
@@ -548,7 +762,8 @@ def accept_invitation(invitation_id: int, db: Session = Depends(get_db), current
             display_name=current_user.full_name,
             position=invitation.position,
             team=invitation.team,
-            participant_role="Participant",
+            participant_role="Invited Participant",
+            invitation_status="Active",
             is_active=True,
             joined_at=datetime.utcnow(),
         )
@@ -557,6 +772,7 @@ def accept_invitation(invitation_id: int, db: Session = Depends(get_db), current
         participant.position = invitation.position or participant.position
         participant.team = invitation.team or participant.team
         participant.left_at = None
+        participant.invitation_status = "Active"
     db.add(participant)
     db.commit()
     db.refresh(invitation)
@@ -579,7 +795,7 @@ def accept_invitation(invitation_id: int, db: Session = Depends(get_db), current
         related_entity_type="debate_invitation",
         related_entity_id=invitation.id,
     )
-    return {"status": "accepted", "invitation": invitation}
+    return {"status": "accepted", "invitation": _serialize_invitation_with_names(db, invitation, db.query(models.DebateSession).filter(models.DebateSession.id == invitation.session_id).first())}
 
 
 @router.patch("/invitations/{invitation_id}/decline", response_model=schemas.DebateInvitationActionResponse)
@@ -597,6 +813,17 @@ def decline_invitation(invitation_id: int, db: Session = Depends(get_db), curren
     invitation.status = "Declined"
     invitation.responded_at = datetime.utcnow()
     db.add(invitation)
+
+    participant = (
+        db.query(models.DebateParticipant)
+        .filter(models.DebateParticipant.session_id == invitation.session_id, models.DebateParticipant.user_id == current_user.id)
+        .first()
+    )
+    if participant:
+        participant.is_active = False
+        participant.left_at = datetime.utcnow()
+        participant.invitation_status = "Declined"
+        db.add(participant)
     db.commit()
     db.refresh(invitation)
 
@@ -609,7 +836,7 @@ def decline_invitation(invitation_id: int, db: Session = Depends(get_db), curren
         related_entity_type="debate_invitation",
         related_entity_id=invitation.id,
     )
-    return {"status": "declined", "invitation": invitation}
+    return {"status": "declined", "invitation": _serialize_invitation_with_names(db, invitation, db.query(models.DebateSession).filter(models.DebateSession.id == invitation.session_id).first())}
 
 
 @router.websocket("/ws/{session_id}")

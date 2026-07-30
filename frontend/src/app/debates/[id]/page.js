@@ -175,7 +175,7 @@ export default function DebateDetailsPage() {
               <h2 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Participants</h2>
               <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>{participants.length} total</span>
             </div>
-            <ParticipantList participants={participants} canManage={isOwner} onRemove={handleRemoveParticipant} />
+            <ParticipantList participants={participants} canManage={isOwner} creatorUserId={session.user_id} onRemove={handleRemoveParticipant} />
           </section>
 
           <section style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '18px', padding: '1.25rem' }}>
@@ -201,7 +201,6 @@ export default function DebateDetailsPage() {
             <div style={{ display: 'grid', gap: '0.75rem' }}>
               <Link href={`/debates/${session.id}/edit`} className="btn btn-login">Edit Debate</Link>
               <Link href={`/debates/${session.id}/lobby`} className="btn btn-login">Enter Lobby</Link>
-              <Link href="/debates/invitations" className="btn btn-login">My Invitations</Link>
             </div>
           </section>
         </div>

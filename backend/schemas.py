@@ -80,6 +80,8 @@ class DebateSessionDetailResponse(BaseModel):
     visibility: str
     created_at: datetime
     updated_at: Optional[datetime] = None
+    participants: Optional[list] = None
+    invitations: Optional[list] = None
 
     class Config:
         from_attributes = True
@@ -102,6 +104,7 @@ class DebateParticipantResponse(BaseModel):
     position: Optional[str] = None
     team: Optional[str] = None
     participant_role: str
+    invitation_status: str
     is_active: bool
     joined_at: datetime
     left_at: Optional[datetime] = None
@@ -128,6 +131,9 @@ class DebateInvitationResponse(BaseModel):
     invited_user_id: Optional[int] = None
     invited_email: Optional[str] = None
     status: str
+    session_title: Optional[str] = None
+    inviter_name: Optional[str] = None
+    invited_name: Optional[str] = None
     position: Optional[str] = None
     team: Optional[str] = None
     message: Optional[str] = None
