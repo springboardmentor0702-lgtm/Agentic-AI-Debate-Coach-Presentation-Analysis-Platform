@@ -1,0 +1,8 @@
+{
+  "name": "logos-ai-backend",
+  "version": "4.0.0",
+  "description": "Logos.ai FastAPI Backend Wrapper",
+  "scripts": {
+    "dev": "uvicorn main:app --reload --port 8000"
+  }
+}
