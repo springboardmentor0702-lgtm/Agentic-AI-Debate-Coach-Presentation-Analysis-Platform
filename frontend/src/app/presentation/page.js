@@ -43,7 +43,9 @@ export default function PresentationPage() {
   };
 
   return (
-    <div className="section-container">
+    <div className="watermark-container">
+      <div className="watermark-text" style={{ bottom: '2rem', right: '2rem', left: 'auto', opacity: 0.05, zIndex: -1 }}>RHETORIC</div>
+      <div className="section-container" style={{ position: 'relative', zIndex: 1 }}>
       <div className="badge-red-pill">PROSODY & SPEECH ENGINE</div>
       <h1 className="font-display" style={{ fontSize: '3rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '1rem' }}>
         VOCAL METRICS & PRESENTATION SUITE
@@ -140,6 +142,7 @@ export default function PresentationPage() {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }
