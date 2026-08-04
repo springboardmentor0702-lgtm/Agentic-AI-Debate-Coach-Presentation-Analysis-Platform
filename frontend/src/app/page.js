@@ -115,6 +115,26 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section-container" style={{ paddingTop: '0' }}>
+        <div className="feature-grid">
+          <div className="showcase-card">
+            <div className="feature-badge">LIVE COACHING</div>
+            <h3>Turn feedback into momentum</h3>
+            <p>Deliver real-time fallacy alerts, rebuttal prompts, and speaking guidance for every rehearsal.</p>
+          </div>
+          <div className="showcase-card">
+            <div className="feature-badge">ANALYTICS</div>
+            <h3>Track growth across sessions</h3>
+            <p>Monitor pacing, clarity, evidence quality, and debate performance in one streamlined dashboard.</p>
+          </div>
+          <div className="showcase-card">
+            <div className="feature-badge">READY TO DEPLOY</div>
+            <h3>Prepare for high-stakes moments</h3>
+            <p>Use the simulation environment to rehearse under pressure and refine your delivery before the real event.</p>
+          </div>
+        </div>
+      </section>
+
       {/* Debate Simulation Showcase (Dark Section) */}
       <section style={{ background: 'var(--dark-bg)', color: '#fff', padding: '6rem 3rem' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '4rem', alignItems: 'center' }}>

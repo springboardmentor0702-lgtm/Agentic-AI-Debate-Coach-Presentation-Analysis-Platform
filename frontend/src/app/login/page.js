@@ -99,18 +99,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '85vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', padding: '3rem 1.5rem', fontFamily: "'Inter', sans-serif" }}>
-      
+    <div className="auth-shell">
       {message && (
         <div style={{ maxWidth: '440px', width: '100%', marginBottom: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: '12px', fontSize: '0.875rem', fontWeight: 500, background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: message.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`, textAlign: 'center' }}>
           {message.text}
         </div>
       )}
 
-      <div style={{ width: '100%', maxWidth: '440px', background: '#FFFFFF', borderRadius: '24px', padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB', position: 'relative' }}>
-        <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center', color: '#111827' }}>
-          Login
+      <div className="auth-card">
+        <div className="auth-pill">Secure access</div>
+        <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '0.6rem', color: '#111827' }}>
+          Welcome back
         </h2>
+        <p className="auth-subtitle">Sign in to continue rehearsing your arguments, tracking feedback, and preparing for your next debate.</p>
 
         <form onSubmit={handleLogin}>
           {/* Email */}
