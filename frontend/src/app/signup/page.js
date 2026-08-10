@@ -294,7 +294,7 @@ export default function SignUpPage() {
           </button>
 
           {/* Google Sign Up */}
-          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifycontent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
+          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
             <GoogleLogo /> Sign Up with Google
           </button>
 

@@ -99,7 +99,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '85vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', padding: '3rem 1.5rem', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '85vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', fontFamily: "'Inter', sans-serif" }}>
       
       {message && (
         <div style={{ maxWidth: '440px', width: '100%', marginBottom: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: 0, fontSize: '0.875rem', fontWeight: 500, background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: message.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`, textAlign: 'center' }}>
@@ -126,11 +126,9 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Password */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', justifycontent: 'space-between', marginBottom: '0.4rem' }}>
+            <div style={{ marginBottom: '0.4rem' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Password</label>
-              <a href="#forgot" style={{ fontSize: '0.85rem', color: '#111827', fontWeight: 600 }}>Forgot Password?</a>
             </div>
             <div style={{ position: 'relative' }}>
               <input
@@ -262,16 +260,22 @@ export default function LoginPage() {
           </button>
 
           {/* Continue with Google */}
-          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifycontent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
+          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
             <GoogleLogo /> Continue with Google
           </button>
 
           {/* Sign Up Redirect */}
-          <div style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6B7280' }}>
+          <div style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6B7280', marginBottom: '0.75rem' }}>
             Don't have an account yet?{' '}
             <Link href="/signup" style={{ color: '#111827', fontWeight: 600, textDecoration: 'underline' }}>
               Sign Up
             </Link>
+          </div>
+
+          <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>
+            <a href="#forgot" style={{ color: '#6B7280', fontWeight: 600, textDecoration: 'underline' }}>
+              Forgot Password?
+            </a>
           </div>
         </form>
       </div>

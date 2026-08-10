@@ -180,7 +180,7 @@ a {
   font-size: 14rem;
   font-weight: 900;
   color: #f3f3f6;
-  z-index: 0;
+  z-index: -1;
   user-select: none;
   pointer-events: none;
   letter-spacing: -2px;
