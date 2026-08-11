@@ -3,11 +3,23 @@
 import { useState } from 'react';
 
 export default function SimulationPage() {
-  const [topic, setTopic] = useState("Autonomous AI Systems should be held legally liable for unintended damages.");
-  const [format, setFormat] = useState("Parliamentary Debate");
-  const [persona, setPersona] = useState("The Contrarian");
-  const [userInput, setUserInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [topic, setTopic] = useState(
+  "Autonomous AI Systems should be held legally liable for unintended damages."
+);
+
+const [format, setFormat] = useState("Parliamentary Debate");
+
+const [persona, setPersona] = useState("The Contrarian");
+
+const [position, setPosition] = useState("Affirmative");
+
+const [difficulty, setDifficulty] = useState("Intermediate");
+
+const [sessionStarted, setSessionStarted] = useState(false);
+
+const [userInput, setUserInput] = useState("");
+
+const [loading, setLoading] = useState(false);
 
   const [transcript, setTranscript] = useState([
     {
