@@ -42,8 +42,6 @@ class DebateSessionCreate(BaseModel):
     topic: str
     format: Optional[str] = "AI Simulation"
     assigned_position: Optional[str] = "Affirmative"
-    status: Optional[str] = "Active"
-    scheduled_at: Optional[datetime] = None
 
 class DebateSessionResponse(BaseModel):
     id: int

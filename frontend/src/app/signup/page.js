@@ -108,12 +108,12 @@ export default function SignUpPage() {
     <div style={{ minHeight: '90vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', fontFamily: "'Inter', sans-serif" }}>
       
       {message && (
-        <div style={{ maxWidth: '460px', width: '100%', marginBottom: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: 0, fontSize: '0.875rem', fontWeight: 500, background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: message.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`, textAlign: 'center' }}>
+        <div style={{ maxWidth: '460px', width: '100%', marginBottom: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: '12px', fontSize: '0.875rem', fontWeight: 500, background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: message.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`, textAlign: 'center' }}>
           {message.text}
         </div>
       )}
 
-      <div style={{ width: '100%', maxWidth: '460px', background: '#FFFFFF', borderRadius: 0, padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB', position: 'relative' }}>
+      <div style={{ width: '100%', maxWidth: '460px', background: '#FFFFFF', borderRadius: '24px', padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB', position: 'relative' }}>
         <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center', color: '#111827' }}>
           Sign Up
         </h2>
@@ -128,7 +128,7 @@ export default function SignUpPage() {
               placeholder="Enter your full name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
@@ -141,7 +141,7 @@ export default function SignUpPage() {
               placeholder="Enter your email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
@@ -155,7 +155,7 @@ export default function SignUpPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
               />
             </div>
             <div>
@@ -166,7 +166,7 @@ export default function SignUpPage() {
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
               />
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function SignUpPage() {
               style={{
                 width: '100%',
                 padding: '0.85rem 3rem 0.85rem 1.25rem',
-                borderRadius: 0,
+                borderRadius: '12px',
                 border: '1px solid #E5E7EB',
                 background: '#FFFFFF',
                 fontSize: '0.9rem',
@@ -219,7 +219,7 @@ export default function SignUpPage() {
                   right: 0,
                   background: '#FFFFFF',
                   border: '1px solid #E5E7EB',
-                  borderRadius: 0,
+                  borderRadius: '12px',
                   boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
                   marginTop: '0.5rem',
                   zIndex: 100,
@@ -236,7 +236,7 @@ export default function SignUpPage() {
                     }}
                     style={{
                       padding: '0.75rem 1.25rem',
-                      borderRadius: 0,
+                      borderRadius: '8px',
                       fontSize: '0.9rem',
                       color: role === r ? 'var(--accent-red)' : '#374151',
                       background: role === r ? '#FEF2F2' : 'transparent',
@@ -272,7 +272,7 @@ export default function SignUpPage() {
               placeholder="Reduce filler words, Master counterarguments"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
@@ -284,17 +284,17 @@ export default function SignUpPage() {
               placeholder="Technology, AI, Politics, Ethics"
               value={topics}
               onChange={(e) => setTopics(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
           {/* Create Account Button */}
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: 0, background: '#18181B', color: '#FFFFFF', border: 'none', fontWeight: 600, cursor: 'pointer', marginBottom: '1rem', fontSize: '0.95rem' }}>
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', background: '#18181B', color: '#FFFFFF', border: 'none', fontWeight: 600, cursor: 'pointer', marginBottom: '1rem', fontSize: '0.95rem' }}>
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
 
           {/* Google Sign Up */}
-          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
+          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifycontent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
             <GoogleLogo /> Sign Up with Google
           </button>
 
