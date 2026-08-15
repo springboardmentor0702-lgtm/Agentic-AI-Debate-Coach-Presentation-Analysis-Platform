@@ -8,11 +8,11 @@ export default function Home() {
 
   return (
     <div className="watermark-container">
-      {/* Background Watermark Text */}
-      <div className="watermark-text">RHETORIC</div>
-
       {/* Hero Section */}
       <section className="hero-section">
+        {/* Background Watermark Text */}
+        <div className="watermark-text" style={{ bottom: '0px', left: '-2rem', zIndex: -1 }}>RHETORIC</div>
+
         <div>
           <div className="badge-red-pill">
             <span className="badge-dot"></span> AGENTIC REASONING ENGINE V 4.0

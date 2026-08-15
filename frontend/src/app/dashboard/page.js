@@ -133,7 +133,7 @@ export default function DashboardPage() {
       {/* Dynamic Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'inline-block', background: '#FEE2E2', color: '#D90429', fontSize: '0.75rem', fontWeight: 700, padding: '0.3rem 0.75rem', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem' }}>
+          <div style={{ display: 'inline-block', background: '#FEE2E2', color: '#D90429', fontSize: '0.75rem', fontWeight: 700, padding: '0.3rem 0.75rem', borderRadius: 0, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem' }}>
             {userRole} Profile Space
           </div>
           <h1 className="font-display" style={{ fontSize: '2.25rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>
@@ -141,13 +141,13 @@ export default function DashboardPage() {
           </h1>
         </div>
 
-        <button onClick={handleLogout} className="btn btn-login" style={{ padding: '0.6rem 1.4rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid #E5E7EB', background: 'transparent', cursor: 'pointer', fontWeight: 700 }}>
+        <button onClick={handleLogout} className="btn btn-login" style={{ padding: '0.6rem 1.4rem', fontSize: '0.8rem', borderRadius: 0, border: '1px solid #E5E7EB', background: 'transparent', cursor: 'pointer', fontWeight: 700 }}>
           LOGOUT SESSION
         </button>
       </div>
 
       {/* Modern Horizontal Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: '14px', padding: '6px', marginBottom: '2.5rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0, padding: '6px', marginBottom: '2.5rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
         {[
           { id: 'overview', label: 'Dashboard Overview' },
           { id: 'skills', label: 'Communication Skill Matrix' },
@@ -160,7 +160,7 @@ export default function DashboardPage() {
             onClick={() => { setActiveTab(tab.id); setProfileMsg(null); }}
             style={{
               padding: '0.75rem 1.5rem',
-              borderRadius: '10px',
+              borderRadius: 0,
               border: 'none',
               fontSize: '0.875rem',
               fontWeight: 600,
@@ -182,22 +182,22 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
           {/* Quick Metrics Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: '16px' }}>
+            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>DEBATES COMPLETED</div>
               <div className="font-display" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#111827', margin: '0.5rem 0 0.2rem 0' }}>25</div>
               <div style={{ fontSize: '0.8rem', color: '#10B981', fontWeight: 500 }}>↑ 12% increase this month</div>
             </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: '16px' }}>
+            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>AVG PERFORMANCE SCORE</div>
               <div className="font-display" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#D90429', margin: '0.5rem 0 0.2rem 0' }}>82.4</div>
               <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Oxford & Parliamentary formats</div>
             </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: '16px' }}>
+            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>ORAL PRESENTATION TIME</div>
               <div className="font-display" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#111827', margin: '0.5rem 0 0.2rem 0' }}>42m</div>
               <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total audio speech analysed</div>
             </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: '16px' }}>
+            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>COACHING LEVEL</div>
               <div className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10B981', margin: '0.7rem 0 0.4rem 0', textTransform: 'uppercase' }}>{experience}</div>
               <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Analytical coaching type</div>
@@ -206,15 +206,15 @@ export default function DashboardPage() {
 
           {/* Quick Action Center */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', flexWrap: 'wrap' }}>
-            <div style={{ background: '#FFF', padding: '2rem', borderRadius: '20px', border: '1px solid #E5E7EB' }}>
+            <div style={{ background: '#FFF', padding: '2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
               <h3 className="font-display" style={{ fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Active Training Options</h3>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button onClick={() => router.push("/simulation")} className="btn btn-red" style={{ padding: '0.85rem 1.5rem', borderRadius: '8px' }}>Launch AI Debate Simulation</button>
-                <button onClick={() => router.push("/presentation")} className="btn btn-dark" style={{ padding: '0.85rem 1.5rem', borderRadius: '8px' }}>Start Presentation Analysis</button>
+                <button onClick={() => router.push("/simulation")} className="btn btn-red" style={{ padding: '0.85rem 1.5rem', borderRadius: 0 }}>Launch AI Debate Simulation</button>
+                <button onClick={() => router.push("/presentation")} className="btn btn-dark" style={{ padding: '0.85rem 1.5rem', borderRadius: 0 }}>Start Presentation Analysis</button>
               </div>
             </div>
 
-            <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <h4 className="font-display" style={{ fontSize: '1.1rem', fontWeight: 800, textTransform: 'uppercase', color: '#D90429', margin: '0 0 1rem 0' }}>CURRENT LEARNING GOALS</h4>
               <p style={{ fontSize: '0.85rem', color: '#9CA3AF', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
                 {goals}
@@ -232,7 +232,7 @@ export default function DashboardPage() {
           TAB CONTENT 2: SKILL MATRIX & TRACKING
          ============================================== */}
       {activeTab === 'skills' && (
-        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: '20px', border: '1px solid #E5E7EB' }}>
+        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
           <h2 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1rem' }}>
             Rhetorical Skill Matrix
           </h2>
@@ -251,8 +251,8 @@ export default function DashboardPage() {
                   <span style={{ fontSize: '1.1rem', fontWeight: 800, color: skill.color }}>{skill.value}%</span>
                 </div>
                 {/* Bar */}
-                <div style={{ width: '100%', height: '8px', background: '#F3F4F6', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ width: `${skill.value}%`, height: '100%', background: skill.color, borderRadius: '4px', transition: 'width 1s ease-in-out' }}></div>
+                <div style={{ width: '100%', height: '8px', background: '#F3F4F6', borderRadius: 0, overflow: 'hidden' }}>
+                  <div style={{ width: `${skill.value}%`, height: '100%', background: skill.color, borderRadius: 0, transition: 'width 1s ease-in-out' }}></div>
                 </div>
               </div>
             ))}
@@ -264,7 +264,7 @@ export default function DashboardPage() {
           TAB CONTENT 3: DEBATE HISTORY LOG
          ============================================== */}
       {activeTab === 'debates' && (
-        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: '20px', border: '1px solid #E5E7EB' }}>
+        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
           <h2 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>
             Debate History Management
           </h2>
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                     <td>{debate.position}</td>
                     <td style={{ fontWeight: 'bold', color: '#D90429' }}>{debate.score}</td>
                     <td>
-                      <span style={{ background: '#ECFDF5', color: '#059669', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span style={{ background: '#ECFDF5', color: '#059669', padding: '0.25rem 0.6rem', borderRadius: 0, fontSize: '0.75rem', fontWeight: 700 }}>
                         {debate.status}
                       </span>
                     </td>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
           TAB CONTENT 4: PRESENTATION ARCHIVE
          ============================================== */}
       {activeTab === 'presentations' && (
-        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: '20px', border: '1px solid #E5E7EB' }}>
+        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
           <h2 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>
             Presentation History Archive
           </h2>
@@ -344,7 +344,7 @@ export default function DashboardPage() {
           TAB CONTENT 5: PROFILE SETTINGS
          ============================================== */}
       {activeTab === 'settings' && (
-        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: '20px', border: '1px solid #E5E7EB' }}>
+        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
           <h2 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1rem' }}>
             User Information & Profile Settings
           </h2>
@@ -353,7 +353,7 @@ export default function DashboardPage() {
           </p>
 
           {profileMsg && (
-            <div style={{ padding: '0.85rem 1.2rem', marginBottom: '1.5rem', borderRadius: '10px', fontSize: '0.875rem', background: profileMsg.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: profileMsg.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${profileMsg.type === 'error' ? '#FCA5A5' : '#6EE7B7'}` }}>
+            <div style={{ padding: '0.85rem 1.2rem', marginBottom: '1.5rem', borderRadius: 0, fontSize: '0.875rem', background: profileMsg.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: profileMsg.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${profileMsg.type === 'error' ? '#FCA5A5' : '#6EE7B7'}` }}>
               {profileMsg.text}
             </div>
           )}
@@ -369,7 +369,7 @@ export default function DashboardPage() {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none' }}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }}
                 />
               </div>
 
@@ -379,7 +379,7 @@ export default function DashboardPage() {
                 <select
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#FFF' }}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFF' }}
                 >
                   <option value="Beginner">Beginner</option>
                   <option value="Intermediate">Intermediate</option>
@@ -395,7 +395,7 @@ export default function DashboardPage() {
                   required
                   value={topics}
                   onChange={(e) => setTopics(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none' }}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }}
                 />
               </div>
 
@@ -407,7 +407,7 @@ export default function DashboardPage() {
                   required
                   value={domains}
                   onChange={(e) => setDomains(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none' }}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }}
                 />
               </div>
             </div>
@@ -420,7 +420,7 @@ export default function DashboardPage() {
                 required
                 value={goals}
                 onChange={(e) => setGoals(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none' }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }}
               />
             </div>
 
@@ -432,7 +432,7 @@ export default function DashboardPage() {
                 required
                 value={coaching}
                 onChange={(e) => setCoaching(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none' }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }}
               />
             </div>
 
@@ -441,14 +441,14 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => fetchProfile(localStorage.getItem('logos_ai_jwt'))}
-                style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#FFF', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '0.75rem 1.5rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFF', fontWeight: 600, cursor: 'pointer' }}
               >
                 Reset Details
               </button>
               <button
                 type="submit"
                 disabled={updating}
-                style={{ padding: '0.75rem 2rem', borderRadius: '8px', border: 'none', background: '#111827', color: '#FFF', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '0.75rem 2rem', borderRadius: 0, border: 'none', background: '#111827', color: '#FFF', fontWeight: 600, cursor: 'pointer' }}
               >
                 {updating ? 'Saving...' : 'Save Profile Matrix'}
               </button>
