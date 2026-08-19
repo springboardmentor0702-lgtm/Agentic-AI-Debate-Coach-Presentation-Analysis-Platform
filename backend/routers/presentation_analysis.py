@@ -1,35 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
 from database import get_db
-import models, schemas
+from routers.auth import get_current_user
 from services.speech_engine import speech_engine_service
+import models
+import schemas
+
 
 router = APIRouter(prefix="/api/v1/presentation-analysis", tags=["Presentation Analysis Engine"])
 
+
 @router.post("/evaluate", response_model=schemas.PresentationMetricResponse)
-def evaluate_presentation(payload: schemas.SpeechAnalysisSubmit, user_id: int = 1, db: Session = Depends(get_db)):
-    metrics = speech_engine_service.analyze_speech(payload.speech_text, payload.audio_duration_seconds or 60.0)
-    
-    new_metric = models.PresentationMetric(
-        session_id=payload.session_id,
-        user_id=user_id,
-        speech_pace_wpm=metrics["speech_pace_wpm"],
-        filler_words_count=metrics["filler_words_count"],
-        filler_words_list=metrics["filler_words_list"],
-        confidence_score=metrics["confidence_score"],
-        clarity_score=metrics["clarity_score"],
-        engagement_score=metrics["engagement_score"]
+def evaluate_presentation(
+    payload: schemas.SpeechAnalysisSubmit,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    debate_session = (
+        db.query(models.DebateSession)
+        .filter(models.DebateSession.id == payload.session_id, models.DebateSession.user_id == current_user.id)
+        .first()
     )
-    db.add(new_metric)
+    if not debate_session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debate session not found for this user.")
+
+    try:
+        metric_data = speech_engine_service.analyze_speech(payload.speech_text, payload.audio_duration_seconds or 60.0)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+    metric = models.PresentationMetric(session_id=payload.session_id, user_id=current_user.id, **metric_data)
+    db.add(metric)
     db.commit()
-    db.refresh(new_metric)
-    
-    return {
-        "session_id": payload.session_id,
-        "speech_pace_wpm": metrics["speech_pace_wpm"],
-        "filler_words_count": metrics["filler_words_count"],
-        "filler_words_list": metrics["filler_words_list"],
-        "confidence_score": metrics["confidence_score"],
-        "clarity_score": metrics["clarity_score"],
-        "engagement_score": metrics["engagement_score"]
-    }
+    return {"session_id": payload.session_id, **metric_data}
