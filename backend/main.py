@@ -31,7 +31,7 @@ app = FastAPI(
 # Enable CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,8 +57,13 @@ def root():
         "status": "online",
         "platform": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "docs_url": "/docs"
+        "docs_url": "/docs",
     }
+
+
+@app.get("/health", tags=["Operations"])
+def health_check():
+    return {"status": "healthy", "service": settings.PROJECT_NAME, "version": settings.VERSION}
 
 if __name__ == "__main__":
     import uvicorn
