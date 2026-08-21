@@ -190,6 +190,27 @@ class BackendAndAIIntegrationTests(unittest.TestCase):
         forbidden = self.client.get(f"/api/v1/sessions/{session_id}", headers=other_headers)
         self.assertEqual(forbidden.status_code, 404)
 
+    def test_workflow_progress_and_oauth_exclusion(self):
+        db = SessionLocal()
+        try:
+            user = db.query(models.User).filter(models.User.id == self.user_id).first()
+            user.role = "Learner"
+            db.commit()
+        finally:
+            db.close()
+        progress = self.client.put(
+            "/api/v1/workflows/progress/me",
+            headers=self.headers,
+            json={"skill": "Rebuttal", "score": 82.5, "practice_count": 3, "streak_days": 2},
+        )
+        self.assertEqual(progress.status_code, 200, progress.text)
+        self.assertEqual(progress.json()["skill"], "Rebuttal")
+        listed = self.client.get("/api/v1/workflows/progress/me", headers=self.headers)
+        self.assertEqual(listed.status_code, 200, listed.text)
+        self.assertTrue(any(item["skill"] == "Rebuttal" for item in listed.json()))
+        oauth = self.client.post("/api/v1/auth/oauth2/login?provider=Google")
+        self.assertEqual(oauth.status_code, 404)
+
     def test_health_endpoint(self):
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)

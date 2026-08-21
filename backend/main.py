@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import Base, SessionLocal, engine
 from migrations import run_migrations
+from middleware import InMemoryRateLimitMiddleware
 import models
 
 from routers import (
@@ -22,6 +23,7 @@ from routers import (
     scoring,
     sessions,
     simulation,
+    workflows,
 )
 
 
@@ -35,6 +37,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 
+app.add_middleware(InMemoryRateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -56,6 +59,7 @@ app.include_router(dashboards.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)
 app.include_router(feedback.router)
+app.include_router(workflows.router)
 
 
 @app.get("/")

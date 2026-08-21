@@ -39,6 +39,21 @@ class Token(BaseModel):
     user_id: int
     role: str
     full_name: str
+    refresh_token: Optional[str] = None
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(min_length=20, max_length=300)
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+class AccountStatusResponse(BaseModel):
+    user_id: int
+    is_active: bool
+    locked_until: Optional[datetime] = None
 
 
 class UserProfileUpdate(BaseModel):
@@ -71,6 +86,85 @@ class AdminRoleUpdate(BaseModel):
         if value not in allowed:
             raise ValueError("Unsupported role.")
         return value
+
+
+class AssignmentCreate(BaseModel):
+    learner_id: int = Field(gt=0)
+
+
+class AssignmentResponse(BaseModel):
+    id: int
+    coach_id: int
+    learner_id: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LearningProgressUpdate(BaseModel):
+    skill: str = Field(min_length=2, max_length=80)
+    score: float = Field(ge=0, le=100)
+    practice_count: int = Field(default=1, ge=0, le=100000)
+    streak_days: int = Field(default=0, ge=0, le=100000)
+
+
+class LearningProgressResponse(BaseModel):
+    skill: str
+    score: float
+    practice_count: int
+    streak_days: int
+    last_practiced_at: Optional[datetime] = None
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ArtifactResponse(BaseModel):
+    id: int
+    user_id: int
+    session_id: Optional[int] = None
+    storage_key: str
+    original_filename: str
+    content_type: str
+    size_bytes: int
+    sha256: str
+    created_at: datetime
+    deleted_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AuditEventResponse(BaseModel):
+    id: int
+    user_id: Optional[int] = None
+    event_type: str
+    resource_type: Optional[str] = None
+    resource_id: Optional[int] = None
+    detail: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CertificateVerifyResponse(BaseModel):
+    certificate_id: str
+    valid: bool
+    user_name: Optional[str] = None
+    issued_at: Optional[datetime] = None
+    score: Optional[float] = None
+
+
+class CertificateResponse(BaseModel):
+    certificate_id: str
+    user_id: int
+    session_id: int
+    issued_at: datetime
+    revoked_at: Optional[datetime] = None
+    score: float
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdminUserSummary(BaseModel):
@@ -185,6 +279,7 @@ class SpeechAnalysisSubmit(BaseModel):
 
 class PresentationMetricResponse(BaseModel):
     session_id: int
+    artifact_id: Optional[int] = None
     speech_pace_wpm: float
     filler_words_count: int
     filler_words_list: str

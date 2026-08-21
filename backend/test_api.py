@@ -8,6 +8,7 @@ import uuid
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
 
+@unittest.skipUnless(os.getenv("RUN_LIVE_API_TESTS") == "1", "Set RUN_LIVE_API_TESTS=1 with a running API server to execute live smoke tests.")
 class TestLogosAPI(unittest.TestCase):
     session_id = None
     token = None

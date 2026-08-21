@@ -6,6 +6,11 @@ from typing import Any, Dict
 
 import numpy as np
 
+try:
+    from config import settings
+except ImportError:  # pragma: no cover - supports isolated service imports.
+    settings = None
+
 
 FILLER_PHRASES = (
     "you know",
@@ -65,6 +70,26 @@ class SpeechEngine:
             "clarity_score": round(clarity_score, 1),
             "engagement_score": round(engagement_score, 1),
         }
+
+    def transcribe_audio(self, audio_path: str | Path) -> str:
+        """Transcribe audio only when explicitly enabled; return empty text on failure."""
+        if settings is None or settings.TRANSCRIPTION_PROVIDER not in {"openai", "openai-compatible", "llm"}:
+            return ""
+        try:
+            from openai import OpenAI
+
+            client_kwargs = {}
+            if settings.OPENAI_API_KEY:
+                client_kwargs["api_key"] = settings.OPENAI_API_KEY
+            if settings.OPENAI_API_BASE:
+                client_kwargs["base_url"] = settings.OPENAI_API_BASE
+            client = OpenAI(**client_kwargs, timeout=settings.AI_REQUEST_TIMEOUT_SECONDS)
+            with Path(audio_path).open("rb") as audio_handle:
+                response = client.audio.transcriptions.create(model=settings.TRANSCRIPTION_MODEL, file=audio_handle, response_format="text")
+            text = response if isinstance(response, str) else getattr(response, "text", "")
+            return " ".join(str(text).split())
+        except Exception:
+            return ""
 
     def analyze_audio(self, audio_path: str | Path, transcript: str = "") -> Dict[str, Any]:
         """Extract measurable prosody signals from common audio formats.

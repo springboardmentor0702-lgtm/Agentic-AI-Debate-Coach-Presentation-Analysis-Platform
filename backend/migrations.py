@@ -1,10 +1,8 @@
 """Small, dependency-free schema migration runner.
 
-The project intentionally avoids making application startup depend on Alembic. This
-module provides the minimum required version tracking and additive migrations for
-existing deployments, while ``Base.metadata.create_all`` handles a fresh database.
-For larger schema changes, add a new numbered migration function and run it through
-this module or replace it with Alembic without changing the application contract.
+Fresh databases are created from SQLAlchemy metadata and existing installations are
+upgraded with additive, idempotent migrations. For larger future changes this can
+be replaced by Alembic without changing the application contract.
 """
 
 from __future__ import annotations
@@ -15,9 +13,8 @@ from datetime import datetime, timezone
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
-
 LOGGER = logging.getLogger(__name__)
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 
 def _ensure_version_table(engine: Engine) -> None:
@@ -48,14 +45,16 @@ def _add_missing_columns(engine: Engine, table_name: str, columns: dict[str, str
     with engine.begin() as connection:
         for column_name, column_type in columns.items():
             if column_name not in existing:
-                connection.execute(
-                    text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
-                )
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"))
+
+
+def _create_indexes(engine: Engine, statements: tuple[str, ...]) -> None:
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
 
 
 def _migration_1_audio_and_workflow_schema(engine: Engine) -> None:
-    """Add fields/indexes introduced by the persisted audio and coaching workflow."""
-
     _add_missing_columns(
         engine,
         "presentation_metrics",
@@ -66,22 +65,48 @@ def _migration_1_audio_and_workflow_schema(engine: Engine) -> None:
             "average_volume_percent": "FLOAT",
         },
     )
-    with engine.begin() as connection:
-        for statement in (
+    _create_indexes(
+        engine,
+        (
             "CREATE INDEX IF NOT EXISTS ix_debate_sessions_user_id ON debate_sessions (user_id)",
             "CREATE INDEX IF NOT EXISTS ix_simulation_turns_session_id ON simulation_turns (session_id)",
             "CREATE INDEX IF NOT EXISTS ix_notifications_user_id ON notifications (user_id)",
             "CREATE INDEX IF NOT EXISTS ix_coach_feedback_session_id ON coach_feedback (session_id)",
-        ):
-            connection.execute(text(statement))
+        ),
+    )
+
+
+def _migration_2_security_and_workflow_schema(engine: Engine) -> None:
+    """Add security state to users and indexes for new workflow records."""
+    _add_missing_columns(
+        engine,
+        "users",
+        {
+            "is_active": "BOOLEAN NOT NULL DEFAULT TRUE",
+            "failed_login_attempts": "INTEGER NOT NULL DEFAULT 0",
+            "locked_until": "TIMESTAMP",
+            "last_login_at": "TIMESTAMP",
+        },
+    )
+    _create_indexes(
+        engine,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_user_id ON refresh_tokens (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_expires_at ON refresh_tokens (expires_at)",
+            "CREATE INDEX IF NOT EXISTS ix_coach_assignments_coach_id ON coach_assignments (coach_id)",
+            "CREATE INDEX IF NOT EXISTS ix_coach_assignments_learner_id ON coach_assignments (learner_id)",
+            "CREATE INDEX IF NOT EXISTS ix_learning_progress_user_id ON learning_progress (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_uploaded_artifacts_user_id ON uploaded_artifacts (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_certificates_certificate_id ON certificates (certificate_id)",
+        ),
+    )
 
 
 def run_migrations(engine: Engine) -> int:
     """Apply pending migrations and return the resulting schema version."""
-
     _ensure_version_table(engine)
     applied = _applied_versions(engine)
-    migrations = {1: _migration_1_audio_and_workflow_schema}
+    migrations = {1: _migration_1_audio_and_workflow_schema, 2: _migration_2_security_and_workflow_schema}
     for version in range(1, CURRENT_SCHEMA_VERSION + 1):
         if version in applied:
             continue
@@ -100,7 +125,7 @@ def run_migrations(engine: Engine) -> int:
 
 if __name__ == "__main__":
     from database import Base, engine
-    import models  # noqa: F401  Ensures all ORM tables are registered.
+    import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     version = run_migrations(engine)

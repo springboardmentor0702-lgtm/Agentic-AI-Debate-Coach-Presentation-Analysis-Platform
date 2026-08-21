@@ -1,6 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+
+def utc_now_naive() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -19,7 +23,11 @@ class User(Base):
     presentation_domains = Column(String, default="Public Speaking, Keynotes")
     learning_goals = Column(String, default="Reduce filler words, Master counterarguments")
     coaching_preferences = Column(String, default="Real-time alerts, Detailed post-session audits")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True, nullable=False)
+    failed_login_attempts = Column(Integer, default=0, nullable=False)
+    locked_until = Column(DateTime, nullable=True)
+    last_login_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utc_now_naive)
 
     sessions = relationship("DebateSession", back_populates="user")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
@@ -34,6 +42,15 @@ class User(Base):
         foreign_keys="CoachFeedback.coach_id",
         back_populates="coach",
     )
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    assignments_as_coach = relationship(
+        "CoachAssignment", foreign_keys="CoachAssignment.coach_id", back_populates="coach", cascade="all, delete-orphan"
+    )
+    assignments_as_learner = relationship(
+        "CoachAssignment", foreign_keys="CoachAssignment.learner_id", back_populates="learner", cascade="all, delete-orphan"
+    )
+    progress_records = relationship("LearningProgress", back_populates="user", cascade="all, delete-orphan")
+    uploaded_artifacts = relationship("UploadedArtifact", back_populates="user", cascade="all, delete-orphan")
 
 
 class DebateSession(Base):
@@ -46,8 +63,8 @@ class DebateSession(Base):
     format = Column(String, default="AI Simulation")
     assigned_position = Column(String, default="Affirmative")
     status = Column(String, default="Active")
-    scheduled_at = Column(DateTime, default=datetime.utcnow)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    scheduled_at = Column(DateTime, default=utc_now_naive)
+    created_at = Column(DateTime, default=utc_now_naive)
 
     user = relationship("User", back_populates="sessions")
     analyses = relationship("ArgumentAnalysis", back_populates="session", cascade="all, delete-orphan")
@@ -55,6 +72,7 @@ class DebateSession(Base):
     performance_scores = relationship("PerformanceScore", back_populates="session", cascade="all, delete-orphan")
     simulation_turns = relationship("SimulationTurn", back_populates="session", cascade="all, delete-orphan")
     feedback = relationship("CoachFeedback", back_populates="session", cascade="all, delete-orphan")
+    uploaded_artifacts = relationship("UploadedArtifact", back_populates="session", cascade="all, delete-orphan")
 
 
 class ArgumentAnalysis(Base):
@@ -71,7 +89,7 @@ class ArgumentAnalysis(Base):
     relevance_score = Column(Float, default=0.0)
     logical_consistency = Column(Float, default=0.0)
     persuasiveness_score = Column(Float, default=0.0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now_naive)
 
     session = relationship("DebateSession", back_populates="analyses")
     fallacies = relationship("FallacyLog", back_populates="analysis", cascade="all, delete-orphan")
@@ -87,7 +105,7 @@ class FallacyLog(Base):
     fallacy_type = Column(String, nullable=False)
     explanation = Column(Text)
     correction_suggestion = Column(Text)
-    detected_at = Column(DateTime, default=datetime.utcnow)
+    detected_at = Column(DateTime, default=utc_now_naive)
 
     analysis = relationship("ArgumentAnalysis", back_populates="fallacies")
 
@@ -101,7 +119,7 @@ class Counterargument(Base):
     rebuttal_text = Column(Text, nullable=False)
     challenge_question = Column(Text)
     strategy_tip = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now_naive)
 
     analysis = relationship("ArgumentAnalysis", back_populates="counterarguments")
 
@@ -119,7 +137,7 @@ class SimulationTurn(Base):
     fallacies_json = Column(Text, nullable=False, default="[]")
     rebuttal_strength_percent = Column(Float, default=0.0)
     coaching_tip = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now_naive)
 
     session = relationship("DebateSession", back_populates="simulation_turns")
 
@@ -140,7 +158,7 @@ class PresentationMetric(Base):
     pause_count = Column(Integer, nullable=True)
     silence_ratio_percent = Column(Float, nullable=True)
     average_volume_percent = Column(Float, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now_naive)
 
     session = relationship("DebateSession", back_populates="presentation_metrics")
 
@@ -157,7 +175,7 @@ class PerformanceScore(Base):
     rebuttal_effectiveness = Column(Float, default=0.0)
     communication_skills = Column(Float, default=0.0)
     overall_weighted_score = Column(Float, default=0.0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now_naive)
 
     session = relationship("DebateSession", back_populates="performance_scores")
 
@@ -171,7 +189,7 @@ class CoachingPlan(Base):
     targeted_recommendations = Column(Text)
     learning_path_steps = Column(Text)
     progress_status = Column(String, default="In Progress")
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=utc_now_naive)
 
 
 class Notification(Base):
@@ -185,7 +203,7 @@ class Notification(Base):
     is_read = Column(Boolean, default=False, nullable=False)
     source_type = Column(String, nullable=True)
     source_id = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
     read_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="notifications")
@@ -200,7 +218,7 @@ class CoachFeedback(Base):
     learner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     content = Column(Text, nullable=False)
     rating = Column(Float, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     session = relationship("DebateSession", back_populates="feedback")
     coach = relationship("User", foreign_keys=[coach_id], back_populates="feedback_given")
@@ -216,6 +234,79 @@ class AuditEvent(Base):
     resource_type = Column(String, nullable=True)
     resource_id = Column(Integer, nullable=True)
     detail = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     user = relationship("User")
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String, unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    revoked_at = Column(DateTime, nullable=True)
+    replaced_by_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
+    user = relationship("User", back_populates="refresh_tokens")
+
+
+class CoachAssignment(Base):
+    __tablename__ = "coach_assignments"
+    __table_args__ = (UniqueConstraint("coach_id", "learner_id", name="uq_coach_learner_assignment"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    coach_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    learner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    status = Column(String, default="Active", nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
+    updated_at = Column(DateTime, default=utc_now_naive, nullable=False)
+    coach = relationship("User", foreign_keys=[coach_id], back_populates="assignments_as_coach")
+    learner = relationship("User", foreign_keys=[learner_id], back_populates="assignments_as_learner")
+
+
+class LearningProgress(Base):
+    __tablename__ = "learning_progress"
+    __table_args__ = (UniqueConstraint("user_id", "skill", name="uq_learning_progress_user_skill"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    skill = Column(String, nullable=False)
+    score = Column(Float, default=0.0, nullable=False)
+    practice_count = Column(Integer, default=0, nullable=False)
+    streak_days = Column(Integer, default=0, nullable=False)
+    last_practiced_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=utc_now_naive, nullable=False)
+    user = relationship("User", back_populates="progress_records")
+
+
+class UploadedArtifact(Base):
+    __tablename__ = "uploaded_artifacts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    session_id = Column(Integer, ForeignKey("debate_sessions.id"), nullable=True, index=True)
+    storage_key = Column(String, unique=True, nullable=False)
+    original_filename = Column(String, nullable=False)
+    content_type = Column(String, nullable=False)
+    size_bytes = Column(Integer, nullable=False)
+    sha256 = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
+    deleted_at = Column(DateTime, nullable=True)
+    user = relationship("User", back_populates="uploaded_artifacts")
+    session = relationship("DebateSession", back_populates="uploaded_artifacts")
+
+
+class Certificate(Base):
+    __tablename__ = "certificates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    certificate_id = Column(String, unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    session_id = Column(Integer, ForeignKey("debate_sessions.id"), nullable=False, index=True)
+    issued_at = Column(DateTime, default=utc_now_naive, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+    score = Column(Float, nullable=False)
+    user = relationship("User")
+    session = relationship("DebateSession")
