@@ -2,6 +2,14 @@
 
 import { useState } from 'react';
 
+const authHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
 export default function PresentationPage() {
   const [speechText, setSpeechText] = useState(
     "Um, so basically, we believe that AI policy, you know, must be strictly enforced. Uh, without proper controls, like, risks could increase."
@@ -17,7 +25,7 @@ export default function PresentationPage() {
     try {
       const res = await fetch("http://localhost:8000/api/v1/presentation-analysis/evaluate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           session_id: 1,
           speech_text: speechText,
@@ -25,6 +33,7 @@ export default function PresentationPage() {
         })
       });
 
+      if (!res.ok) throw new Error('Unable to analyze the presentation.');
       const data = await res.json();
       setMetrics(data);
     } catch (err) {
@@ -43,7 +52,9 @@ export default function PresentationPage() {
   };
 
   return (
-    <div className="section-container">
+    <div className="watermark-container">
+      <div className="watermark-text" style={{ bottom: '2rem', right: '2rem', left: 'auto', opacity: 0.05, zIndex: -1 }}>RHETORIC</div>
+      <div className="section-container" style={{ position: 'relative', zIndex: 1 }}>
       <div className="badge-red-pill">PROSODY & SPEECH ENGINE</div>
       <h1 className="font-display" style={{ fontSize: '3rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '1rem' }}>
         VOCAL METRICS & PRESENTATION SUITE
@@ -140,6 +151,7 @@ export default function PresentationPage() {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }
