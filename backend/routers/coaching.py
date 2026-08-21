@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+from routers.auth import get_current_user
 from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
@@ -6,7 +7,9 @@ import models, schemas
 router = APIRouter(prefix="/api/v1/coaching", tags=["Recommendation & Coaching Engine"])
 
 @router.get("/plan/{user_id}", response_model=schemas.CoachingPlanResponse)
-def get_coaching_plan(user_id: int, db: Session = Depends(get_db)):
+def get_coaching_plan(user_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only access your own coaching plan.")
     # 1. Fetch recent metrics to make recommendations dynamic
     p_metrics = db.query(models.PresentationMetric).filter(models.PresentationMetric.user_id == user_id).order_by(models.PresentationMetric.id.desc()).limit(5).all()
     scores = db.query(models.PerformanceScore).filter(models.PerformanceScore.user_id == user_id).order_by(models.PerformanceScore.id.desc()).limit(5).all()

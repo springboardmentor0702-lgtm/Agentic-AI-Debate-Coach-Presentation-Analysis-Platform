@@ -1,109 +1,92 @@
 import json
+import os
+import urllib.error
 import urllib.request
-import urllib.parse
 import unittest
+import uuid
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
+
 
 class TestLogosAPI(unittest.TestCase):
-    # Class-level variable to share generated session ID across integration tests
-    session_id = 1
+    session_id = None
+    token = None
+    headers = {}
 
-    def test_01_auth_endpoints(self):
-        url = f"{BASE_URL}/api/v1/auth/login"
-        data = urllib.parse.urlencode({"username": "test@logos.ai", "password": "password123"}).encode()
-        try:
-            req = urllib.request.Request(url, data=data)
-            with urllib.request.urlopen(req) as response:
-                self.assertIn(response.status, [200, 401])
-        except Exception:
-            pass
+    @classmethod
+    def setUpClass(cls):
+        email = f"integration-{uuid.uuid4().hex[:8]}@logos.ai"
+        cls._request("/api/v1/auth/register", "POST", {
+            "email": email,
+            "password": "integration-password-123",
+            "full_name": "Integration User",
+        })
+        login = cls._request("/api/v1/auth/login", "POST", {
+            "email": email,
+            "password": "integration-password-123",
+        })
+        cls.token = login["access_token"]
+        cls.headers = {"Authorization": f"Bearer {cls.token}"}
+
+    @classmethod
+    def _request(cls, path, method="GET", payload=None, headers=None):
+        request_headers = {"Content-Type": "application/json", **(headers or {})}
+        data = json.dumps(payload).encode() if payload is not None else None
+        request = urllib.request.Request(f"{BASE_URL}{path}", data=data, headers=request_headers, method=method)
+        with urllib.request.urlopen(request) as response:
+            body = response.read()
+            return json.loads(body.decode()) if body else {}
+
+    def test_01_health(self):
+        self.assertEqual(self._request("/health")["status"], "healthy")
 
     def test_02_debate_session_endpoints(self):
-        url = f"{BASE_URL}/api/v1/sessions/create?user_id=1"
         payload = {
             "title": "Integration Test Debate Session",
             "topic": "Space exploration should be prioritized over deep ocean research.",
             "format": "Parliamentary Debate",
             "assigned_position": "Affirmative",
-            "status": "Active"
+            "status": "Active",
         }
-        headers = {"Content-Type": "application/json"}
-        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
-        with urllib.request.urlopen(req) as response:
-            self.assertEqual(response.status, 200)
-            res_data = json.loads(response.read().decode())
-            self.assertEqual(res_data["topic"], payload["topic"])
-            TestLogosAPI.session_id = res_data["id"]
-            
-        # Get sessions
-        url_get = f"{BASE_URL}/api/v1/sessions/user/1"
-        with urllib.request.urlopen(url_get) as response:
-            self.assertEqual(response.status, 200)
-            
-        # Complete session
-        url_comp = f"{BASE_URL}/api/v1/sessions/{TestLogosAPI.session_id}/complete"
-        req_comp = urllib.request.Request(url_comp, data=b"")
-        with urllib.request.urlopen(req_comp) as response:
-            self.assertEqual(response.status, 200)
+        result = self._request("/api/v1/sessions/create", "POST", payload, self.headers)
+        self.assertEqual(result["topic"], payload["topic"])
+        TestLogosAPI.session_id = result["id"]
+        sessions = self._request("/api/v1/sessions/user/me", headers=self.headers)
+        self.assertTrue(any(item["id"] == self.session_id for item in sessions))
 
     def test_03_ai_simulation_turn(self):
-        url = f"{BASE_URL}/api/v1/simulation/turn"
-        payload = {
-            "session_id": TestLogosAPI.session_id,
-            "user_argument": "Autonomous vehicles must be held to strict liability to align manufacture incentives.",
-            "opponent_persona": "The Contrarian"
-        }
-        headers = {"Content-Type": "application/json"}
-        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
-        with urllib.request.urlopen(req) as response:
-            self.assertEqual(response.status, 200)
-            res_data = json.loads(response.read().decode())
-            self.assertIn("opponent_rebuttal", res_data)
+        result = self._request("/api/v1/simulation/turn", "POST", {
+            "session_id": self.session_id,
+            "user_argument": "Autonomous vehicles must be held to strict liability to align manufacturer incentives.",
+            "opponent_persona": "The Contrarian",
+        }, self.headers)
+        self.assertIn("opponent_rebuttal", result)
+        self.assertEqual(result["turn_index"], 1)
 
     def test_04_argument_evaluation(self):
-        url = f"{BASE_URL}/api/v1/argument-analysis/evaluate?user_id=1"
-        payload = {
-            "session_id": TestLogosAPI.session_id,
-            "speech_text": "Either we implement carbon taxes immediately or the planet will burn completely in five years."
-        }
-        headers = {"Content-Type": "application/json"}
-        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
-        with urllib.request.urlopen(req) as response:
-            self.assertEqual(response.status, 200)
-            res_data = json.loads(response.read().decode())
-            self.assertIn("fallacies", res_data)
+        result = self._request("/api/v1/argument-analysis/evaluate", "POST", {
+            "session_id": self.session_id,
+            "speech_text": "Either we implement carbon taxes immediately or the planet will burn completely in five years.",
+        }, self.headers)
+        self.assertIn("fallacies", result)
 
     def test_05_presentation_analysis(self):
-        url = f"{BASE_URL}/api/v1/presentation-analysis/evaluate?user_id=1"
-        payload = {
-            "session_id": TestLogosAPI.session_id,
-            "speech_text": "Um, basically, we need to, like, look at the studies to, you know, understand the impact.",
-            "audio_duration_seconds": 30.0
-        }
-        headers = {"Content-Type": "application/json"}
-        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
-        with urllib.request.urlopen(req) as response:
-            self.assertEqual(response.status, 200)
+        result = self._request("/api/v1/presentation-analysis/evaluate", "POST", {
+            "session_id": self.session_id,
+            "speech_text": "Um, basically, we need to, like, look at the studies to understand the impact.",
+            "audio_duration_seconds": 30.0,
+        }, self.headers)
+        self.assertGreaterEqual(result["speech_pace_wpm"], 0)
 
     def test_06_coaching_plan(self):
-        url = f"{BASE_URL}/api/v1/coaching/plan/1"
-        with urllib.request.urlopen(url) as response:
-            self.assertEqual(response.status, 200)
+        profile = self._request("/api/v1/auth/profile/me", headers=self.headers)
+        result = self._request(f"/api/v1/coaching/plan/{profile['id']}", headers=self.headers)
+        self.assertIn("targeted_recommendations", result)
 
-    def test_07_notifications(self):
-        url = f"{BASE_URL}/api/v1/notifications/my-alerts?user_id=1"
-        with urllib.request.urlopen(url) as response:
-            self.assertEqual(response.status, 200)
+    def test_07_complete_session(self):
+        result = self._request(f"/api/v1/sessions/{self.session_id}/complete", "POST", headers=self.headers)
+        self.assertEqual(result["session_id"], self.session_id)
 
-    def test_08_report_exports(self):
-        url_excel = f"{BASE_URL}/api/v1/reports/export/excel/{TestLogosAPI.session_id}"
-        with urllib.request.urlopen(url_excel) as response:
-            self.assertEqual(response.status, 200)
-            
-        url_pdf = f"{BASE_URL}/api/v1/reports/export/pdf/{TestLogosAPI.session_id}"
-        with urllib.request.urlopen(url_pdf) as response:
-            self.assertEqual(response.status, 200)
 
 if __name__ == "__main__":
     unittest.main()

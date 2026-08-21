@@ -2,6 +2,14 @@
 
 import { useState } from 'react';
 
+const authHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
 export default function PresentationPage() {
   const [speechText, setSpeechText] = useState(
     "Um, so basically, we believe that AI policy, you know, must be strictly enforced. Uh, without proper controls, like, risks could increase."
@@ -17,7 +25,7 @@ export default function PresentationPage() {
     try {
       const res = await fetch("http://localhost:8000/api/v1/presentation-analysis/evaluate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           session_id: 1,
           speech_text: speechText,
@@ -25,6 +33,7 @@ export default function PresentationPage() {
         })
       });
 
+      if (!res.ok) throw new Error('Unable to analyze the presentation.');
       const data = await res.json();
       setMetrics(data);
     } catch (err) {

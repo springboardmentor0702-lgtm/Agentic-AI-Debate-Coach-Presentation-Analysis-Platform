@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from 'react';
 
+const authHeaders = (json = false) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
+  return {
+    ...(json ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
 const PRESET_TOPICS = [
   "Autonomous AI Systems should be held legally liable for unintended damages.",
   "Universal Basic Income is essential in an automated economy.",
@@ -57,7 +65,7 @@ export default function SimulationPage() {
     try {
       const res = await fetch("http://localhost:8000/api/v1/sessions/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(true),
         body: JSON.stringify({
           title: `${format} on ${finalTopic.substring(0, 30)}...`,
           topic: finalTopic,
@@ -66,6 +74,7 @@ export default function SimulationPage() {
           status: "Active"
         })
       });
+      if (!res.ok) throw new Error('Unable to create the debate session.');
       const data = await res.json();
       setSessionId(data.id);
 
@@ -112,7 +121,7 @@ export default function SimulationPage() {
       const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
       await fetch("http://localhost:8000/api/v1/sessions/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(true),
         body: JSON.stringify({
           title: `[Practice] ${format} on ${finalTopic.substring(0, 30)}...`,
           topic: finalTopic,
@@ -137,9 +146,11 @@ export default function SimulationPage() {
   const handleCompleteSession = async () => {
     setLoading(true);
     try {
-      await fetch(`http://localhost:8000/api/v1/sessions/${sessionId}/complete`, {
-        method: "POST"
+      const response = await fetch(`http://localhost:8000/api/v1/sessions/${sessionId}/complete`, {
+        method: "POST",
+        headers: authHeaders()
       });
+      if (!response.ok) throw new Error('Unable to complete the debate session.');
       setSessionStatus("Completed");
     } catch (err) {
       setSessionStatus("Completed");
@@ -161,14 +172,15 @@ export default function SimulationPage() {
     try {
       const simRes = await fetch("http://localhost:8000/api/v1/simulation/turn", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(true),
         body: JSON.stringify({
-          session_id: sessionId || 1,
+          session_id: sessionId,
           user_argument: userMsg,
           opponent_persona: persona
         })
       });
 
+      if (!simRes.ok) throw new Error('Unable to process this debate turn.');
       const data = await simRes.json();
 
       setTranscript(prev => [
