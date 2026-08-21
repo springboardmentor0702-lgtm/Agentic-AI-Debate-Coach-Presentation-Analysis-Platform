@@ -32,7 +32,7 @@
 
 ---
 
-## 📂 Folder Structure
+##  📂 Folder Structure
 
 ```
 Agentic-AI-Debate-Coach/
@@ -59,10 +59,10 @@ Agentic-AI-Debate-Coach/
 ## 📋 Prerequisites
 
 Ensure you have the following installed on your machine:
-* [Node.js (v18.x or later)](https://nodejs.org/)
-* [Python (3.10 or later)](https://www.python.org/)
-* [Git](https://git-scm.com/)
-* [PostgreSQL](https://www.postgresql.org/) & [MongoDB](https://www.mongodb.com/) (Optional: SQLite Fallback active by default)
+* Node.js (v18.x or later)
+* Python (3.10 or later)
+* Git
+* PostgreSQL & MongoDB (Optional: SQLite Fallback active by default)
 
 ---
 

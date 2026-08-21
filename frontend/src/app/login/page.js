@@ -99,15 +99,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '85vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', padding: '3rem 1.5rem', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '85vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', fontFamily: "'Inter', sans-serif" }}>
       
       {message && (
-        <div style={{ maxWidth: '440px', width: '100%', marginBottom: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: '12px', fontSize: '0.875rem', fontWeight: 500, background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: message.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`, textAlign: 'center' }}>
+        <div style={{ maxWidth: '440px', width: '100%', marginBottom: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: 0, fontSize: '0.875rem', fontWeight: 500, background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: message.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`, textAlign: 'center' }}>
           {message.text}
         </div>
       )}
 
-      <div style={{ width: '100%', maxWidth: '440px', background: '#FFFFFF', borderRadius: '24px', padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB', position: 'relative' }}>
+      <div style={{ width: '100%', maxWidth: '440px', background: '#FFFFFF', borderRadius: 0, padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB', position: 'relative' }}>
         <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center', color: '#111827' }}>
           Login
         </h2>
@@ -122,15 +122,13 @@ export default function LoginPage() {
               placeholder="Enter your email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
             />
           </div>
 
-          {/* Password */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', justifycontent: 'space-between', marginBottom: '0.4rem' }}>
+            <div style={{ marginBottom: '0.4rem' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Password</label>
-              <a href="#forgot" style={{ fontSize: '0.85rem', color: '#111827', fontWeight: 600 }}>Forgot Password?</a>
             </div>
             <div style={{ position: 'relative' }}>
               <input
@@ -139,7 +137,7 @@ export default function LoginPage() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem 2.8rem 0.85rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                style={{ width: '100%', padding: '0.85rem 2.8rem 0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
               />
               <button 
                 type="button" 
@@ -160,7 +158,7 @@ export default function LoginPage() {
               style={{
                 width: '100%',
                 padding: '0.85rem 3rem 0.85rem 1.25rem',
-                borderRadius: '12px',
+                borderRadius: 0,
                 border: '1px solid #E5E7EB',
                 background: '#FFFFFF',
                 fontSize: '0.9rem',
@@ -199,7 +197,7 @@ export default function LoginPage() {
                   right: 0,
                   background: '#FFFFFF',
                   border: '1px solid #E5E7EB',
-                  borderRadius: '12px',
+                  borderRadius: 0,
                   boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
                   marginTop: '0.5rem',
                   zIndex: 100,
@@ -216,7 +214,7 @@ export default function LoginPage() {
                     }}
                     style={{
                       padding: '0.75rem 1.25rem',
-                      borderRadius: '8px',
+                      borderRadius: 0,
                       fontSize: '0.9rem',
                       color: role === r ? 'var(--accent-red)' : '#374151',
                       background: role === r ? '#FEF2F2' : 'transparent',
@@ -257,21 +255,27 @@ export default function LoginPage() {
           </div>
 
           {/* Login Button */}
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', background: '#18181B', color: '#FFFFFF', border: 'none', fontWeight: 600, cursor: 'pointer', marginBottom: '1rem', fontSize: '0.95rem' }}>
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: 0, background: '#18181B', color: '#FFFFFF', border: 'none', fontWeight: 600, cursor: 'pointer', marginBottom: '1rem', fontSize: '0.95rem' }}>
             {loading ? 'Authenticating...' : 'Login'}
           </button>
 
           {/* Continue with Google */}
-          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifycontent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
+          <button type="button" onClick={handleGoogleOAuth} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFFFFF', color: '#111827', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
             <GoogleLogo /> Continue with Google
           </button>
 
           {/* Sign Up Redirect */}
-          <div style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6B7280' }}>
+          <div style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6B7280', marginBottom: '0.75rem' }}>
             Don't have an account yet?{' '}
             <Link href="/signup" style={{ color: '#111827', fontWeight: 600, textDecoration: 'underline' }}>
               Sign Up
             </Link>
+          </div>
+
+          <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>
+            <a href="#forgot" style={{ color: '#6B7280', fontWeight: 600, textDecoration: 'underline' }}>
+              Forgot Password?
+            </a>
           </div>
         </form>
       </div>
