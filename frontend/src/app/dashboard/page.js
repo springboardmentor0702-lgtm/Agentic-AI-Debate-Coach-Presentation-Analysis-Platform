@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState(null);
   const [profileForm, setProfileForm] = useState({ full_name: '', preferred_topics: '', learning_goals: '', coaching_preferences: '' });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [adminUsers, setAdminUsers] = useState([]);
 
   const load = async (current = user) => {
     if (!current?.user_id) return;
@@ -51,6 +52,10 @@ export default function DashboardPage() {
       if (current.role === 'Learner') {
         const [history, received] = await Promise.all([apiFetch('/sessions/user/me'), apiFetch('/feedback/received')]);
         setSessions(history || []); setFeedback(received || []);
+      }
+      if (current.role === 'Administrator') {
+        const users = await apiFetch('/auth/admin/users');
+        setAdminUsers(users || []);
       }
     } catch (err) {
       if (err.status === 401) { clearAuth(); router.push('/login'); return; }
@@ -77,6 +82,14 @@ export default function DashboardPage() {
       localStorage.setItem('logos_ai_user', JSON.stringify({ ...getStoredUser(), full_name: updated.full_name }));
     } catch (err) { setError(err.message || 'Unable to save profile.'); }
     finally { setSavingProfile(false); }
+  }
+
+  async function changeUserRole(userId, role) {
+    setError('');
+    try {
+      const updated = await apiFetch(`/auth/admin/users/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
+      setAdminUsers(items => items.map(item => item.id === updated.id ? updated : item));
+    } catch (err) { setError(err.message || 'Unable to update the user role.'); }
   }
 
   async function createSession(event) {
@@ -117,6 +130,7 @@ export default function DashboardPage() {
         {user.role === 'Debate Coach' && <><Stat label="Learners" value={staff.assigned_students_count} /><Stat label="Pending evaluations" value={staff.pending_evaluations} /><Stat label="Skill gaps" value={staff.class_skill_gaps?.length || 0} /></>}
         {user.role === 'Educator' && <><Stat label="Active classes" value={staff.active_classes} /><Stat label="Enrolled learners" value={staff.total_enrolled_students} /><Stat label="Class average" value={`${staff.average_class_score}%`} /></>}
         {user.role === 'Administrator' && <><Stat label="Platform users" value={staff.platform_users_total} /><Stat label="Total sessions" value={staff.sessions_total} /><Stat label="Completed sessions" value={staff.completed_sessions_total} /><Stat label="AI provider" value={staff.llm_api_health} /></>}
+        {user.role === 'Administrator' && <div style={{ gridColumn: '1 / -1', background: '#fff', border: '1px solid #e5e7eb', padding: '1.25rem' }}><h2>User role management</h2><p style={{ color: '#71717a' }}>Only administrators can change roles. Your own administrator role cannot be demoted.</p>{adminUsers.map(item => <div key={item.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 180px', gap: '1rem', alignItems: 'center', borderTop: '1px solid #f1f1f4', padding: '.75rem 0' }}><div><strong>{item.full_name}</strong><div style={{ color: '#71717a', fontSize: '.8rem' }}>{item.email}{item.id === user.user_id ? ' · You' : ''}</div></div><select value={item.role} disabled={item.id === user.user_id} onChange={event => changeUserRole(item.id, event.target.value)} style={{ padding: '.55rem', border: '1px solid #d4d4d8', background: item.id === user.user_id ? '#f4f4f5' : '#fff' }}><option>Learner</option><option>Debate Coach</option><option>Educator</option><option>Administrator</option></select></div>)}</div>}
         <div style={{ gridColumn: '1 / -1', background: '#fff', border: '1px solid #e5e7eb', padding: '1.25rem' }}><h2>Operational detail</h2><pre style={{ whiteSpace: 'pre-wrap', color: '#52525b', fontFamily: 'inherit' }}>{JSON.stringify(staff, null, 2)}</pre></div>
       </section>}
     </main>

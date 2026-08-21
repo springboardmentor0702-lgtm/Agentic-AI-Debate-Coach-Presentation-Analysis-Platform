@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
@@ -149,7 +149,7 @@ def _report_lines(data: dict) -> list[str]:
         for item in data["feedback"]:
             rating = f" ({item.rating:.1f}/100)" if item.rating is not None else ""
             lines.append(f"{item.content}{rating}")
-    lines.append(f"Generated at: {datetime.utcnow().isoformat(timespec='seconds')}Z")
+    lines.append(f"Generated at: {datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec='seconds')}Z")
     return lines
 
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -26,7 +26,7 @@ def create_debate_session(
         format=session_data.format or "AI Simulation",
         assigned_position=session_data.assigned_position or "Affirmative",
         status=session_data.status or "Active",
-        scheduled_at=session_data.scheduled_at or datetime.utcnow(),
+        scheduled_at=session_data.scheduled_at or datetime.now(timezone.utc).replace(tzinfo=None),
     )
     db.add(debate_session)
     db.commit()

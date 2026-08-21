@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from database import Base, SessionLocal, engine, ensure_schema_compatibility
+from database import Base, SessionLocal, engine
+from migrations import run_migrations
 import models
 
 from routers import (
@@ -26,7 +27,7 @@ from routers import (
 
 settings.validate()
 Base.metadata.create_all(bind=engine)
-ensure_schema_compatibility()
+run_migrations(engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

@@ -17,6 +17,7 @@ from main import app
 from database import SessionLocal
 import models
 from services.ai_engine import AIEngine
+from migrations import CURRENT_SCHEMA_VERSION, run_migrations
 
 
 class BackendAndAIIntegrationTests(unittest.TestCase):
@@ -193,6 +194,30 @@ class BackendAndAIIntegrationTests(unittest.TestCase):
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "healthy")
+
+    def test_schema_migrations_are_versioned_and_idempotent(self):
+        self.assertEqual(run_migrations(__import__("database").engine), CURRENT_SCHEMA_VERSION)
+        self.assertEqual(run_migrations(__import__("database").engine), CURRENT_SCHEMA_VERSION)
+
+    def test_admin_user_management_is_protected_and_safe(self):
+        db = SessionLocal()
+        try:
+            current_user = db.query(models.User).filter(models.User.id == self.user_id).first()
+            current_user.role = "Administrator"
+            db.commit()
+        finally:
+            db.close()
+
+        listed = self.client.get("/api/v1/auth/admin/users", headers=self.headers)
+        self.assertEqual(listed.status_code, 200, listed.text)
+        self.assertTrue(all("hashed_password" not in user for user in listed.json()))
+
+        demote_self = self.client.patch(
+            f"/api/v1/auth/admin/users/{self.user_id}/role",
+            headers=self.headers,
+            json={"role": "Learner"},
+        )
+        self.assertEqual(demote_self.status_code, 400)
 
 
 if __name__ == "__main__":

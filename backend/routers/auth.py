@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Body, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -37,7 +37,7 @@ def verify_password(password: str, stored_hash: str) -> bool:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     expire = now + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     claims = {**data, "exp": expire, "iat": now}
     return jwt.encode(claims, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -74,6 +74,46 @@ def require_role(allowed_roles: List[str]):
         return current_user
 
     return role_checker
+
+
+@router.get("/admin/users", response_model=List[schemas.AdminUserSummary])
+def list_users(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    current_user: models.User = Depends(require_role(["Administrator"])),
+    db: Session = Depends(get_db),
+):
+    """List users without exposing password hashes; restricted to administrators."""
+    return (
+        db.query(models.User)
+        .order_by(models.User.created_at.desc(), models.User.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+
+@router.patch("/admin/users/{user_id}/role", response_model=schemas.AdminUserSummary)
+def update_user_role(
+    user_id: int,
+    payload: schemas.AdminRoleUpdate,
+    current_user: models.User = Depends(require_role(["Administrator"])),
+    db: Session = Depends(get_db),
+):
+    """Change a user role while preventing accidental loss of the final administrator."""
+    target = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User was not found.")
+    if target.id == current_user.id and payload.role != "Administrator":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="An administrator cannot demote their own account.")
+    if target.role == "Administrator" and payload.role != "Administrator":
+        administrator_count = db.query(models.User).filter(models.User.role == "Administrator").count()
+        if administrator_count <= 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The final administrator cannot be demoted.")
+    target.role = payload.role
+    db.commit()
+    db.refresh(target)
+    return target
 
 
 def _token_for_user(user: models.User) -> dict:

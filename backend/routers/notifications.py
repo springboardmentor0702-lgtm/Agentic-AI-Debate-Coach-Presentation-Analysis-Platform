@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -40,7 +40,7 @@ def _ensure_notification(
 
 
 def _materialize_system_notifications(db: Session, user: models.User) -> None:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     scheduled = (
         db.query(models.DebateSession)
         .filter(
@@ -151,7 +151,7 @@ def mark_notification_as_read(
     if not notification:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found.")
     notification.is_read = True
-    notification.read_at = datetime.utcnow()
+    notification.read_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     db.refresh(notification)
     return {"id": notification.id, "read": notification.is_read, "read_at": notification.read_at}
@@ -165,7 +165,7 @@ def mark_all_notifications_as_read(
     updated = (
         db.query(models.Notification)
         .filter(models.Notification.user_id == current_user.id, models.Notification.is_read.is_(False))
-        .update({"is_read": True, "read_at": datetime.utcnow()}, synchronize_session=False)
+        .update({"is_read": True, "read_at": datetime.now(timezone.utc).replace(tzinfo=None)}, synchronize_session=False)
     )
     db.commit()
     return {"updated": updated}

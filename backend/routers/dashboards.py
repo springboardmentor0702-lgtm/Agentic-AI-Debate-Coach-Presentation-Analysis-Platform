@@ -18,7 +18,7 @@ def _require_self(user_id: int, current_user: models.User) -> None:
 @router.get("/learner/{user_id}", response_model=schemas.LearnerDashboardResponse)
 def get_learner_dashboard(
     user_id: int,
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_role(["Learner"])),
     db: Session = Depends(get_db),
 ):
     _require_self(user_id, current_user)

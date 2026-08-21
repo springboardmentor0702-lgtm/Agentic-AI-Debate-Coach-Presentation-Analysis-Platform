@@ -60,6 +60,29 @@ class UserProfileUpdate(BaseModel):
         return value
 
 
+class AdminRoleUpdate(BaseModel):
+    role: str = Field(min_length=1, max_length=40)
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, value: str) -> str:
+        value = value.strip()
+        allowed = {"Learner", "Debate Coach", "Educator", "Administrator"}
+        if value not in allowed:
+            raise ValueError("Unsupported role.")
+        return value
+
+
+class AdminUserSummary(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    role: str
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserProfileResponse(BaseModel):
     id: int
     email: str
