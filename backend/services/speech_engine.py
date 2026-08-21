@@ -1,5 +1,10 @@
+import json
 import re
+import subprocess
+from pathlib import Path
 from typing import Any, Dict
+
+import numpy as np
 
 
 FILLER_PHRASES = (
@@ -60,6 +65,76 @@ class SpeechEngine:
             "clarity_score": round(clarity_score, 1),
             "engagement_score": round(engagement_score, 1),
         }
+
+    def analyze_audio(self, audio_path: str | Path, transcript: str = "") -> Dict[str, Any]:
+        """Extract measurable prosody signals from common audio formats.
+
+        Transcription remains optional: when supplied, transcript metrics are combined
+        with measured duration; otherwise the response still reports real audio signals.
+        """
+        path = Path(audio_path)
+        if not path.exists() or path.stat().st_size == 0:
+            raise ValueError("Audio file is missing or empty.")
+        try:
+            probe = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", str(path)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            duration = float(json.loads(probe.stdout)["format"]["duration"])
+            pcm = subprocess.run(
+                ["ffmpeg", "-v", "error", "-i", str(path), "-f", "s16le", "-ac", "1", "-ar", "16000", "pipe:1"],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            ).stdout
+        except (subprocess.SubprocessError, KeyError, ValueError, json.JSONDecodeError) as exc:
+            raise ValueError("Audio could not be decoded. Use a valid WAV, MP3, M4A, or WebM file.") from exc
+        if duration <= 0 or not pcm:
+            raise ValueError("Audio duration must be greater than zero.")
+
+        samples = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+        frame_size = 1600  # 100 ms at 16 kHz
+        frame_count = max(1, len(samples) // frame_size)
+        trimmed = samples[: frame_count * frame_size]
+        frames = trimmed.reshape(frame_count, frame_size)
+        rms = np.sqrt(np.mean(np.square(frames), axis=1))
+        threshold = max(0.008, float(np.percentile(rms, 25)) * 1.5)
+        silent = rms < threshold
+        silence_ratio = float(np.mean(silent))
+        pause_count = 0
+        run = 0
+        for is_silent in silent:
+            if is_silent:
+                run += 1
+            elif run >= 3:
+                pause_count += 1
+                run = 0
+            else:
+                run = 0
+        if run >= 3:
+            pause_count += 1
+        average_volume = float(np.mean(np.abs(samples)))
+        audio_metrics = {
+            "duration_seconds": round(duration, 2),
+            "pause_count": pause_count,
+            "silence_ratio_percent": round(silence_ratio * 100, 1),
+            "average_volume_percent": round(min(100.0, average_volume * 150.0), 1),
+        }
+        if transcript.strip():
+            audio_metrics.update(self.analyze_speech(transcript, duration))
+        else:
+            audio_metrics.update({
+                "speech_pace_wpm": 0.0,
+                "filler_words_count": 0,
+                "filler_words_list": "Transcript not supplied",
+                "confidence_score": round(max(30.0, min(99.0, 92.0 - silence_ratio * 35.0)), 1),
+                "clarity_score": round(max(30.0, min(99.0, 90.0 - silence_ratio * 30.0)), 1),
+                "engagement_score": round(max(40.0, min(98.0, 78.0 + min(12.0, average_volume * 80.0) - pause_count * 1.5)), 1),
+            })
+        return audio_metrics
 
 
 speech_engine_service = SpeechEngine()

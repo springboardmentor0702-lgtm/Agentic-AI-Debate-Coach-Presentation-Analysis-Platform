@@ -1,4 +1,6 @@
 import os
+import io
+import struct
 import unittest
 from pathlib import Path
 
@@ -79,6 +81,71 @@ class BackendAndAIIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(speech_response.status_code, 200, speech_response.text)
         self.assertGreaterEqual(speech_response.json()["speech_pace_wpm"], 0)
+
+    def test_audio_upload_analysis_returns_real_signal_metrics(self):
+        session_response = self.client.post(
+            "/api/v1/sessions/create",
+            headers=self.headers,
+            json={"title": "Audio analysis", "topic": "Speech analytics"},
+        )
+        self.assertEqual(session_response.status_code, 200, session_response.text)
+        session_id = session_response.json()["id"]
+        sample_rate = 16000
+        samples = []
+        for index in range(sample_rate):
+            amplitude = 12000 if index < sample_rate // 2 else 0
+            samples.append(struct.pack("<h", amplitude if index % 80 < 40 else -amplitude))
+        audio = io.BytesIO()
+        import wave
+        with wave.open(audio, "wb") as wav:
+            wav.setnchannels(1); wav.setsampwidth(2); wav.setframerate(sample_rate); wav.writeframes(b"".join(samples))
+        response = self.client.post(
+            "/api/v1/presentation-analysis/analyze-audio",
+            headers=self.headers,
+            data={"session_id": str(session_id), "transcript": "This is a clear argument."},
+            files={"audio_file": ("speech.wav", audio.getvalue(), "audio/wav")},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertGreater(response.json()["duration_seconds"], 0)
+        self.assertIn("pause_count", response.json())
+        self.assertIn("average_volume_percent", response.json())
+        db = SessionLocal()
+        try:
+            metric = (
+                db.query(models.PresentationMetric)
+                .filter(models.PresentationMetric.session_id == session_id)
+                .order_by(models.PresentationMetric.id.desc())
+                .first()
+            )
+            self.assertIsNotNone(metric)
+            self.assertGreater(metric.duration_seconds, 0)
+            self.assertIsNotNone(metric.pause_count)
+        finally:
+            db.close()
+
+    def test_public_registration_cannot_self_assign_privileged_role(self):
+        response = self.client.post(
+            "/api/v1/auth/register",
+            json={"email": "admin-attempt@example.com", "password": "strong-pass-789", "full_name": "Role Test", "role": "Administrator"},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["role"], "Learner")
+
+    def test_report_exports_are_authenticated_and_nonempty(self):
+        session_response = self.client.post(
+            "/api/v1/sessions/create",
+            headers=self.headers,
+            json={"title": "Report", "topic": "Export quality"},
+        )
+        session_id = session_response.json()["id"]
+        summary = self.client.get(f"/api/v1/reports/export/summary/{session_id}", headers=self.headers)
+        pdf = self.client.get(f"/api/v1/reports/export/pdf/{session_id}", headers=self.headers)
+        excel = self.client.get(f"/api/v1/reports/export/excel/{session_id}", headers=self.headers)
+        self.assertEqual(summary.status_code, 200, summary.text)
+        self.assertEqual(pdf.status_code, 200, pdf.text)
+        self.assertEqual(excel.status_code, 200, excel.text)
+        self.assertTrue(pdf.content.startswith(b"%PDF"))
+        self.assertGreater(len(excel.content), 100)
 
     def test_simulation_turns_are_persisted_and_indexed(self):
         session_response = self.client.post(

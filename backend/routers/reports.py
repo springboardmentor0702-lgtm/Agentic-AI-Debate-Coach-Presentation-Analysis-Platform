@@ -1,210 +1,282 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy.orm import Session
-from database import get_db
-import models
+import csv
 import io
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.orm import Session
+
+import models
+from database import get_db
+from routers.auth import get_current_user
+from routers.coaching import build_coaching_plan
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports & Export System"])
 
-def generate_pdf_bytes(title: str, content_lines: list) -> bytes:
-    # Minimal pure-python compliant PDF-1.4 writer
-    stream = []
-    # Title formatting
-    stream.append(b"BT\n/F1 20 Tf\n50 780 Td\n(" + title.encode('utf-8', 'ignore') + b") Tj\n")
-    stream.append(b"0 -35 Td\n/F1 10 Tf\n")
-    
-    # Render line by line
+
+def _owned_session(session_id: int, user: models.User, db: Session) -> models.DebateSession:
+    session = (
+        db.query(models.DebateSession)
+        .filter(models.DebateSession.id == session_id, models.DebateSession.user_id == user.id)
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debate session not found.")
+    return session
+
+
+def _session_data(session_id: int, user: models.User, db: Session) -> dict:
+    session = _owned_session(session_id, user, db)
+    score = (
+        db.query(models.PerformanceScore)
+        .filter(models.PerformanceScore.session_id == session.id, models.PerformanceScore.user_id == user.id)
+        .order_by(models.PerformanceScore.created_at.desc())
+        .first()
+    )
+    metric = (
+        db.query(models.PresentationMetric)
+        .filter(models.PresentationMetric.session_id == session.id, models.PresentationMetric.user_id == user.id)
+        .order_by(models.PresentationMetric.created_at.desc())
+        .first()
+    )
+    analyses = (
+        db.query(models.ArgumentAnalysis)
+        .filter(models.ArgumentAnalysis.session_id == session.id, models.ArgumentAnalysis.user_id == user.id)
+        .order_by(models.ArgumentAnalysis.created_at.asc())
+        .all()
+    )
+    turns = (
+        db.query(models.SimulationTurn)
+        .filter(models.SimulationTurn.session_id == session.id, models.SimulationTurn.user_id == user.id)
+        .order_by(models.SimulationTurn.turn_index.asc())
+        .all()
+    )
+    feedback = (
+        db.query(models.CoachFeedback)
+        .filter(models.CoachFeedback.session_id == session.id, models.CoachFeedback.learner_id == user.id)
+        .order_by(models.CoachFeedback.created_at.desc())
+        .all()
+    )
+    fallacies = [fallacy.fallacy_type for analysis in analyses for fallacy in analysis.fallacies]
+    return {
+        "session": session,
+        "score": score,
+        "metric": metric,
+        "analyses": analyses,
+        "turns": turns,
+        "feedback": feedback,
+        "fallacies": fallacies,
+    }
+
+
+def _pdf_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def generate_pdf_bytes(title: str, content_lines: list[str]) -> bytes:
+    # Small dependency-free PDF writer for text reports.
+    stream = ["BT", "/F1 16 Tf", "50 790 Td", f"({_pdf_escape(title)}) Tj", "/F1 10 Tf"]
     for line in content_lines:
-        escaped_line = line.replace('(', '\\(').replace(')', '\\)').encode('utf-8', 'ignore')
-        stream.append(b"0 -18 Td\n(" + escaped_line + b") Tj\n")
-    stream.append(b"ET\n")
-    stream_bytes = b"".join(stream)
-    
-    content_obj = f"<< /Length {len(stream_bytes)} >>\nstream\n".encode() + stream_bytes + b"\nendstream"
-    
-    objects_map = [
-        (1, b"<< /Type /Catalog /Pages 3 0 R >>"),
-        (2, b"<< /Type /Outlines /Count 0 >>"),
-        (3, b"<< /Type /Pages /Kids [ 4 0 R ] /Count 1 >>"),
-        (4, b"<< /Type /Page /Parent 3 0 R /MediaBox [ 0 0 595 842 ] /Contents 5 0 R /Resources << /Font << /F1 6 0 R >> >> >>"),
-        (5, content_obj),
-        (6, b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+        stream.extend(["0 -18 Td", f"({_pdf_escape(line[:160])}) Tj"])
+    stream.append("ET")
+    content = "\n".join(stream).encode("latin-1", "replace")
+    objects = [
+        b"<< /Type /Catalog /Pages 3 0 R >>",
+        b"<< /Type /Outlines /Count 0 >>",
+        b"<< /Type /Pages /Kids [4 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 3 0 R /MediaBox [0 0 595 842] /Contents 5 0 R /Resources << /Font << /F1 6 0 R >> >> >>",
+        b"<< /Length " + str(len(content)).encode() + b" >>\nstream\n" + content + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     ]
-    
-    offsets = {}
-    current_offset = len(b"%PDF-1.4\n")
-    pdf_body = [b"%PDF-1.4\n"]
-    
-    for obj_id, data in objects_map:
-        offsets[obj_id] = current_offset
-        obj_header = f"{obj_id} 0 obj\n".encode()
-        obj_footer = b"\nendobj\n"
-        full_obj = obj_header + data + obj_footer
-        pdf_body.append(full_obj)
-        current_offset += len(full_obj)
-        
-    xref_offset = current_offset
-    pdf_body.append(b"xref\n")
-    pdf_body.append(f"0 {len(objects_map) + 1}\n".encode())
-    pdf_body.append(b"0000000000 65535 f \n")
-    for obj_id in range(1, len(objects_map) + 1):
-        pdf_body.append(f"{offsets[obj_id]:010d} 00000 n \n".encode())
-        
-    pdf_body.append(b"trailer\n")
-    pdf_body.append(f"<< /Size {len(objects_map) + 1} /Root 1 0 R >>\n".encode())
-    pdf_body.append(b"startxref\n")
-    pdf_body.append(f"{xref_offset}\n".encode())
-    pdf_body.append(b"%%EOF\n")
-    
-    return b"".join(pdf_body)
+    body = [b"%PDF-1.4\n"]
+    offsets = [0]
+    current = len(body[0])
+    for index, obj in enumerate(objects, 1):
+        offsets.append(current)
+        block = f"{index} 0 obj\n".encode() + obj + b"\nendobj\n"
+        body.append(block)
+        current += len(block)
+    xref_offset = current
+    body.append(b"xref\n0 7\n0000000000 65535 f \n")
+    body.extend(f"{offset:010d} 00000 n \n".encode() for offset in offsets[1:])
+    body.extend([
+        b"trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n",
+        str(xref_offset).encode(),
+        b"\n%%EOF\n",
+    ])
+    return b"".join(body)
+
+
+def _report_lines(data: dict) -> list[str]:
+    session = data["session"]
+    score = data["score"]
+    metric = data["metric"]
+    lines = [
+        "DEBATE SESSION",
+        f"Topic: {session.topic}",
+        f"Title: {session.title}",
+        f"Format: {session.format} | Position: {session.assigned_position}",
+        f"Status: {session.status}",
+        "",
+        "PERFORMANCE SCORE",
+        f"Overall weighted score: {score.overall_weighted_score:.2f}%" if score else "Overall weighted score: Not scored",
+        f"Argument quality: {score.argument_quality:.2f}%" if score else "Argument quality: Not scored",
+        f"Evidence use: {score.evidence_use:.2f}%" if score else "Evidence use: Not scored",
+        f"Logical consistency: {score.logical_consistency:.2f}%" if score else "Logical consistency: Not scored",
+        f"Rebuttal effectiveness: {score.rebuttal_effectiveness:.2f}%" if score else "Rebuttal effectiveness: Not scored",
+        f"Communication skills: {score.communication_skills:.2f}%" if score else "Communication skills: Not scored",
+        "",
+        "PRESENTATION METRICS",
+        f"Speaking pace: {metric.speech_pace_wpm:.2f} WPM" if metric else "Speaking pace: Not analyzed",
+        f"Filler words: {metric.filler_words_count}" if metric else "Filler words: Not analyzed",
+        f"Clarity: {metric.clarity_score:.2f}%" if metric else "Clarity: Not analyzed",
+        f"Confidence: {metric.confidence_score:.2f}%" if metric else "Confidence: Not analyzed",
+        f"Engagement: {metric.engagement_score:.2f}%" if metric else "Engagement: Not analyzed",
+        "",
+        "FALLACIES DETECTED",
+        ", ".join(data["fallacies"]) if data["fallacies"] else "None recorded",
+        "",
+        "SIMULATION TURNS",
+    ]
+    for turn in data["turns"]:
+        lines.extend([
+            f"Turn {turn.turn_index} // {turn.opponent_persona}",
+            f"User argument: {turn.user_argument}",
+            f"Opponent rebuttal: {turn.opponent_rebuttal}",
+            f"Rebuttal strength: {turn.rebuttal_strength_percent:.1f}% | Coaching: {turn.coaching_tip}",
+        ])
+    if data["feedback"]:
+        lines.extend(["", "COACH FEEDBACK"])
+        for item in data["feedback"]:
+            rating = f" ({item.rating:.1f}/100)" if item.rating is not None else ""
+            lines.append(f"{item.content}{rating}")
+    lines.append(f"Generated at: {datetime.utcnow().isoformat(timespec='seconds')}Z")
+    return lines
+
 
 @router.get("/export/pdf/{session_id}")
-def export_pdf_report(session_id: int, db: Session = Depends(get_db)):
-    session = db.query(models.DebateSession).filter(models.DebateSession.id == session_id).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Debate session not found.")
-        
-    score = db.query(models.PerformanceScore).filter(models.PerformanceScore.session_id == session_id).first()
-    metric = db.query(models.PresentationMetric).filter(models.PresentationMetric.session_id == session_id).first()
-    
-    # Fallback default values if DB entry score is missing
-    score_val = score.overall_weighted_score if score else 84.2
-    arg_val = score.argument_quality if score else 85.0
-    evid_val = score.evidence_use if score else 80.0
-    logic_val = score.logical_consistency if score else 88.5
-    rebut_val = score.rebuttal_effectiveness if score else 82.0
-    comms_val = score.communication_skills if score else 85.0
-    
-    wpm_val = metric.speech_pace_wpm if metric else 142.0
-    fillers_val = metric.filler_words_count if metric else 3
-    clarity_val = metric.clarity_score if metric else 85.0
-    conf_val = metric.confidence_score if metric else 88.0
-    engage_val = metric.engagement_score if metric else 84.0
-    
-    lines = [
-        f"------------------------------------------------------------------------------------------------",
-        f"DEBATE PROPERTIES",
-        f"  Topic: {session.topic[:65]}",
-        f"  Format: {session.format} | Position: {session.assigned_position}",
-        f"  Session Status: {session.status}",
-        f"------------------------------------------------------------------------------------------------",
-        f"WEIGHTED PERFORMANCE SCORE REPORT",
-        f"  Overall Weighted Debate Rating: {score_val}%",
-        f"  - Argument Quality (30% weight): {arg_val}%",
-        f"  - Evidence Usage (20% weight): {evid_val}%",
-        f"  - Logical Consistency (20% weight): {logic_val}%",
-        f"  - Rebuttal Effectiveness (15% weight): {rebut_val}%",
-        f"  - Communication Skills (15% weight): {comms_val}%",
-        f"------------------------------------------------------------------------------------------------",
-        f"PRESENTATION & SPEECH PROSODY ASSESSMENT",
-        f"  - Speaking Pacing: {wpm_val} Words Per Minute",
-        f"  - Vocal Filler Count: {fillers_val} fillers flagged",
-        f"  - Speech Clarity Score: {clarity_val}%",
-        f"  - Speaker Confidence Rating: {conf_val}%",
-        f"  - Audience Engagement Score: {engage_val}%",
-        f"------------------------------------------------------------------------------------------------",
-        f"COACHING INSIGHTS & LEARNING PATH",
-        f"  - Priority Action: Avoid circular logic and Socratic fallacy gaps.",
-        f"  - Recommended drill: Pacing calibration exercises at 140 WPM.",
-        f"------------------------------------------------------------------------------------------------",
-        f"Generated by Logos.AI. Certification ID: CERT-LOGOS-{session_id}-2026",
-    ]
-    
-    pdf_data = generate_pdf_bytes(f"LOGOS.AI ASSESSMENT REPORT // SESSION {session_id}", lines)
-    
+def export_pdf_report(
+    session_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    data = _session_data(session_id, current_user, db)
     return Response(
-        content=pdf_data,
+        content=generate_pdf_bytes(f"LOGOS.AI ASSESSMENT REPORT // SESSION {session_id}", _report_lines(data)),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=logos_ai_session_{session_id}_assessment.pdf"}
+        headers={"Content-Disposition": f"attachment; filename=logos_ai_session_{session_id}_assessment.pdf"},
     )
+
 
 @router.get("/export/excel/{session_id}")
-def export_excel_report(session_id: int, db: Session = Depends(get_db)):
-    session = db.query(models.DebateSession).filter(models.DebateSession.id == session_id).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Debate session not found.")
-        
-    score = db.query(models.PerformanceScore).filter(models.PerformanceScore.session_id == session_id).first()
-    metric = db.query(models.PresentationMetric).filter(models.PresentationMetric.session_id == session_id).first()
-    
-    score_val = score.overall_weighted_score if score else 84.2
-    arg_val = score.argument_quality if score else 85.0
-    evid_val = score.evidence_use if score else 80.0
-    logic_val = score.logical_consistency if score else 88.5
-    rebut_val = score.rebuttal_effectiveness if score else 82.0
-    comms_val = score.communication_skills if score else 85.0
-    
-    wpm_val = metric.speech_pace_wpm if metric else 142.0
-    fillers_val = metric.filler_words_count if metric else 3
-    
-    # Excel-compatible CSV layout (comma separated value format)
-    csv_content = f"LOGOS.AI SESSION METRIC REPORT\n" \
-                  f"Session ID,{session_id}\n" \
-                  f"Topic,\"{session.topic}\"\n" \
-                  f"Format,{session.format}\n" \
-                  f"Position,{session.assigned_position}\n" \
-                  f"Status,{session.status}\n\n" \
-                  f"Metric Category,Performance Score,Weight Percentage,Audited Notes\n" \
-                  f"Argument Quality,{arg_val},30%,Isolated claims correctly structured\n" \
-                  f"Evidence Use,{evid_val},20%,Audited factual source reference count\n" \
-                  f"Logical Consistency,{logic_val},20%,No fallacy traps triggered\n" \
-                  f"Rebuttal Effectiveness,{rebut_val},15%,Addressed cross-fire challenges\n" \
-                  f"Communication Skills,{comms_val},15%,Speaking clarity rate\n" \
-                  f"Overall Weighted Score,{score_val},100%,Weighted performance summary\n\n" \
-                  f"Speech Pace (WPM),{wpm_val},N/A,Words Per Minute\n" \
-                  f"Filler Words Count,{fillers_val},N/A,Total verbal pause counts\n"
-                  
+def export_excel_report(
+    session_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    data = _session_data(session_id, current_user, db)
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail="XLSX export dependency is not installed.") from exc
+
+    session, score, metric = data["session"], data["score"], data["metric"]
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Session Report"
+    sheet.append(["LOGOS.AI SESSION REPORT"])
+    sheet["A1"].font = Font(bold=True, size=14)
+    sheet.append(["Session ID", session.id])
+    sheet.append(["Topic", session.topic])
+    sheet.append(["Title", session.title])
+    sheet.append(["Format", session.format])
+    sheet.append(["Position", session.assigned_position])
+    sheet.append(["Status", session.status])
+    sheet.append([])
+    sheet.append(["Metric", "Value", "Weight"])
+    if score:
+        for label, value, weight in [
+            ("Argument quality", score.argument_quality, "30%"),
+            ("Evidence use", score.evidence_use, "20%"),
+            ("Logical consistency", score.logical_consistency, "20%"),
+            ("Rebuttal effectiveness", score.rebuttal_effectiveness, "15%"),
+            ("Communication skills", score.communication_skills, "15%"),
+            ("Overall weighted score", score.overall_weighted_score, "100%"),
+        ]:
+            sheet.append([label, value, weight])
+    if metric:
+        sheet.append(["Speaking pace (WPM)", metric.speech_pace_wpm, "N/A"])
+        sheet.append(["Filler words", metric.filler_words_count, "N/A"])
+        sheet.append(["Clarity", metric.clarity_score, "N/A"])
+        sheet.append(["Confidence", metric.confidence_score, "N/A"])
+        sheet.append(["Engagement", metric.engagement_score, "N/A"])
+    turns_sheet = workbook.create_sheet("Simulation Turns")
+    turns_sheet.append(["Turn", "Persona", "User argument", "Opponent rebuttal", "Strength", "Coaching tip"])
+    for turn in data["turns"]:
+        turns_sheet.append([turn.turn_index, turn.opponent_persona, turn.user_argument, turn.opponent_rebuttal, turn.rebuttal_strength_percent, turn.coaching_tip])
+    feedback_sheet = workbook.create_sheet("Coach Feedback")
+    feedback_sheet.append(["Coach ID", "Rating", "Feedback", "Created at"])
+    for item in data["feedback"]:
+        feedback_sheet.append([item.coach_id, item.rating, item.content, item.created_at.isoformat() if item.created_at else ""])
+    for current_sheet in workbook.worksheets:
+        for column in current_sheet.columns:
+            current_sheet.column_dimensions[column[0].column_letter].width = min(max(len(str(cell.value or "")) for cell in column) + 2, 60)
+    output = io.BytesIO()
+    workbook.save(output)
     return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=logos_ai_session_{session_id}_matrix.csv"}
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=logos_ai_session_{session_id}_report.xlsx"},
     )
+
 
 @router.get("/export/coaching/pdf/{user_id}")
-def export_coaching_pdf_report(user_id: int, db: Session = Depends(get_db)):
-    from datetime import datetime
-    from routers.coaching import get_coaching_plan
-    plan = get_coaching_plan(user_id, db)
-    
+def export_coaching_pdf_report(
+    user_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only export your own coaching plan.")
+    plan = build_coaching_plan(current_user.id, db)
     lines = [
-        f"------------------------------------------------------------------------------------------------",
-        f"COACHING PROFILE & PROGRESS SUMMARY",
-        f"  User ID: {user_id} | Status: {plan['progress_status']}",
-        f"------------------------------------------------------------------------------------------------",
-        f"SKILL GAP ANALYSIS",
-        f"  {plan['skill_gap_summary']}",
-        f"------------------------------------------------------------------------------------------------",
-        f"TARGETED IMPROVEMENT RECOMMENDATIONS",
+        "COACHING PROFILE & PROGRESS SUMMARY",
+        f"User: {current_user.full_name}",
+        f"Status: {plan['progress_status']}",
+        "",
+        "SKILL GAP ANALYSIS",
+        plan["skill_gap_summary"],
+        "",
+        "TARGETED RECOMMENDATIONS",
+        *[f"- {recommendation}" for recommendation in plan["targeted_recommendations"]],
+        "",
+        "LEARNING PATH",
+        *[f"- {step}" for step in plan["learning_path_steps"]],
     ]
-    for idx, rec in enumerate(plan['targeted_recommendations']):
-        lines.append(f"  {idx+1}. {rec}")
-        
-    lines.append(f"------------------------------------------------------------------------------------------------")
-    lines.append(f"DYNAMIC LEARNING PATH STEPS")
-    for idx, step in enumerate(plan['learning_path_steps']):
-        lines.append(f"  {idx+1}. {step}")
-        
-    lines.append(f"------------------------------------------------------------------------------------------------")
-    lines.append(f"Generated by Logos.AI Coaching Engine. Date: {datetime.utcnow().strftime('%Y-%m-%d')}")
-    
-    pdf_data = generate_pdf_bytes(f"LOGOS.AI DYNAMIC COACHING & LEARNING PROGRESS REPORT", lines)
-    
     return Response(
-        content=pdf_data,
+        content=generate_pdf_bytes("LOGOS.AI COACHING PROGRESS REPORT", lines),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=logos_ai_user_{user_id}_coaching_plan.pdf"}
+        headers={"Content-Disposition": f"attachment; filename=logos_ai_user_{user_id}_coaching_plan.pdf"},
     )
 
+
 @router.get("/export/summary/{session_id}")
-def get_session_summary_report(session_id: int):
+def get_session_summary_report(
+    session_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    data = _session_data(session_id, current_user, db)
+    score, metric = data["score"], data["metric"]
     return {
         "platform": "LOGOS.AI",
         "session_id": session_id,
-        "title": "High-Stakes AI Debate Simulation",
-        "weighted_performance_score": 84.2,
-        "fallacies_detected": ["None"],
-        "speech_pace": "142 WPM (Optimal)",
-        "filler_words_count": 2,
-        "certificate_id": f"CERT-LOGOS-{session_id}-2026"
+        "title": data["session"].title,
+        "topic": data["session"].topic,
+        "status": data["session"].status,
+        "weighted_performance_score": score.overall_weighted_score if score else None,
+        "fallacies_detected": sorted(set(data["fallacies"])),
+        "speech_pace_wpm": metric.speech_pace_wpm if metric else None,
+        "filler_words_count": metric.filler_words_count if metric else None,
+        "certificate_id": f"CERT-LOGOS-{session_id}" if score else None,
     }
-

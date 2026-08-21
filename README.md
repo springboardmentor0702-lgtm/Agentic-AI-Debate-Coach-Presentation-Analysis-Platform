@@ -140,6 +140,30 @@ docker-compose up --build
 
 ---
 
+## Current Implementation Status
+
+The repository now contains an end-to-end demonstrable prototype covering the main learner workflow: account registration and login, authenticated debate sessions, deterministic argument and fallacy analysis, five rebuttal perspectives, multi-turn persona simulation, transcript and uploaded-audio presentation analysis, weighted scoring, personalized coaching plans, real-data dashboards, persistent notifications, coach feedback, and authenticated PDF/XLSX reports.
+
+The AI layer supports two modes. `AI_PROVIDER=heuristic` runs locally without credentials using deterministic, explainable rules. `AI_PROVIDER=openai`, `llm`, or `builtin` enables the optional structured model adapter through an OpenAI-compatible endpoint; if a provider call fails, the service returns to the deterministic analyzer instead of failing the user workflow.
+
+Audio analysis requires `ffmpeg` and `ffprobe`. The backend container installs them automatically. The analyzer measures uploaded-audio duration, pauses, silence ratio, average volume, speech pace, filler words, confidence, clarity, and engagement. Audio metrics are persisted with the related debate session.
+
+### Verification commands
+
+```bash
+cd backend
+python -m compileall -q .
+python -m unittest test_ai_backend -v
+
+cd ../frontend
+npm install
+npm run build
+```
+
+### Production checklist
+
+Before deployment, set a strong `SECRET_KEY`, `ENVIRONMENT=production`, a reachable PostgreSQL `DATABASE_URL`, explicit `CORS_ORIGINS`, a real `UPLOAD_DIR`, and provider credentials when using model-backed inference. Do not enable `ALLOW_SELF_ASSIGN_ROLES` in production. Run the backend health check at `/health` and retain the persistent upload/data volume. A production deployment should additionally add a managed migration process, centralized logs/metrics, object storage for audio files, rate limiting, email or push delivery for notifications, and a verified OAuth provider integration.
+
 ## 🤝 Contributing Guidelines
 1. Fork this repository.
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`).

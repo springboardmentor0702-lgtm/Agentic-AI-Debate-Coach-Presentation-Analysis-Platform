@@ -29,13 +29,28 @@ def run_simulation_turn(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debate session not found for this user.")
 
     persona = payload.opponent_persona if payload.opponent_persona in SUPPORTED_PERSONAS else "The Contrarian"
+    prior_turn_records = (
+        db.query(models.SimulationTurn)
+        .filter(models.SimulationTurn.session_id == payload.session_id, models.SimulationTurn.user_id == current_user.id)
+        .order_by(models.SimulationTurn.turn_index.desc())
+        .limit(6)
+        .all()
+    )
+    prior_turns = [
+        {
+            "turn_index": item.turn_index,
+            "user_argument": item.user_argument,
+            "opponent_rebuttal": item.opponent_rebuttal,
+        }
+        for item in reversed(prior_turn_records)
+    ]
     try:
-        simulation_result = ai_engine_service.generate_simulation_response(payload.user_argument, persona)
+        simulation_result = ai_engine_service.generate_simulation_response(payload.user_argument, persona, prior_turns)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
-    prior_turns = db.query(func.count(models.SimulationTurn.id)).filter(models.SimulationTurn.session_id == payload.session_id).scalar() or 0
-    turn_index = int(prior_turns) + 1
+    turn_count = db.query(func.count(models.SimulationTurn.id)).filter(models.SimulationTurn.session_id == payload.session_id).scalar() or 0
+    turn_index = int(turn_count) + 1
     turn = models.SimulationTurn(
         session_id=payload.session_id,
         user_id=current_user.id,

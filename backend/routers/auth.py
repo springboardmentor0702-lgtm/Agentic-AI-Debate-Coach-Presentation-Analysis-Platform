@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -88,7 +88,8 @@ def _token_for_user(user: models.User) -> dict:
 
 @router.post("/register", response_model=schemas.Token)
 def register_user(user_data: schemas.UserRegister, db: Session = Depends(get_db)):
-    role = user_data.role if user_data.role in VALID_ROLES else "Learner"
+    requested_role = user_data.role if user_data.role in VALID_ROLES else "Learner"
+    role = requested_role if settings.ALLOW_SELF_ASSIGN_ROLES and not settings.is_production else "Learner"
     email = user_data.email.strip().lower()
     if db.query(models.User).filter(models.User.email == email).first():
         raise HTTPException(status_code=400, detail="Account with this email already exists.")
@@ -128,7 +129,12 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 
 @router.post("/oauth2/login", response_model=schemas.Token)
 def oauth2_login(provider: str = "Google", email: Optional[str] = None, role: Optional[str] = "Learner", db: Session = Depends(get_db)):
-    """Development OAuth handoff; production should validate the provider token server-side."""
+    """Development OAuth handoff; production must use a provider-token verifier."""
+    if settings.is_production:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="OAuth provider-token verification is not configured for production.",
+        )
     target_email = (email or f"user_{provider.lower()}@logos.ai").strip().lower()
     user = db.query(models.User).filter(models.User.email == target_email).first()
     if not user:
@@ -155,6 +161,7 @@ def get_my_profile(current_user: models.User = Depends(get_current_user)):
 
 @router.put("/profile/me", response_model=schemas.UserProfileResponse)
 def update_my_profile(
+    payload: Optional[schemas.UserProfileUpdate] = Body(default=None),
     full_name: Optional[str] = None,
     experience_level: Optional[str] = None,
     preferred_topics: Optional[str] = None,
@@ -164,7 +171,7 @@ def update_my_profile(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    updates = {
+    updates = payload.model_dump(exclude_none=True) if payload else {
         "full_name": full_name,
         "experience_level": experience_level,
         "preferred_topics": preferred_topics,
@@ -173,8 +180,8 @@ def update_my_profile(
         "coaching_preferences": coaching_preferences,
     }
     for field, value in updates.items():
-        if value is not None:
-            setattr(current_user, field, value.strip())
+        if value is not None and str(value).strip():
+            setattr(current_user, field, str(value).strip())
     db.commit()
     db.refresh(current_user)
     return current_user

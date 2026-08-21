@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiFetch, storeAuth } from '../../lib/api';
 
 const GoogleLogo = () => (
   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -44,33 +45,26 @@ export default function SignUpPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const data = await apiFetch('/auth/register', {
+        method: 'POST',
         body: JSON.stringify({
           email,
           password,
           full_name: fullName,
           role,
-          experience_level: "Intermediate",
-          preferred_topics: topics || "Technology, AI, Politics"
-        })
+          experience_level: 'Intermediate',
+          preferred_topics: topics || 'Technology, AI, Politics',
+        }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Registration failed.");
-
       if (goal || topics) {
-        await fetch(`http://localhost:8000/api/v1/auth/profile/me?learning_goals=${encodeURIComponent(goal)}&preferred_topics=${encodeURIComponent(topics)}`, {
-          method: "PUT",
-          headers: { 
-            "Authorization": `Bearer ${data.access_token}`,
-            "Content-Type": "application/json"
-          }
+        await apiFetch('/auth/profile/me', {
+          method: 'PUT',
+          body: JSON.stringify({ learning_goals: goal, preferred_topics: topics }),
         });
       }
 
-      localStorage.setItem('logos_ai_jwt', data.access_token);
+      storeAuth(data);
       setMessage({ type: 'success', text: `Account created successfully! Redirecting...` });
       
       setTimeout(() => {
@@ -87,11 +81,8 @@ export default function SignUpPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`, {
-        method: "POST"
-      });
-      const data = await res.json();
-      localStorage.setItem('logos_ai_jwt', data.access_token);
+      const data = await apiFetch(`/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${encodeURIComponent(role)}`, { method: 'POST' });
+      storeAuth(data);
       setMessage({ type: 'success', text: "Google Sign Up successful! Redirecting..." });
       
       setTimeout(() => {

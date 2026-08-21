@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -8,9 +6,24 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./logos_ai.db
+      ENVIRONMENT: development
+      SECRET_KEY: local-development-only-change-me
+      DATABASE_URL: sqlite:////app/data/logos_ai.db
+      SQLITE_FALLBACK_URL: sqlite:////app/data/logos_ai.db
+      UPLOAD_DIR: /app/data/uploads
+      CORS_ORIGINS: http://localhost:3000
+      AI_PROVIDER: ${AI_PROVIDER:-heuristic}
+      AI_MODEL: ${AI_MODEL:-gpt-5-mini}
+      OPENAI_API_BASE: ${OPENAI_API_BASE:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - ./backend:/app
+      - ./data/backend:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   frontend:
     build:
@@ -18,7 +31,32 @@ services:
       dockerfile: Dockerfile.frontend
     ports:
       - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes: {}
+
+# For production, replace the SQLite DATABASE_URL with PostgreSQL, set a strong
+# SECRET_KEY, use explicit CORS_ORIGINS, and provide a verified AI provider key.
+# The backend refuses unsafe production defaults during startup.
+
+networks:
+  default:
+    name: logos-ai-network
+    driver: bridge
+
+# The empty volumes mapping above keeps this file compatible with Compose while
+# the bind mount preserves development data in ./data/backend.

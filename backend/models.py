@@ -1,6 +1,8 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
+
 from database import Base
 
 
@@ -20,6 +22,18 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     sessions = relationship("DebateSession", back_populates="user")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    feedback_received = relationship(
+        "CoachFeedback",
+        foreign_keys="CoachFeedback.learner_id",
+        back_populates="learner",
+        cascade="all, delete-orphan",
+    )
+    feedback_given = relationship(
+        "CoachFeedback",
+        foreign_keys="CoachFeedback.coach_id",
+        back_populates="coach",
+    )
 
 
 class DebateSession(Base):
@@ -40,6 +54,7 @@ class DebateSession(Base):
     presentation_metrics = relationship("PresentationMetric", back_populates="session", cascade="all, delete-orphan")
     performance_scores = relationship("PerformanceScore", back_populates="session", cascade="all, delete-orphan")
     simulation_turns = relationship("SimulationTurn", back_populates="session", cascade="all, delete-orphan")
+    feedback = relationship("CoachFeedback", back_populates="session", cascade="all, delete-orphan")
 
 
 class ArgumentAnalysis(Base):
@@ -121,6 +136,10 @@ class PresentationMetric(Base):
     confidence_score = Column(Float, default=0.0)
     clarity_score = Column(Float, default=0.0)
     engagement_score = Column(Float, default=0.0)
+    duration_seconds = Column(Float, nullable=True)
+    pause_count = Column(Integer, nullable=True)
+    silence_ratio_percent = Column(Float, nullable=True)
+    average_volume_percent = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("DebateSession", back_populates="presentation_metrics")
@@ -153,3 +172,50 @@ class CoachingPlan(Base):
     learning_path_steps = Column(Text)
     progress_status = Column(String, default="In Progress")
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    category = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    source_type = Column(String, nullable=True)
+    source_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    read_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="notifications")
+
+
+class CoachFeedback(Base):
+    __tablename__ = "coach_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("debate_sessions.id"), nullable=False, index=True)
+    coach_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    learner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    rating = Column(Float, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    session = relationship("DebateSession", back_populates="feedback")
+    coach = relationship("User", foreign_keys=[coach_id], back_populates="feedback_given")
+    learner = relationship("User", foreign_keys=[learner_id], back_populates="feedback_received")
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    event_type = Column(String, nullable=False, index=True)
+    resource_type = Column(String, nullable=True)
+    resource_id = Column(Integer, nullable=True)
+    detail = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User")

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { apiFetch, clearAuth } from '../lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -41,48 +42,37 @@ export default function Navbar() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data);
-      }
+      const data = await apiFetch('/notifications/my-alerts?limit=25');
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (err) {
-      // Offline fallback values
-      setNotifications([
-        {
-          id: 1,
-          category: "Session Reminder",
-          title: "Upcoming Debate Match",
-          message: "Your debate session on 'AI Governance' is scheduled in 30 minutes.",
-          timestamp: "Just now",
-          read: false
-        },
-        {
-          id: 2,
-          category: "Feedback Alert",
-          title: "Analysis Ready",
-          message: "Coach Sofia Vance left detailed feedback on your last debate rebuttal.",
-          timestamp: "2 hours ago",
-          read: false
-        }
-      ]);
+      if (err.status === 401) {
+        clearAuth();
+        setIsLoggedIn(false);
+      }
+      setNotifications([]);
     }
   };
 
   const handleMarkAsRead = async (id) => {
     try {
-      await fetch(`http://localhost:8000/api/v1/notifications/read/${id}`, {
-        method: "POST"
-      });
-    } catch (err) {}
-    
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+      await apiFetch(`/notifications/read/${id}`, { method: 'POST' });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (err) {
+      // Keep the item unread when the server rejects the update.
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await apiFetch('/notifications/read-all', { method: 'POST' });
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      // Keep the current state when the server rejects the update.
+    }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('logos_ai_jwt');
+    clearAuth();
     setIsLoggedIn(false);
     setShowDropdown(false);
     router.push('/login');
@@ -113,6 +103,11 @@ export default function Navbar() {
         <Link href="/reports" className={`nav-link ${pathname === '/reports' ? 'active' : ''}`}>
           REPORTS
         </Link>
+        {isLoggedIn && (
+          <Link href="/notifications" className={`nav-link ${pathname === '/notifications' ? 'active' : ''}`}>
+            ALERTS
+          </Link>
+        )}
         
         <Link href="/simulation" className="btn btn-red" style={{ padding: '0.45rem 1rem', fontSize: '0.75rem', borderRadius: '4px' }}>
           DEPLOY_AGENT
@@ -143,9 +138,7 @@ export default function Navbar() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e5eb', paddingBottom: '0.5rem' }}>
                   <strong style={{ fontSize: '0.88rem' }}>NOTIFICATIONS ({unreadCount})</strong>
                   <button 
-                    onClick={() => {
-                      notifications.forEach(n => handleMarkAsRead(n.id));
-                    }}
+                    onClick={handleMarkAllAsRead}
                     style={{ background: 'transparent', border: 'none', color: 'var(--accent-red)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
                   >
                     Clear All

@@ -9,10 +9,16 @@ simple.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+
+try:
+    from config import settings
+except ImportError:  # pragma: no cover - allows isolated service imports.
+    settings = None
 
 try:  # FAISS is optional at runtime, but included in the backend requirements.
     import faiss
@@ -123,6 +129,7 @@ class AIEngine:
     def __init__(self) -> None:
         self.argument_memory: List[Dict[str, Any]] = []
         self._faiss_index: Optional[Any] = None
+        self.llm_failures = 0
         if faiss is not None:
             self._faiss_index = faiss.IndexFlatIP(EMBEDDING_DIMENSION)
 
@@ -180,12 +187,81 @@ class AIEngine:
                 )
         return detected
 
+    def _analyze_with_llm(self, text: str) -> Optional[Dict[str, Any]]:
+        """Use structured model output when explicitly enabled; never make it a hard dependency."""
+        if settings is None or settings.AI_PROVIDER not in {"openai", "llm", "builtin"}:
+            return None
+        try:
+            from openai import OpenAI
+
+            client_kwargs = {}
+            if settings.OPENAI_API_KEY:
+                client_kwargs["api_key"] = settings.OPENAI_API_KEY
+            if settings.OPENAI_API_BASE:
+                client_kwargs["base_url"] = settings.OPENAI_API_BASE
+            client = OpenAI(**client_kwargs)
+            schema = {
+                "type": "object",
+                "properties": {
+                    "claim_identified": {"type": "string"},
+                    "evidence_strength": {"type": "number"},
+                    "reasoning_quality": {"type": "number"},
+                    "clarity_score": {"type": "number"},
+                    "relevance_score": {"type": "number"},
+                    "logical_consistency": {"type": "number"},
+                    "persuasiveness_score": {"type": "number"},
+                    "fallacies": {"type": "array", "items": {"type": "object", "properties": {
+                        "fallacy_type": {"type": "string"},
+                        "explanation": {"type": "string"},
+                        "correction_suggestion": {"type": "string"},
+                    }, "required": ["fallacy_type", "explanation", "correction_suggestion"], "additionalProperties": False}},
+                    "counterarguments": {"type": "array", "items": {"type": "object", "properties": {
+                        "rebuttal_type": {"type": "string"},
+                        "rebuttal_text": {"type": "string"},
+                        "challenge_question": {"type": "string"},
+                        "strategy_tip": {"type": "string"},
+                    }, "required": ["rebuttal_type", "rebuttal_text", "challenge_question", "strategy_tip"], "additionalProperties": False}},
+                },
+                "required": ["claim_identified", "evidence_strength", "reasoning_quality", "clarity_score", "relevance_score", "logical_consistency", "persuasiveness_score", "fallacies", "counterarguments"],
+                "additionalProperties": False,
+            }
+            kwargs = {
+                "model": settings.AI_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are a rigorous debate coach. Analyze only the supplied argument. Return calibrated 0-100 scores, identify observable fallacies, and provide exactly five distinct rebuttal strategies. Output JSON only."},
+                    {"role": "user", "content": text},
+                ],
+                "response_format": {"type": "json_schema", "json_schema": {"name": "argument_analysis", "strict": True, "schema": schema}},
+            }
+            if settings.AI_MODEL.startswith("gpt-"):
+                kwargs["max_completion_tokens"] = 1800
+            else:
+                kwargs["max_tokens"] = 1800
+            response = client.chat.completions.create(**kwargs)
+            content = response.choices[0].message.content
+            result = json.loads(content)
+            for key in ("fallacies", "counterarguments"):
+                if not isinstance(result.get(key), list):
+                    return None
+            result["counterarguments"] = result["counterarguments"][:5]
+            if len(result["counterarguments"]) < 5:
+                return None
+            for key in ("evidence_strength", "reasoning_quality", "clarity_score", "relevance_score", "logical_consistency", "persuasiveness_score"):
+                result[key] = round(_clamp(float(result[key])), 1)
+            return result
+        except Exception:
+            self.llm_failures += 1
+            return None
+
     def analyze_argument(self, text: str) -> Dict[str, Any]:
         text = " ".join(text.split())
         if not text:
             raise ValueError("Argument text cannot be empty.")
 
         self.index_argument(text)
+        llm_result = self._analyze_with_llm(text)
+        if llm_result is not None:
+            return llm_result
         sentences = _sentences(text)
         claim = sentences[0] if sentences else text
         word_count = len(re.findall(r"\b\w+\b", text))
@@ -242,9 +318,70 @@ class AIEngine:
             "counterarguments": counterarguments,
         }
 
-    def generate_simulation_response(self, text: str, persona: str) -> Dict[str, Any]:
-        analysis = self.analyze_argument(text)
+    def _simulate_with_llm(self, text: str, persona: str, prior_turns: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if settings is None or settings.AI_PROVIDER not in {"openai", "llm", "builtin"}:
+            return None
+        try:
+            from openai import OpenAI
+
+            client_kwargs = {}
+            if settings.OPENAI_API_KEY:
+                client_kwargs["api_key"] = settings.OPENAI_API_KEY
+            if settings.OPENAI_API_BASE:
+                client_kwargs["base_url"] = settings.OPENAI_API_BASE
+            client = OpenAI(**client_kwargs)
+            history = "\n".join(
+                f"Turn {item.get('turn_index', '?')}: learner={item.get('user_argument', '')}; opponent={item.get('opponent_rebuttal', '')}"
+                for item in prior_turns[-6:]
+            ) or "No previous turns."
+            schema = {
+                "type": "object",
+                "properties": {
+                    "opponent_rebuttal": {"type": "string"},
+                    "fallacies_detected": {"type": "array", "items": {"type": "object", "properties": {
+                        "fallacy_type": {"type": "string"}, "explanation": {"type": "string"}, "correction_suggestion": {"type": "string"}
+                    }, "required": ["fallacy_type", "explanation", "correction_suggestion"], "additionalProperties": False}},
+                    "rebuttal_strength_percent": {"type": "number"},
+                    "coaching_tip": {"type": "string"},
+                },
+                "required": ["opponent_rebuttal", "fallacies_detected", "rebuttal_strength_percent", "coaching_tip"],
+                "additionalProperties": False,
+            }
+            kwargs = {
+                "model": settings.AI_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are an adversarial but constructive debate coach. Stay in the selected persona, respond only to the learner argument, and return strict JSON with one concise rebuttal, detected fallacies, a 0-100 strength score, and one coaching tip."},
+                    {"role": "user", "content": f"Persona: {persona}\nPrior turns:\n{history}\n\nCurrent learner argument:\n{text}"},
+                ],
+                "response_format": {"type": "json_schema", "json_schema": {"name": "simulation_turn", "strict": True, "schema": schema}},
+            }
+            if settings.AI_MODEL.startswith("gpt-"):
+                kwargs["max_completion_tokens"] = 900
+            elif settings.AI_MODEL.startswith("claude-"):
+                kwargs["max_tokens"] = 1200
+            else:
+                kwargs["max_tokens"] = 1200
+            response = client.chat.completions.create(**kwargs)
+            result = json.loads(response.choices[0].message.content)
+            if not result.get("opponent_rebuttal") or not result.get("coaching_tip"):
+                return None
+            result["rebuttal_strength_percent"] = round(_clamp(float(result["rebuttal_strength_percent"])), 1)
+            if not isinstance(result.get("fallacies_detected"), list):
+                return None
+            return result
+        except Exception:
+            self.llm_failures += 1
+            return None
+
+    def generate_simulation_response(self, text: str, persona: str, prior_turns: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+        text = " ".join(text.split())
+        if not text:
+            raise ValueError("Argument text cannot be empty.")
         persona = persona if persona in SUPPORTED_PERSONAS else "The Contrarian"
+        llm_result = self._simulate_with_llm(text, persona, prior_turns or [])
+        if llm_result is not None:
+            return llm_result
+        analysis = self.analyze_argument(text)
         styles = {
             "The Contrarian": "Challenge the premise directly, but keep the response tied to evidence.",
             "The Academic": "Use a Socratic style and request precise definitions, sources, and methodology.",

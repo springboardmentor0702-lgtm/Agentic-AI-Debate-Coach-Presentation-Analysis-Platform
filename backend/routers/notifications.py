@@ -1,87 +1,171 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from database import get_db
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
 import models
+import schemas
+from database import get_db
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["Notification & Engagement System"])
 
-@router.get("/my-alerts")
-def get_user_notifications(user_id: int = 1, db: Session = Depends(get_db)):
-    notifications_list = []
-    
-    # 1. Fetch scheduled debates (Debate Reminders / Practice Session Reminders)
-    scheduled_sessions = db.query(models.DebateSession).filter(
-        models.DebateSession.user_id == user_id,
-        models.DebateSession.status == "Scheduled"
-    ).all()
-    
-    for idx, sess in enumerate(scheduled_sessions):
-        scheduled_time_str = sess.scheduled_at.strftime('%Y-%m-%d %H:%M') if sess.scheduled_at else "Not Scheduled"
-        notifications_list.append({
-            "id": 100 + idx,
-            "category": "Session Reminder",
-            "title": "Upcoming Scheduled Practice",
-            "message": f"Your debate practice on '{sess.topic[:40]}...' is scheduled for {scheduled_time_str}.",
-            "timestamp": "Active Reminder",
-            "read": False
-        })
-        
-    # 2. Fetch performance scores for Skill Milestones
-    high_scores = db.query(models.PerformanceScore).filter(
-        models.PerformanceScore.user_id == user_id,
-        models.PerformanceScore.overall_weighted_score >= 80.0
-    ).all()
-    
-    for idx, score in enumerate(high_scores):
-        notifications_list.append({
-            "id": 200 + idx,
-            "category": "Milestone Alert",
-            "title": "Milestone Achieved: Top Debater",
-            "message": f"Congratulations! You scored {score.overall_weighted_score}% in a session, demonstrating exceptional argumentative logic.",
-            "timestamp": "Milestone Earned",
-            "read": True
-        })
 
-    # 3. Coaching Feedback Alerts (Mock feedback alerts mapping to user context)
-    notifications_list.append({
-        "id": 2,
-        "category": "Feedback Alert",
-        "title": "Coaching Feedback Dispatched",
-        "message": "Coach Sofia Vance left detailed feedback: 'Focus on pacing and reducing straw man fallacy usage.'",
-        "timestamp": "2 hours ago",
-        "read": False
-    })
-    
-    # 4. Check if they need a Practice Session Reminder (no active sessions in last 24h)
-    recent_session = db.query(models.DebateSession).filter(
-        models.DebateSession.user_id == user_id,
-        models.DebateSession.created_at >= datetime.utcnow() - timedelta(days=1)
-    ).first()
-    
-    if not recent_session:
-        notifications_list.append({
-            "id": 4,
-            "category": "Practice Reminder",
-            "title": "Daily Practice Reminder",
-            "message": "You haven't practiced today! Initialize a live AI simulation session to keep your rhetorical skills sharp.",
-            "timestamp": "System Alert",
-            "read": False
-        })
-        
-    # 5. Global Platform Announcement
-    notifications_list.append({
-        "id": 5,
-        "category": "Platform Announcement",
-        "title": "System Announcement",
-        "message": "Logos Rhetoric AI engine has been updated to v4.2 with enhanced Socratic rebuttal logic.",
-        "timestamp": "System Updates",
-        "read": False
-    })
-    
-    return notifications_list
+def _ensure_notification(
+    db: Session,
+    user_id: int,
+    category: str,
+    title: str,
+    message: str,
+    source_type: str | None = None,
+    source_id: int | None = None,
+) -> None:
+    query = db.query(models.Notification).filter(
+        models.Notification.user_id == user_id,
+        models.Notification.category == category,
+        models.Notification.source_type == source_type,
+        models.Notification.source_id == source_id,
+    )
+    if not query.first():
+        db.add(
+            models.Notification(
+                user_id=user_id,
+                category=category,
+                title=title,
+                message=message,
+                source_type=source_type,
+                source_id=source_id,
+            )
+        )
 
-@router.post("/read/{notification_id}")
-def mark_notification_as_read(notification_id: int):
-    return {"status": "success", "message": f"Notification {notification_id} marked as read."}
 
+def _materialize_system_notifications(db: Session, user: models.User) -> None:
+    now = datetime.utcnow()
+    scheduled = (
+        db.query(models.DebateSession)
+        .filter(
+            models.DebateSession.user_id == user.id,
+            models.DebateSession.status == "Scheduled",
+            models.DebateSession.scheduled_at >= now,
+        )
+        .order_by(models.DebateSession.scheduled_at.asc())
+        .limit(10)
+        .all()
+    )
+    for session in scheduled:
+        when = session.scheduled_at.strftime("%Y-%m-%d %H:%M UTC") if session.scheduled_at else "unscheduled"
+        _ensure_notification(
+            db,
+            user.id,
+            "Session Reminder",
+            "Upcoming scheduled practice",
+            f"Your practice session '{session.topic[:80]}' is scheduled for {when}.",
+            "session",
+            session.id,
+        )
+
+    high_scores = (
+        db.query(models.PerformanceScore)
+        .filter(
+            models.PerformanceScore.user_id == user.id,
+            models.PerformanceScore.overall_weighted_score >= 80,
+        )
+        .order_by(models.PerformanceScore.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    for score in high_scores:
+        _ensure_notification(
+            db,
+            user.id,
+            "Milestone Alert",
+            "Performance milestone achieved",
+            f"You scored {score.overall_weighted_score:.1f}% in a debate session.",
+            "score",
+            score.id,
+        )
+
+    recent = (
+        db.query(models.DebateSession)
+        .filter(
+            models.DebateSession.user_id == user.id,
+            models.DebateSession.created_at >= now - timedelta(days=1),
+        )
+        .first()
+    )
+    if not recent:
+        _ensure_notification(
+            db,
+            user.id,
+            "Practice Reminder",
+            "Keep your debate habit active",
+            "You have not recorded a practice session in the last 24 hours.",
+            "system",
+            user.id,
+        )
+    db.commit()
+
+
+@router.get("/my-alerts", response_model=list[schemas.NotificationResponse])
+def get_user_notifications(
+    limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _materialize_system_notifications(db, current_user)
+    notifications = (
+        db.query(models.Notification)
+        .filter(models.Notification.user_id == current_user.id)
+        .order_by(models.Notification.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": item.id,
+            "category": item.category,
+            "title": item.title,
+            "message": item.message,
+            "read": item.is_read,
+            "timestamp": item.created_at,
+            "source_type": item.source_type,
+            "source_id": item.source_id,
+        }
+        for item in notifications
+    ]
+
+
+@router.post("/read/{notification_id}", response_model=schemas.NotificationReadResponse)
+def mark_notification_as_read(
+    notification_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notification = (
+        db.query(models.Notification)
+        .filter(models.Notification.id == notification_id, models.Notification.user_id == current_user.id)
+        .first()
+    )
+    if not notification:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found.")
+    notification.is_read = True
+    notification.read_at = datetime.utcnow()
+    db.commit()
+    db.refresh(notification)
+    return {"id": notification.id, "read": notification.is_read, "read_at": notification.read_at}
+
+
+@router.post("/read-all", response_model=dict)
+def mark_all_notifications_as_read(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    updated = (
+        db.query(models.Notification)
+        .filter(models.Notification.user_id == current_user.id, models.Notification.is_read.is_(False))
+        .update({"is_read": True, "read_at": datetime.utcnow()}, synchronize_session=False)
+    )
+    db.commit()
+    return {"updated": updated}
