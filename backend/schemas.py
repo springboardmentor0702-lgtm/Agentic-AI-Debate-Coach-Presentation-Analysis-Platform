@@ -1,19 +1,22 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
 
-# Auth Schemas
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
 class UserRegister(BaseModel):
-    email: str
-    password: str
-    full_name: str
-    role: Optional[str] = "Learner" # Learner, Coach, Educator, Administrator
+    email: str = Field(min_length=5, max_length=255)
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=2, max_length=120)
+    role: Optional[str] = "Learner"
     experience_level: Optional[str] = "Intermediate"
     preferred_topics: Optional[str] = "Technology, Ethics, Policy"
+
 
 class UserLogin(BaseModel):
     email: str
     password: str
+
 
 class Token(BaseModel):
     access_token: str
@@ -21,6 +24,7 @@ class Token(BaseModel):
     user_id: int
     role: str
     full_name: str
+
 
 class UserProfileResponse(BaseModel):
     id: int
@@ -33,18 +37,17 @@ class UserProfileResponse(BaseModel):
     learning_goals: str
     coaching_preferences: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-# Session Schemas
+
 class DebateSessionCreate(BaseModel):
-    title: str
-    topic: str
-    description: Optional[str] = ""
+    title: str = Field(min_length=1, max_length=200)
+    topic: str = Field(min_length=1, max_length=2000)
     format: Optional[str] = "AI Simulation"
     assigned_position: Optional[str] = "Affirmative"
     status: Optional[str] = "Active"
     scheduled_at: Optional[datetime] = None
+
 
 class DebateSessionResponse(BaseModel):
     id: int
@@ -57,24 +60,26 @@ class DebateSessionResponse(BaseModel):
     scheduled_at: datetime
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-# Argument Analysis & Fallacy Schemas
+
 class ArgumentSubmit(BaseModel):
-    session_id: int
-    speech_text: str
+    session_id: int = Field(gt=0)
+    speech_text: str = Field(min_length=1, max_length=20000)
+
 
 class FallacyDetail(BaseModel):
     fallacy_type: str
     explanation: str
     correction_suggestion: str
 
+
 class CounterargumentDetail(BaseModel):
     rebuttal_type: str
     rebuttal_text: str
     challenge_question: str
     strategy_tip: str
+
 
 class ArgumentAnalysisResponse(BaseModel):
     analysis_id: int
@@ -89,11 +94,12 @@ class ArgumentAnalysisResponse(BaseModel):
     fallacies: List[FallacyDetail]
     counterarguments: List[CounterargumentDetail]
 
-# Presentation Analysis Schemas
+
 class SpeechAnalysisSubmit(BaseModel):
-    session_id: int
-    speech_text: str
-    audio_duration_seconds: Optional[float] = 60.0
+    session_id: int = Field(gt=0)
+    speech_text: str = Field(min_length=1, max_length=50000)
+    audio_duration_seconds: Optional[float] = Field(default=60.0, gt=0, le=86400)
+
 
 class PresentationMetricResponse(BaseModel):
     session_id: int
@@ -104,31 +110,34 @@ class PresentationMetricResponse(BaseModel):
     clarity_score: float
     engagement_score: float
 
-# Simulation Schemas
+
 class SimulationTurnSubmit(BaseModel):
-    session_id: int
-    user_argument: str
-    opponent_persona: Optional[str] = "The Contrarian" # The Contrarian, The Academic, The Strategist
+    session_id: int = Field(gt=0)
+    user_argument: str = Field(min_length=1, max_length=20000)
+    opponent_persona: Optional[str] = "The Contrarian"
+
 
 class SimulationTurnResponse(BaseModel):
+    session_id: Optional[int] = None
     turn_index: int
     user_argument: str
+    opponent_persona: Optional[str] = None
     opponent_rebuttal: str
     fallacies_detected_in_user: List[FallacyDetail]
     rebuttal_strength_percent: float
     coaching_tip: str
 
-# Weighted Scoring Schema
+
 class WeightedScoreResponse(BaseModel):
     session_id: int
-    argument_quality: float # 30%
-    evidence_use: float # 20%
-    logical_consistency: float # 20%
-    rebuttal_effectiveness: float # 15%
-    communication_skills: float # 15%
-    overall_weighted_score: float
+    argument_quality: float = Field(ge=0, le=100)
+    evidence_use: float = Field(ge=0, le=100)
+    logical_consistency: float = Field(ge=0, le=100)
+    rebuttal_effectiveness: float = Field(ge=0, le=100)
+    communication_skills: float = Field(ge=0, le=100)
+    overall_weighted_score: float = Field(ge=0, le=100)
 
-# Coaching Schema
+
 class CoachingPlanResponse(BaseModel):
     user_id: int
     skill_gap_summary: str
