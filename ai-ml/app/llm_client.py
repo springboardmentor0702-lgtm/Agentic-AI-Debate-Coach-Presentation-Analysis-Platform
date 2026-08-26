@@ -21,7 +21,7 @@ from google.genai.errors import ClientError as GeminiClientError
 from app.config import GEMINI_API_KEY, LLM_MODEL, GROQ_API_KEY, GROQ_MODEL
 
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 MAX_RETRIES = 3
 
@@ -58,60 +58,101 @@ def _call_groq(system_prompt: str, user_prompt: str, json_mode: bool) -> str:
                 **kwargs,
             )
             return response.choices[0].message.content
+
         except GroqAPIStatusError as e:
             last_error = e
+
             if _is_retryable_groq_error(e) and attempt < MAX_RETRIES:
-                wait_seconds = 20 * attempt  # 20s, then 40s
-                print(f"[Groq] Rate limit hit (attempt {attempt}/{MAX_RETRIES}). Waiting {wait_seconds}s before retry...")
+                wait_seconds = 20 * attempt
+                print(
+                    f"[Groq] Rate limit hit "
+                    f"(attempt {attempt}/{MAX_RETRIES}). "
+                    f"Waiting {wait_seconds}s before retry..."
+                )
                 time.sleep(wait_seconds)
                 continue
-            # Not retryable (e.g. auth failure / model gone) - stop retrying, let caller fall back.
+
+            # Not retryable (e.g. auth failure / model gone) -
+            # stop retrying and let caller fall back to Gemini.
             break
 
     raise last_error
 
 
 def _call_gemini(system_prompt: str, user_prompt: str, json_mode: bool) -> str:
+    if gemini_client is None:
+        raise ValueError(
+            "GEMINI_API_KEY is not configured in .env - fallback unavailable."
+        )
+
     config = types.GenerateContentConfig(
         system_instruction=system_prompt,
         temperature=0.4,
         response_mime_type="application/json" if json_mode else "text/plain",
     )
+
     response = gemini_client.models.generate_content(
         model=LLM_MODEL,
         contents=user_prompt,
         config=config,
     )
+
     return response.text
 
 
-def call_llm(system_prompt: str, user_prompt: str, json_mode: bool = False) -> str:
+def call_llm(
+    system_prompt: str,
+    user_prompt: str,
+    json_mode: bool = False
+) -> str:
     """
-    system_prompt: instructions describing the AI's role (e.g. "You are a debate judge...")
+    system_prompt: instructions describing the AI's role
+        (e.g. "You are a debate judge...")
     user_prompt: the actual content to analyze/respond to
-    json_mode: if True, forces the model to return valid JSON only (no extra text)
+    json_mode: if True, forces the model to return valid JSON only
+        (no extra text)
 
     Tries Groq first (with its own retry loop for transient rate limits).
-    If Groq still fails after retries - quota exhausted, model unavailable, no key set -
-    automatically falls back to Gemini so the app keeps working instead of crashing.
+    If Groq still fails after retries - quota exhausted, model unavailable,
+    no key set - automatically falls back to Gemini so the app keeps working
+    instead of crashing.
     """
+
     try:
         return _call_groq(system_prompt, user_prompt, json_mode)
+
     except Exception as groq_error:
-        print(f"[Groq] Failed after retries ({groq_error}). Falling back to Gemini...")
+        print(
+            f"[Groq] Failed after retries ({groq_error}). "
+            "Falling back to Gemini..."
+        )
+
         try:
             return _call_gemini(system_prompt, user_prompt, json_mode)
+
         except Exception as gemini_error:
             print(f"[Gemini] Fallback also failed: {gemini_error}")
-            # Neither provider worked - raise the original Groq error, since that's
-            # usually the more informative one (quota details, model name, etc).
+
+            # Neither provider worked - raise the original Groq error,
+            # since that's usually the more informative one
+            # (quota details, model name, etc).
             raise groq_error
 
 
 def call_llm_json(system_prompt: str, user_prompt: str) -> dict:
     """Same as call_llm, but parses the result into a Python dict for you."""
-    raw = call_llm(system_prompt, user_prompt, json_mode=True)
+
+    raw = call_llm(
+        system_prompt,
+        user_prompt,
+        json_mode=True
+    )
+
     try:
         return json.loads(raw)
+
     except json.JSONDecodeError:
-        return {"error": "Model did not return valid JSON", "raw_output": raw}
+        return {
+            "error": "Model did not return valid JSON",
+            "raw_output": raw
+        }

@@ -32,64 +32,7 @@
 
 ---
 
-## 🎨 Frontend Development
-
-The LOGOS.AI frontend is developed using Next.js 14 and React 18 with a component-driven architecture focused on providing a responsive, interactive, and premium user experience.
-
-### Frontend Highlights:
-- Responsive interfaces for Learner, Coach, Educator, and Admin dashboards.
-- Interactive AI debate simulation interface for real-time argument practice.
-- Presentation analysis dashboard for vocal metrics and performance insights.
-- Reusable React components for consistent UI design.
-- Seamless integration with FastAPI backend REST APIs.
-- Premium UI design following the LOGOS.AI white/obsidian/cyber-red visual identity.
-
-### Frontend Structure:
-frontend/
-├── src/
-│ ├── app/ # Application routes and layouts
-│ ├── components/ # Reusable UI components
-│ ├── styles/ # Global styling files
-│ └── utils/ # Utility functions
-├── public/ # Static assets
-└── package.json # Frontend dependencies and scripts 
-
-
----
-
-## 📱 Application Routes
-
-The platform provides dedicated pages for different functionalities:
-
-| Route | Description |
-|------|-------------|
-| `/` | LOGOS.AI landing page and platform overview |
-| `/dashboard` | User analytics and performance dashboard |
-| `/simulation` | Interactive AI debate simulation terminal |
-| `/presentation` | Presentation and vocal analysis module |
-| `/reports` | Performance reports and exports |
-| `/profile` | User profile and account management |
-
----
-
-## 🛠️ Recommended Development Environment
-
-For frontend development, the following tools are recommended:
-
-- Visual Studio Code
-- Node.js v18.x or later
-- Git version control
-- Modern web browser (Chrome, Edge, or Firefox)
-
-### Frontend Setup Commands:
-
-```bash
-cd frontend
-npm install
-npm run dev
-
-
-## 📂 Folder Structure
+##  📂 Folder Structure
 
 ```
 Agentic-AI-Debate-Coach/
