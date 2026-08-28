@@ -21,7 +21,7 @@ from google.genai.errors import ClientError as GeminiClientError
 from app.config import GEMINI_API_KEY, LLM_MODEL, GROQ_API_KEY, GROQ_MODEL
 
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
-gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 MAX_RETRIES = 3
 
@@ -72,8 +72,6 @@ def _call_groq(system_prompt: str, user_prompt: str, json_mode: bool) -> str:
 
 
 def _call_gemini(system_prompt: str, user_prompt: str, json_mode: bool) -> str:
-    if gemini_client is None:
-        raise ValueError("GEMINI_API_KEY is not configured in .env - fallback unavailable.")
     config = types.GenerateContentConfig(
         system_instruction=system_prompt,
         temperature=0.4,
