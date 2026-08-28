@@ -11,17 +11,6 @@ from __future__ import annotations
 import hashlib
 import re
 from typing import Any, Dict, List, Optional
-import sys
-import os
-
-# Set up python path to include the workspace root so we can import from ai-ml folder
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ai-ml")))
-try:
-    from app.agents.argument_analysis_agent import argument_analysis_agent
-    from app.agents.fallacy_detection_agent import fallacy_detection_agent
-    AI_ML_AGENTS_AVAILABLE = True
-except ImportError:
-    AI_ML_AGENTS_AVAILABLE = False
 
 import numpy as np
 
@@ -208,35 +197,6 @@ class AIEngine:
         logical_consistency = _clamp(100.0 - len(fallacies) * 15.0)
         reasoning_quality = _clamp((evidence_strength + logical_consistency + clarity_score) / 3.0)
         persuasiveness_score = _clamp(reasoning_quality * 0.7 + relevance_score * 0.3)
-
-        # Connect to AI/ML Agents if keys are present in environment
-        has_api_keys = bool(os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY"))
-        if AI_ML_AGENTS_AVAILABLE and has_api_keys:
-            try:
-                # Run the fallacy detection agent
-                fallacies_res = fallacy_detection_agent.run(text)
-                if "error" not in fallacies_res and "fallacies_found" in fallacies_res:
-                    agent_fallacies = []
-                    for f in fallacies_res["fallacies_found"]:
-                        agent_fallacies.append({
-                            "fallacy_type": f.get("type", "Logical Fallacy"),
-                            "explanation": f.get("explanation", "Logical flaw detected."),
-                            "correction_suggestion": f.get("correction_suggestion", "Rephrase to eliminate flaws.")
-                        })
-                    fallacies = agent_fallacies
-
-                # Run the argument analysis agent
-                analysis_res = argument_analysis_agent.run(text)
-                if "error" not in analysis_res:
-                    claim = analysis_res.get("claim", claim)
-                    evidence_strength = float(analysis_res.get("strength_score", evidence_strength))
-                    clarity_score = float(analysis_res.get("clarity_score", clarity_score))
-                    relevance_score = float(analysis_res.get("relevance_score", relevance_score))
-                    logical_consistency = float(analysis_res.get("logical_consistency_score", logical_consistency))
-                    reasoning_quality = float(analysis_res.get("strength_score", reasoning_quality))
-                    persuasiveness_score = _clamp(reasoning_quality * 0.7 + relevance_score * 0.3)
-            except Exception as e:
-                print(f"[AI ML Agents] Error running agent analysis: {e}. Falling back to heuristics.")
 
         counterarguments = [
             {
