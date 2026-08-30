@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic>=2.9.0
+pydantic-settings
+python-multipart
+sqlalchemy
+pymysql
+cryptography
+google-generativeai
+openai
+google-genai
+groq
