@@ -11,7 +11,11 @@ from routers import (
     profile,
     sessions,
     analysis,
-    counterargument
+    counterargument,
+    simulation,
+    scoring,
+    coaching,
+    dashboard
 )
 
 
@@ -85,6 +89,21 @@ app.include_router(
 
 app.include_router(
     counterargument.router
+)
+app.include_router(
+    simulation.router
+)
+
+app.include_router(
+    scoring.router
+)
+
+app.include_router(
+    coaching.router
+)
+
+app.include_router(
+    dashboard.router
 )
 # --------------------------------
 # HEALTH CHECK
