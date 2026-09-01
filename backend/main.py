@@ -9,7 +9,9 @@ from config import settings
 from routers import (
     auth,
     profile,
-    sessions
+    sessions,
+    analysis,
+    counterargument
 )
 
 
