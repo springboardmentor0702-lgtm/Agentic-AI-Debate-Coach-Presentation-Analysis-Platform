@@ -123,3 +123,81 @@ class DebateSession(Base):
         DateTime,
         nullable=True
     )
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import Float
+from sqlalchemy import Text
+from sqlalchemy import DateTime
+from sqlalchemy import ForeignKey
+
+from datetime import datetime
+
+from database import Base
+
+
+class PresentationAnalysis(Base):
+
+    __tablename__ = "presentation_analyses"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    transcript = Column(
+        Text,
+        nullable=False
+    )
+
+    duration_seconds = Column(
+        Float,
+        nullable=False
+    )
+
+    overall_score = Column(
+        Float,
+        nullable=False
+    )
+
+    pace_score = Column(
+        Float,
+        nullable=False
+    )
+
+    filler_score = Column(
+        Float,
+        nullable=False
+    )
+
+    confidence_score = Column(
+        Float,
+        nullable=False
+    )
+
+    clarity_score = Column(
+        Float,
+        nullable=False
+    )
+
+    engagement_score = Column(
+        Float,
+        nullable=False
+    )
+
+    feedback = Column(
+        Text,
+        nullable=True
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
