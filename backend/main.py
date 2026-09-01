@@ -79,7 +79,13 @@ app.include_router(
     sessions.router
 )
 
+app.include_router(
+    analysis.router
+)
 
+app.include_router(
+    counterargument.router
+)
 # --------------------------------
 # HEALTH CHECK
 # --------------------------------
