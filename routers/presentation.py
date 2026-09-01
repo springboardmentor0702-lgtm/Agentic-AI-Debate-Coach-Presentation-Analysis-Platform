@@ -112,6 +112,140 @@ def presentation_history(
                 "created_at":
                     item.created_at
             }
+            from fastapi import UploadFile
+from fastapi import File
+
+import tempfile
+import os
+
+from services.speech_to_text import (
+    transcribe_audio
+)
+
+
+@router.post("/analyze-audio")
+async def analyze_audio(
+    file: UploadFile = File(...),
+
+    duration_seconds: float = 60,
+
+    user: User = Depends(current_user),
+
+    db: Session = Depends(get_db)
+):
+
+    allowed_types = {
+
+        "audio/wav",
+
+        "audio/mpeg",
+
+        "audio/mp3",
+
+        "audio/x-wav",
+
+        "video/mp4"
+    }
+
+    if file.content_type not in allowed_types:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported audio/video format."
+        )
+
+    suffix = os.path.splitext(
+        file.filename or ".wav"
+    )[1]
+
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=suffix
+    ) as temp:
+
+        temp.write(
+            await file.read()
+        )
+
+        temp_path = temp.name
+
+    try:
+
+        transcript = transcribe_audio(
+            temp_path
+        )
+
+        result = analyze_presentation(
+            transcript,
+            duration_seconds
+        )
+
+        analysis = PresentationAnalysis(
+
+            user_id=user.id,
+
+            transcript=transcript,
+
+            duration_seconds=
+                duration_seconds,
+
+            overall_score=
+                result["overall_score"],
+
+            pace_score=
+                result["speech_pace"][
+                    "pace_score"
+                ],
+
+            filler_score=
+                result["filler_words"][
+                    "filler_control_score"
+                ],
+
+            confidence_score=
+                result["confidence"][
+                    "confidence_score"
+                ],
+
+            clarity_score=
+                result["clarity"][
+                    "clarity_score"
+                ],
+
+            engagement_score=
+                result["engagement"][
+                    "engagement_score"
+                ],
+
+            feedback=
+                "\n".join(
+                    result["feedback"]
+                )
+        )
+
+        db.add(
+            analysis
+        )
+
+        db.commit()
+
+        db.refresh(
+            analysis
+        )
+
+        result["id"] = analysis.id
+
+        return result
+
+    finally:
+
+        if os.path.exists(
+            temp_path
+        ):
+
+            os.remove(
+                temp_path
+            )
 
             for item in records
         ]
