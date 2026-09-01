@@ -57,3 +57,62 @@ def analyze(
             status_code=400,
             detail=str(error)
         )
+@router.get("/history")
+def presentation_history(
+    user: User = Depends(current_user),
+
+    db: Session = Depends(get_db)
+):
+
+    records = (
+        db.query(
+            PresentationAnalysis
+        )
+        .filter(
+            PresentationAnalysis.user_id
+            == user.id
+        )
+        .order_by(
+            PresentationAnalysis.created_at.desc()
+        )
+        .all()
+    )
+
+    return {
+
+        "count":
+            len(records),
+
+        "results": [
+
+            {
+                "id": item.id,
+
+                "overall_score":
+                    item.overall_score,
+
+                "pace_score":
+                    item.pace_score,
+
+                "filler_score":
+                    item.filler_score,
+
+                "confidence_score":
+                    item.confidence_score,
+
+                "clarity_score":
+                    item.clarity_score,
+
+                "engagement_score":
+                    item.engagement_score,
+
+                "duration_seconds":
+                    item.duration_seconds,
+
+                "created_at":
+                    item.created_at
+            }
+
+            for item in records
+        ]
+    }
