@@ -1,7 +1,3 @@
-"""
-Fallacy Detection Agent (Module 5 from the project doc)
-Role: scans an argument for the 8 supported logical fallacies and explains each match.
-"""
 from app.agents.base_agent import BaseAgent
 from app.llm_client import call_llm_json
 
@@ -15,7 +11,7 @@ SUPPORTED_FALLACIES = [
 SYSTEM_PROMPT = f"""You are a critical thinking expert who detects logical fallacies.
 Only check for these fallacy types: {", ".join(SUPPORTED_FALLACIES)}.
 If none are present, return an empty list. Do not invent fallacies outside this list.
-Always respond with ONLY a JSON object in this exact shape, no extra text:
+Always respond with ONLY a JSON object in this exact shape:
 
 {{
   "fallacies_found": [
@@ -32,13 +28,13 @@ Always respond with ONLY a JSON object in this exact shape, no extra text:
 
 
 def _build_no_fallacy_response(argument_text: str) -> dict:
-    """Return a human-readable fallback when nothing obvious is found."""
     return {
         "fallacies_found": [],
         "status": "no_clear_fallacies_detected",
         "message": (
             "No clear logical fallacy was detected in this statement. "
-            "It may be a neutral comment, a topic introduction, or a claim that is simply not obviously flawed."
+            "It may be a neutral comment, a topic introduction, or a claim "
+            "that is simply not obviously flawed."
         ),
         "argument_preview": argument_text.strip()[:120],
     }
@@ -46,7 +42,7 @@ def _build_no_fallacy_response(argument_text: str) -> dict:
 
 class FallacyDetectionAgent(BaseAgent):
     name = "FallacyDetectionAgent"
-    role = "Detects logical fallacies in an argument and explains/suggests corrections."
+    role = "Detects logical fallacies and suggests corrections."
 
     def _filter_valid_fallacies(self, fallacies: list) -> list:
         valid = []
@@ -60,10 +56,6 @@ class FallacyDetectionAgent(BaseAgent):
         return valid
 
     def run(self, argument_text: str) -> dict:
-        """
-        Returns: a dict with fallacies_found plus a human-friendly explanation.
-        Never raises - always returns a usable dict.
-        """
         if not argument_text or not argument_text.strip():
             return _build_no_fallacy_response(argument_text or "")
 
@@ -86,5 +78,6 @@ class FallacyDetectionAgent(BaseAgent):
             "status": "fallacies_detected",
             "message": f"Detected {len(filtered_fallacies)} possible logical fallacy/ies.",
         }
-# Module-level singleton, same pattern as ArgumentAnalysisAgent
+
+
 fallacy_detection_agent = FallacyDetectionAgent()

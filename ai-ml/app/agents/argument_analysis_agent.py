@@ -1,7 +1,3 @@
-"""
-Argument Analysis Agent (Module 4 from the project doc)
-Role: judges how strong an argument is - claim, evidence, clarity, relevance, logical consistency.
-"""
 from app.agents.base_agent import BaseAgent
 from app.llm_client import call_llm_json
 
@@ -9,7 +5,7 @@ MIN_WORDS = 4
 
 SYSTEM_PROMPT = """You are an expert debate judge and argument analyst.
 Given an argument, break it down and evaluate it honestly and critically.
-Always respond with ONLY a JSON object in this exact shape, no extra text:
+Always respond with ONLY a JSON object in this exact shape:
 
 {
   "claim": "the main point being argued",
@@ -40,7 +36,7 @@ DEFAULT_RESULT = {
 
 class ArgumentAnalysisAgent(BaseAgent):
     name = "ArgumentAnalysisAgent"
-    role = "Judges the strength, clarity, relevance, and logical consistency of an argument."
+    role = "Judges argument strength, clarity, relevance, and logical consistency."
 
     def _validate_and_fill(self, result: dict) -> dict:
         safe_result = DEFAULT_RESULT.copy()
@@ -48,10 +44,6 @@ class ArgumentAnalysisAgent(BaseAgent):
         return safe_result
 
     def run(self, argument_text: str) -> dict:
-        """
-        argument_text: the raw text of what the user said (typed, or transcribed from speech)
-        Returns a dict matching the JSON shape above. Never raises.
-        """
         if not argument_text or not argument_text.strip():
             return {**DEFAULT_RESULT, "notes": "No argument text was provided."}
 
@@ -72,7 +64,4 @@ class ArgumentAnalysisAgent(BaseAgent):
         return self._validate_and_fill(raw_result)
 
 
-# Module-level singleton so other files can just do:
-#   from app.agents.argument_analysis_agent import argument_analysis_agent
-#   result = argument_analysis_agent.run(text)
 argument_analysis_agent = ArgumentAnalysisAgent()
