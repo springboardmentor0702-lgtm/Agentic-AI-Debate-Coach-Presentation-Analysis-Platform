@@ -1,11 +1,26 @@
+﻿# =========================================================================
+# Dockerfile for Backend Core Service (FastAPI + AI Engine)
+# =========================================================================
 FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system build dependencies for numpy/faiss
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY backend/ .
+# Install python dependencies
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+
+# Copy backend and ai-ml codebase
+COPY backend /app/backend
+COPY ai-ml /app/ai-ml
+
+WORKDIR /app/backend
 
 EXPOSE 8000
 

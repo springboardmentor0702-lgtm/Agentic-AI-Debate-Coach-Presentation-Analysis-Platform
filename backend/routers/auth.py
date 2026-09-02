@@ -15,6 +15,7 @@ import schemas
 
 router = APIRouter(prefix="/api/v1/auth", tags=["User Authentication & Role-Based Access"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 VALID_ROLES = ["Learner", "Debate Coach", "Educator", "Administrator"]
 
@@ -62,6 +63,22 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user was not found.")
     return user
+
+
+def get_current_user_optional(
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+) -> Optional[models.User]:
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        user_id = payload.get("user_id")
+        if isinstance(user_id, int):
+            return db.query(models.User).filter(models.User.id == user_id).first()
+    except Exception:
+        return None
+    return None
 
 
 def require_role(allowed_roles: List[str]):

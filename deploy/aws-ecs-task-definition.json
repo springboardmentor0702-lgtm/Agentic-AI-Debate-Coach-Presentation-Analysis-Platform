@@ -1,0 +1,57 @@
+﻿{
+  "family": "logos-ai-platform",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "containerDefinitions": [
+    {
+      "name": "logos-backend",
+      "image": "<aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/logos-backend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "DATABASE_URL", "value": "postgresql://postgres:postgrespassword@rds-postgres.us-east-1.rds.amazonaws.com:5432/logos_ai_db"},
+        {"name": "MONGO_URI", "value": "mongodb://docdb-cluster.us-east-1.docdb.amazonaws.com:27017"},
+        {"name": "MONGO_DB", "value": "logos_ai_transcripts"},
+        {"name": "GROQ_MODEL", "value": "llama-3.3-70b-versatile"},
+        {"name": "LLM_MODEL", "value": "gemini-2.0-flash"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/logos-ai-platform",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "backend"
+        }
+      }
+    },
+    {
+      "name": "logos-frontend",
+      "image": "<aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/logos-frontend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "NEXT_PUBLIC_BACKEND_URL", "value": "https://api.logosai.domain.com"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/logos-ai-platform",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "frontend"
+        }
+      }
+    }
+  ]
+}

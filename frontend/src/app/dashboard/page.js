@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AuthModal from '../../components/AuthModal';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Profile Form States
   const [fullName, setFullName] = useState('');
@@ -62,9 +64,12 @@ export default function DashboardPage() {
   const [coachSuccessMsg, setCoachSuccessMsg] = useState('');
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('logos_ai_jwt');
+    const savedToken = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
     if (!savedToken) {
-      router.push('/login');
+      setIsAuthModalOpen(true);
+      setUserName('Guest User');
+      setUserEmail('guest@logos.ai');
+      setLoading(false);
       return;
     }
 
@@ -77,7 +82,8 @@ export default function DashboardPage() {
       fetchCoachingPlan();
     } catch (e) {
       localStorage.removeItem('logos_ai_jwt');
-      router.push('/login');
+      setIsAuthModalOpen(true);
+      setLoading(false);
     }
   }, []);
 
@@ -760,6 +766,11 @@ export default function DashboardPage() {
         </div>
       )}
 
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onAuthSuccess={() => setIsAuthModalOpen(false)}
+      />
     </div>
   );
 }
