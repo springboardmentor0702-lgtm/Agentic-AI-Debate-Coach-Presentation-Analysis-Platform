@@ -45,3 +45,8 @@ ENV/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+!.env.example
