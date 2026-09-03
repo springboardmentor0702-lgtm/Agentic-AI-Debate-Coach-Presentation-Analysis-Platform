@@ -46,3 +46,6 @@ ENV/
 # OS metadata
 .DS_Store
 Thumbs.db
+# Executables & binary tool distributions
+tools/
+*.exe
