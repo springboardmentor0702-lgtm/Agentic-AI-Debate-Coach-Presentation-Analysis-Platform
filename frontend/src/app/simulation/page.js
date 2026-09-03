@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../lib/api';
 
 const authHeaders = (json = false) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
@@ -63,7 +64,7 @@ export default function SimulationPage() {
     setLoading(true);
     const finalTopic = topic === "Custom Topic (Enter below)" ? customTopic : topic;
     try {
-      const res = await fetch("http://localhost:8000/api/v1/sessions/create", {
+      const res = await fetch(apiUrl('/api/v1/sessions/create'), {
         method: "POST",
         headers: authHeaders(true),
         body: JSON.stringify({
@@ -77,6 +78,7 @@ export default function SimulationPage() {
       if (!res.ok) throw new Error('Unable to create the debate session.');
       const data = await res.json();
       setSessionId(data.id);
+      localStorage.setItem('logos_ai_active_session_id', String(data.id));
 
       setTranscript([
         {
@@ -119,7 +121,7 @@ export default function SimulationPage() {
     const finalTopic = topic === "Custom Topic (Enter below)" ? customTopic : topic;
     try {
       const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
-      await fetch("http://localhost:8000/api/v1/sessions/create", {
+      await fetch(apiUrl('/api/v1/sessions/create'), {
         method: "POST",
         headers: authHeaders(true),
         body: JSON.stringify({
@@ -146,7 +148,7 @@ export default function SimulationPage() {
   const handleCompleteSession = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/sessions/${sessionId}/complete`, {
+      const response = await fetch(apiUrl(`/api/v1/sessions/${sessionId}/complete`), {
         method: "POST",
         headers: authHeaders()
       });
@@ -170,7 +172,7 @@ export default function SimulationPage() {
     setLoading(true);
 
     try {
-      const simRes = await fetch("http://localhost:8000/api/v1/simulation/turn", {
+      const simRes = await fetch(apiUrl('/api/v1/simulation/turn'), {
         method: "POST",
         headers: authHeaders(true),
         body: JSON.stringify({

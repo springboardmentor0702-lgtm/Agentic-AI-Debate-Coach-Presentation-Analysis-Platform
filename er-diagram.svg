@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120" role="img" aria-labelledby="title desc">
+  <title id="title">LOGOS.AI database entity relationship diagram</title>
+  <desc id="desc">Users create debate sessions. Sessions have analyses, simulation turns, speech metrics, and scores. Analyses have fallacy logs and counterarguments. Users have coaching plans.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+    <style>
+      .bg { fill:#f8fafc; } .line { stroke:#64748b; stroke-width:2.5; fill:none; marker-end:url(#arrow); }
+      .box { fill:#fff; stroke:#334155; stroke-width:2; rx:10; } .head { fill:#d90429; rx:9; }
+      .title { fill:#fff; font:700 21px Arial,sans-serif; } .field { fill:#1e293b; font:16px Arial,sans-serif; }
+      .key { fill:#d90429; font-weight:700; } .label { fill:#475569; font:600 15px Arial,sans-serif; }
+      .main { fill:#0f172a; font:700 28px Arial,sans-serif; } .sub { fill:#475569; font:16px Arial,sans-serif; }
+    </style>
+  </defs>
+  <rect class="bg" width="1800" height="1120"/>
+  <text x="70" y="55" class="main">LOGOS.AI — Database ER Diagram</text>
+  <text x="70" y="82" class="sub">PK = Primary Key · FK = Foreign Key · one user can own many sessions</text>
+
+  <!-- connectors behind entities -->
+  <path class="line" d="M390 270 C455 270 460 270 525 270"/><text x="420" y="248" class="label">creates (1 : many)</text>
+  <path class="line" d="M735 390 C735 430 550 430 550 500"/><text x="590" y="455" class="label">has</text>
+  <path class="line" d="M945 390 C945 440 955 445 955 500"/><text x="965" y="455" class="label">has</text>
+  <path class="line" d="M1145 390 C1190 440 1270 445 1270 500"/><text x="1185" y="455" class="label">records</text>
+  <path class="line" d="M1160 300 C1330 300 1400 500 1450 500"/><text x="1315" y="280" class="label">gets</text>
+  <path class="line" d="M250 340 C250 760 1050 745 1050 840"/><text x="700" y="805" class="label">receives</text>
+  <path class="line" d="M510 650 C460 700 460 730 460 840"/><text x="465" y="730" class="label">detects</text>
+  <path class="line" d="M710 650 C805 700 850 730 850 840"/><text x="735" y="730" class="label">generates</text>
+
+  <!-- users -->
+  <g transform="translate(110,150)"><rect class="box" width="280" height="190"/><rect class="head" width="280" height="45"/><text x="18" y="30" class="title">USERS</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field">email</text><text x="20" y="132" class="field">full_name</text><text x="20" y="160" class="field">role</text></g>
+  <!-- sessions -->
+  <g transform="translate(525,130)"><rect class="box" width="320" height="260"/><rect class="head" width="320" height="45"/><text x="18" y="30" class="title">DEBATE_SESSIONS</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field"><tspan class="key">FK</tspan> user_id</text><text x="20" y="132" class="field">title</text><text x="20" y="160" class="field">topic</text><text x="20" y="188" class="field">format</text><text x="20" y="216" class="field">status</text></g>
+  <!-- analysis -->
+  <g transform="translate(350,500)"><rect class="box" width="360" height="220"/><rect class="head" width="360" height="45"/><text x="18" y="30" class="title">ARGUMENT_ANALYSES</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field"><tspan class="key">FK</tspan> session_id</text><text x="20" y="132" class="field"><tspan class="key">FK</tspan> user_id</text><text x="20" y="160" class="field">claim_identified</text><text x="20" y="188" class="field">logical_consistency</text></g>
+  <!-- simulation -->
+  <g transform="translate(800,500)"><rect class="box" width="310" height="220"/><rect class="head" width="310" height="45"/><text x="18" y="30" class="title">SIMULATION_TURNS</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field"><tspan class="key">FK</tspan> session_id</text><text x="20" y="132" class="field">turn_index</text><text x="20" y="160" class="field">user_argument</text><text x="20" y="188" class="field">opponent_rebuttal</text></g>
+  <!-- presentation -->
+  <g transform="translate(1160,500)"><rect class="box" width="300" height="220"/><rect class="head" width="300" height="45"/><text x="18" y="30" class="title">PRESENTATION_METRICS</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field"><tspan class="key">FK</tspan> session_id</text><text x="20" y="132" class="field">speech_pace_wpm</text><text x="20" y="160" class="field">filler_words_count</text><text x="20" y="188" class="field">confidence_score</text></g>
+  <!-- scores -->
+  <g transform="translate(1480,500)"><rect class="box" width="270" height="190"/><rect class="head" width="270" height="45"/><text x="18" y="30" class="title">PERFORMANCE_SCORES</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field"><tspan class="key">FK</tspan> session_id</text><text x="20" y="132" class="field">overall_weighted_score</text><text x="20" y="160" class="field">created_at</text></g>
+  <!-- fallacies -->
+  <g transform="translate(180,840)"><rect class="box" width="290" height="190"/><rect class="head" width="290" height="45"/><text x="18" y="30" class="title">FALLACY_LOGS</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field"><tspan class="key">FK</tspan> analysis_id</text><text x="20" y="132" class="field">fallacy_type</text><text x="20" y="160" class="field">explanation</text></g>
+  <!-- counters -->
+  <g transform="translate(660,840)"><rect class="box" width="310" height="190"/><rect class="head" width="310" height="45"/><text x="18" y="30" class="title">COUNTERARGUMENTS</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field"><tspan class="key">FK</tspan> analysis_id</text><text x="20" y="132" class="field">rebuttal_type</text><text x="20" y="160" class="field">rebuttal_text</text></g>
+  <!-- coaching -->
+  <g transform="translate(120,840)"><!-- intentionally overlaid? --> </g>
+  <g transform="translate(1040,840)"><rect class="box" width="320" height="190"/><rect class="head" width="320" height="45"/><text x="18" y="30" class="title">COACHING_PLANS</text><text x="20" y="76" class="field"><tspan class="key">PK</tspan> id</text><text x="20" y="104" class="field"><tspan class="key">FK</tspan> user_id</text><text x="20" y="132" class="field">recommendations</text><text x="20" y="160" class="field">progress_status</text></g>
+</svg>

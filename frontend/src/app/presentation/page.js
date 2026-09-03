@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-
-const authHeaders = () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  };
-};
+import { apiUrl, authHeaders } from '../../lib/api';
 
 export default function PresentationPage() {
   const [speechText, setSpeechText] = useState(
@@ -18,16 +11,32 @@ export default function PresentationPage() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const getSessionId = async () => {
+    const existing = Number(localStorage.getItem('logos_ai_active_session_id'));
+    if (existing > 0) return existing;
+
+    const response = await fetch(apiUrl('/api/v1/sessions/create'), {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ title: 'Presentation metrics practice', topic: 'Presentation prosody analysis', format: 'Presentation Analysis' }),
+    });
+    if (!response.ok) throw new Error('Unable to create an analysis session.');
+    const session = await response.json();
+    localStorage.setItem('logos_ai_active_session_id', String(session.id));
+    return session.id;
+  };
+
   const handleAnalyze = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/presentation-analysis/evaluate", {
+      const sessionId = await getSessionId();
+      const res = await fetch(apiUrl('/api/v1/presentation-analysis/evaluate'), {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          session_id: 1,
+          session_id: sessionId,
           speech_text: speechText,
           audio_duration_seconds: parseFloat(duration)
         })

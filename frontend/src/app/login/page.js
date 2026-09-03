@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiUrl } from '../../lib/api';
 
 // --- SVG Icons ---
 const GoogleLogo = () => (
@@ -51,7 +52,7 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
+      const res = await fetch(apiUrl('/api/v1/auth/login'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -81,7 +82,7 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`, {
+      const res = await fetch(apiUrl(`/api/v1/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`), {
         method: "POST"
       });
       const data = await res.json();

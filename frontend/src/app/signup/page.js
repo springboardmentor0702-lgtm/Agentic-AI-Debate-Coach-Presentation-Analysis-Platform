@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiUrl } from '../../lib/api';
 
 const GoogleLogo = () => (
   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -44,7 +45,7 @@ export default function SignUpPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/register", {
+      const res = await fetch(apiUrl('/api/v1/auth/register'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -61,7 +62,7 @@ export default function SignUpPage() {
       if (!res.ok) throw new Error(data.detail || "Registration failed.");
 
       if (goal || topics) {
-        await fetch(`http://localhost:8000/api/v1/auth/profile/me?learning_goals=${encodeURIComponent(goal)}&preferred_topics=${encodeURIComponent(topics)}`, {
+        await fetch(apiUrl(`/api/v1/auth/profile/me?learning_goals=${encodeURIComponent(goal)}&preferred_topics=${encodeURIComponent(topics)}`), {
           method: "PUT",
           headers: { 
             "Authorization": `Bearer ${data.access_token}`,
@@ -87,7 +88,7 @@ export default function SignUpPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`, {
+      const res = await fetch(apiUrl(`/api/v1/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`), {
         method: "POST"
       });
       const data = await res.json();

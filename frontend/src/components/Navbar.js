@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { apiUrl } from '../lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -41,7 +42,10 @@ export default function Navbar() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts");
+      const token = localStorage.getItem('logos_ai_jwt');
+      const res = await fetch(apiUrl('/api/v1/notifications/my-alerts'), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
@@ -71,8 +75,10 @@ export default function Navbar() {
 
   const handleMarkAsRead = async (id) => {
     try {
-      await fetch(`http://localhost:8000/api/v1/notifications/read/${id}`, {
-        method: "POST"
+      const token = localStorage.getItem('logos_ai_jwt');
+      await fetch(apiUrl(`/api/v1/notifications/read/${id}`), {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
     } catch (err) {}
     

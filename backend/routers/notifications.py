@@ -3,11 +3,13 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from database import get_db
 import models
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["Notification & Engagement System"])
 
 @router.get("/my-alerts")
-def get_user_notifications(user_id: int = 1, db: Session = Depends(get_db)):
+def get_user_notifications(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user_id = current_user.id
     notifications_list = []
     
     # 1. Fetch scheduled debates (Debate Reminders / Practice Session Reminders)
@@ -82,6 +84,6 @@ def get_user_notifications(user_id: int = 1, db: Session = Depends(get_db)):
     return notifications_list
 
 @router.post("/read/{notification_id}")
-def mark_notification_as_read(notification_id: int):
+def mark_notification_as_read(notification_id: int, current_user: models.User = Depends(get_current_user)):
     return {"status": "success", "message": f"Notification {notification_id} marked as read."}
 

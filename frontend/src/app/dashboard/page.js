@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiUrl } from '../../lib/api';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function DashboardPage() {
       setUserEmail(payload.sub);
       
       fetchProfile(savedToken);
-      fetchCoachingPlan();
+      fetchCoachingPlan(savedToken, payload.user_id);
     } catch (e) {
       localStorage.removeItem('logos_ai_jwt');
       router.push('/login');
@@ -83,7 +84,7 @@ export default function DashboardPage() {
 
   const fetchProfile = async (token) => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/profile/me", {
+      const res = await fetch(apiUrl('/api/v1/auth/profile/me'), {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -102,9 +103,12 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchCoachingPlan = async () => {
+  const fetchCoachingPlan = async (token, userId) => {
+    if (!userId) return;
     try {
-      const res = await fetch("http://localhost:8000/api/v1/coaching/plan/1");
+      const res = await fetch(apiUrl(`/api/v1/coaching/plan/${userId}`), {
+        headers: { Authorization: `Bearer ${token || localStorage.getItem('logos_ai_jwt')}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setSkillGapSummary(data.skill_gap_summary);
@@ -128,7 +132,7 @@ export default function DashboardPage() {
     const token = localStorage.getItem('logos_ai_jwt');
     
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/profile/me?full_name=${encodeURIComponent(fullName)}&experience_level=${encodeURIComponent(experience)}&preferred_topics=${encodeURIComponent(topics)}&presentation_domains=${encodeURIComponent(domains)}&learning_goals=${encodeURIComponent(goals)}&coaching_preferences=${encodeURIComponent(coaching)}`, {
+      const res = await fetch(apiUrl(`/api/v1/auth/profile/me?full_name=${encodeURIComponent(fullName)}&experience_level=${encodeURIComponent(experience)}&preferred_topics=${encodeURIComponent(topics)}&presentation_domains=${encodeURIComponent(domains)}&learning_goals=${encodeURIComponent(goals)}&coaching_preferences=${encodeURIComponent(coaching)}`), {
         method: "PUT",
         headers: { 
           "Authorization": `Bearer ${token}`,
@@ -139,7 +143,8 @@ export default function DashboardPage() {
       if (res.ok) {
         setUserName(fullName);
         setProfileMsg({ type: 'success', text: 'User profile metrics successfully updated in PostgreSQL database.' });
-        fetchCoachingPlan(); // Refresh coaching recommendations based on updated profile
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        fetchCoachingPlan(token, payload.user_id); // Refresh coaching recommendations based on updated profile
       } else {
         setProfileMsg({ type: 'error', text: 'Error updating profile. Please verify authorization.' });
       }
