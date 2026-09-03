@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-
-const authHeaders = (json = false) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
-  return {
-    ...(json ? { 'Content-Type': 'application/json' } : {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  };
-};
+import { apiFetch } from '../../lib/api';
 
 const PRESET_TOPICS = [
   "Autonomous AI Systems should be held legally liable for unintended damages.",
@@ -63,9 +56,8 @@ export default function SimulationPage() {
     setLoading(true);
     const finalTopic = topic === "Custom Topic (Enter below)" ? customTopic : topic;
     try {
-      const res = await fetch("http://localhost:8000/api/v1/sessions/create", {
+      const res = await apiFetch("/sessions/create", {
         method: "POST",
-        headers: authHeaders(true),
         body: JSON.stringify({
           title: `${format} on ${finalTopic.substring(0, 30)}...`,
           topic: finalTopic,
@@ -74,9 +66,9 @@ export default function SimulationPage() {
           status: "Active"
         })
       });
-      if (!res.ok) throw new Error('Unable to create the debate session.');
       const data = await res.json();
       setSessionId(data.id);
+      localStorage.setItem('logos_ai_session_id', String(data.id));
 
       setTranscript([
         {
@@ -93,21 +85,7 @@ export default function SimulationPage() {
       setLastAnalysis(null);
       setSessionStatus("Running");
     } catch (err) {
-      // Offline fallback
-      setSessionId(999);
-      setTranscript([
-        {
-          speaker: "System",
-          text: `Debate Session Initialized (Offline Mode). Format: ${format} | Position: ${position} | Opponent: ${persona}`,
-          type: "system"
-        },
-        {
-          speaker: "AI Opponent",
-          text: `Greetings. I will argue the Negative perspective. Present your opening ${position} case for: "${finalTopic}".`,
-          type: "opponent"
-        }
-      ]);
-      setSessionStatus("Running");
+      alert(err.message);
     } finally {
       setLoading(false);
     }
@@ -119,9 +97,8 @@ export default function SimulationPage() {
     const finalTopic = topic === "Custom Topic (Enter below)" ? customTopic : topic;
     try {
       const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
-      await fetch("http://localhost:8000/api/v1/sessions/create", {
+      await apiFetch("/sessions/create", {
         method: "POST",
-        headers: authHeaders(true),
         body: JSON.stringify({
           title: `[Practice] ${format} on ${finalTopic.substring(0, 30)}...`,
           topic: finalTopic,
@@ -138,7 +115,7 @@ export default function SimulationPage() {
         setScheduledTime("");
       }, 3000);
     } catch (err) {
-      setScheduleSuccess(`Offline Mode: Session scheduled locally for ${scheduledDate} at ${scheduledTime}!`);
+      setScheduleSuccess(`Unable to schedule session: ${err.message}`);
       setTimeout(() => setScheduleSuccess(""), 3000);
     }
   };
@@ -146,14 +123,12 @@ export default function SimulationPage() {
   const handleCompleteSession = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/sessions/${sessionId}/complete`, {
+      const response = await apiFetch(`/sessions/${sessionId}/complete`, {
         method: "POST",
-        headers: authHeaders()
       });
-      if (!response.ok) throw new Error('Unable to complete the debate session.');
       setSessionStatus("Completed");
     } catch (err) {
-      setSessionStatus("Completed");
+      alert(err.message);
     } finally {
       setLoading(false);
     }
@@ -170,9 +145,8 @@ export default function SimulationPage() {
     setLoading(true);
 
     try {
-      const simRes = await fetch("http://localhost:8000/api/v1/simulation/turn", {
+      const simRes = await apiFetch("/simulation/turn", {
         method: "POST",
-        headers: authHeaders(true),
         body: JSON.stringify({
           session_id: sessionId,
           user_argument: userMsg,
@@ -180,7 +154,6 @@ export default function SimulationPage() {
         })
       });
 
-      if (!simRes.ok) throw new Error('Unable to process this debate turn.');
       const data = await simRes.json();
 
       setTranscript(prev => [

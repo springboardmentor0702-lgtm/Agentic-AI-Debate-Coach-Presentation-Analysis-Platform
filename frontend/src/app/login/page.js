@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 import Link from 'next/link';
 
 // --- SVG Icons ---
@@ -30,6 +32,7 @@ const EyeSlashIcon = () => (
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setSession } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,20 +54,19 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
+      const res = await apiFetch("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Authentication failed.");
 
       if (data.role !== role) {
         throw new Error(`Access denied. Registered role is '${data.role}', not '${role}'.`);
       }
 
-      localStorage.setItem('logos_ai_jwt', data.access_token);
+      setSession(data);
       setMessage({ type: 'success', text: `Access granted! Redirecting to dashboard...` });
       
       setTimeout(() => {
@@ -81,11 +83,11 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`, {
+      const res = await apiFetch(`/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`, {
         method: "POST"
       });
       const data = await res.json();
-      localStorage.setItem('logos_ai_jwt', data.access_token);
+      setSession(data);
       setMessage({ type: 'success', text: "Google Authentication successful!" });
       
       setTimeout(() => {

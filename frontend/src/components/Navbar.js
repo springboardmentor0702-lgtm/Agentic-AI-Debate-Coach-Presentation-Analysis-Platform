@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { apiFetch } from '../lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -41,40 +42,19 @@ export default function Navbar() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data);
-      }
+      const data = await (await apiFetch("/notifications/my-alerts")).json();
+      setNotifications(data);
     } catch (err) {
-      // Offline fallback values
-      setNotifications([
-        {
-          id: 1,
-          category: "Session Reminder",
-          title: "Upcoming Debate Match",
-          message: "Your debate session on 'AI Governance' is scheduled in 30 minutes.",
-          timestamp: "Just now",
-          read: false
-        },
-        {
-          id: 2,
-          category: "Feedback Alert",
-          title: "Analysis Ready",
-          message: "Coach Sofia Vance left detailed feedback on your last debate rebuttal.",
-          timestamp: "2 hours ago",
-          read: false
-        }
-      ]);
+      setNotifications([]);
     }
   };
 
   const handleMarkAsRead = async (id) => {
     try {
-      await fetch(`http://localhost:8000/api/v1/notifications/read/${id}`, {
-        method: "POST"
-      });
-    } catch (err) {}
+      await apiFetch(`/notifications/read/${id}`, { method: "POST" });
+    } catch (err) {
+      return;
+    }
     
     setNotifications(prev => 
       prev.map(n => n.id === id ? { ...n, read: true } : n)

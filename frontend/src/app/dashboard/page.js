@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiFetch } from '../../lib/api';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,17 +31,9 @@ export default function DashboardPage() {
   const [progressStatus, setProgressStatus] = useState('');
 
   // Simulated Datasets for Learner
-  const [debateHistory, setDebateHistory] = useState([
-    { id: 101, topic: 'AI Legal Liability & Regulatory Frameworks', format: 'Oxford Style', position: 'Affirmative', score: 86.4, status: 'Completed', date: '2026-07-22' },
-    { id: 102, topic: 'Universal Basic Income Feasibility', format: 'Parliamentary', position: 'Negative', score: 81.2, status: 'Completed', date: '2026-07-20' },
-    { id: 103, topic: 'Space Colonization Funding Priority', format: 'AI Simulation', position: 'Affirmative', score: 79.5, status: 'Completed', date: '2026-07-18' }
-  ]);
+  const [debateHistory, setDebateHistory] = useState([]);
 
-  const [presentationHistory, setPresentationHistory] = useState([
-    { id: 201, title: 'Keynote on Generative Models & Rhetoric', duration: '2m 15s', wpm: 138, fillerWords: 4, confidence: '94%', clarity: '88%' },
-    { id: 202, title: 'Opening Statement - Oxford Debate Mock', duration: '1m 40s', wpm: 146, fillerWords: 9, confidence: '81%', clarity: '79%' },
-    { id: 203, title: 'Elevator Pitch - Venture Capital Simulation', duration: '45s', wpm: 128, fillerWords: 2, confidence: '96%', clarity: '92%' }
-  ]);
+  const [presentationHistory, setPresentationHistory] = useState([]);
 
   // Skill Metrics Matrix
   const skillsMatrix = [
@@ -75,17 +68,33 @@ export default function DashboardPage() {
       
       fetchProfile(savedToken);
       fetchCoachingPlan();
+      fetchSessions();
     } catch (e) {
       localStorage.removeItem('logos_ai_jwt');
       router.push('/login');
     }
   }, []);
 
+  const fetchSessions = async () => {
+    try {
+      const sessions = await (await apiFetch('/sessions/user/me')).json();
+      setDebateHistory(sessions.map((session) => ({
+        id: session.id,
+        topic: session.topic,
+        format: session.format,
+        position: session.assigned_position,
+        score: null,
+        status: session.status,
+        date: session.created_at?.slice(0, 10) || '',
+      })));
+    } catch {
+      setDebateHistory([]);
+    }
+  };
+
   const fetchProfile = async (token) => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/profile/me", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+      const res = await apiFetch("/auth/profile/me");
       if (res.ok) {
         const data = await res.json();
         setFullName(data.full_name);
@@ -104,7 +113,9 @@ export default function DashboardPage() {
 
   const fetchCoachingPlan = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/coaching/plan/1");
+      const userId = localStorage.getItem('logos_ai_user_id');
+      if (!userId) return;
+      const res = await apiFetch(`/coaching/plan/${userId}`);
       if (res.ok) {
         const data = await res.json();
         setSkillGapSummary(data.skill_gap_summary);
@@ -113,11 +124,10 @@ export default function DashboardPage() {
         setProgressStatus(data.progress_status);
       }
     } catch (err) {
-      // Fallback defaults
-      setSkillGapSummary("Your metrics indicate solid progress. Focus on reducing filler words and logical fallacies.");
-      setRecommendations(["Practice Logical Consistency", "Vocal Pacing drills", "Review fallacy shield guidelines."]);
-      setPathSteps(["Speech Cadence (Completed)", "Filler Word Mitigation (Active)", "Socratic Cross-examination (Upcoming)"]);
-      setProgressStatus("Level 2 - Competent Debater");
+      setSkillGapSummary("No coaching data is available yet.");
+      setRecommendations([]);
+      setPathSteps([]);
+      setProgressStatus("Not started");
     }
   };
 
@@ -128,10 +138,9 @@ export default function DashboardPage() {
     const token = localStorage.getItem('logos_ai_jwt');
     
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/profile/me?full_name=${encodeURIComponent(fullName)}&experience_level=${encodeURIComponent(experience)}&preferred_topics=${encodeURIComponent(topics)}&presentation_domains=${encodeURIComponent(domains)}&learning_goals=${encodeURIComponent(goals)}&coaching_preferences=${encodeURIComponent(coaching)}`, {
+      const res = await apiFetch(`/auth/profile/me?full_name=${encodeURIComponent(fullName)}&experience_level=${encodeURIComponent(experience)}&preferred_topics=${encodeURIComponent(topics)}&presentation_domains=${encodeURIComponent(domains)}&learning_goals=${encodeURIComponent(goals)}&coaching_preferences=${encodeURIComponent(coaching)}`, {
         method: "PUT",
         headers: { 
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         }
       });

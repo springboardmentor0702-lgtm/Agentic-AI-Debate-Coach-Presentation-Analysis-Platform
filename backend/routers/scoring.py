@@ -13,46 +13,41 @@ router = APIRouter(prefix="/api/v1/scoring", tags=["Performance Scoring Engine"]
 
 @router.post("/calculate", response_model=schemas.WeightedScoreResponse)
 def calculate_score(
-    session_id: int,
-    arg_quality: float = 85.0,
-    evidence: float = 80.0,
-    logic: float = 90.0,
-    rebuttal: float = 88.0,
-    comms: float = 82.0,
+    payload: schemas.WeightedScoreSubmit,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     debate_session = (
         db.query(models.DebateSession)
-        .filter(models.DebateSession.id == session_id, models.DebateSession.user_id == current_user.id)
+        .filter(models.DebateSession.id == payload.session_id, models.DebateSession.user_id == current_user.id)
         .first()
     )
     if not debate_session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debate session not found for this user.")
 
     try:
-        overall = ai_engine_service.calculate_weighted_score(arg_quality, evidence, logic, rebuttal, comms)
+        overall = ai_engine_service.calculate_weighted_score(payload.argument_quality, payload.evidence_use, payload.logical_consistency, payload.rebuttal_effectiveness, payload.communication_skills)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     score_rec = models.PerformanceScore(
-        session_id=session_id,
+        session_id=payload.session_id,
         user_id=current_user.id,
-        argument_quality=arg_quality,
-        evidence_use=evidence,
-        logical_consistency=logic,
-        rebuttal_effectiveness=rebuttal,
-        communication_skills=comms,
+        argument_quality=payload.argument_quality,
+        evidence_use=payload.evidence_use,
+        logical_consistency=payload.logical_consistency,
+        rebuttal_effectiveness=payload.rebuttal_effectiveness,
+        communication_skills=payload.communication_skills,
         overall_weighted_score=overall,
     )
     db.add(score_rec)
     db.commit()
     return {
-        "session_id": session_id,
-        "argument_quality": arg_quality,
-        "evidence_use": evidence,
-        "logical_consistency": logic,
-        "rebuttal_effectiveness": rebuttal,
-        "communication_skills": comms,
+        "session_id": payload.session_id,
+        "argument_quality": payload.argument_quality,
+        "evidence_use": payload.evidence_use,
+        "logical_consistency": payload.logical_consistency,
+        "rebuttal_effectiveness": payload.rebuttal_effectiveness,
+        "communication_skills": payload.communication_skills,
         "overall_weighted_score": overall,
     }

@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-
-const authHeaders = () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  };
-};
+import { apiFetch } from '../../lib/api';
 
 export default function PresentationPage() {
   const [speechText, setSpeechText] = useState(
@@ -23,11 +16,12 @@ export default function PresentationPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/presentation-analysis/evaluate", {
+      const sessionId = Number(localStorage.getItem('logos_ai_session_id'));
+      if (!sessionId) throw new Error('Start a debate session before analyzing speech.');
+      const res = await apiFetch("/presentation-analysis/evaluate", {
         method: "POST",
-        headers: authHeaders(),
         body: JSON.stringify({
-          session_id: 1,
+          session_id: sessionId,
           speech_text: speechText,
           audio_duration_seconds: parseFloat(duration)
         })
@@ -37,15 +31,8 @@ export default function PresentationPage() {
       const data = await res.json();
       setMetrics(data);
     } catch (err) {
-      // Fallback local calculation
-      setMetrics({
-        speech_pace_wpm: 142.0,
-        filler_words_count: 4,
-        filler_words_list: "um:1, uh:1, like:1, you know:1",
-        confidence_score: 84.5,
-        clarity_score: 88.0,
-        engagement_score: 86.2
-      });
+      setMetrics(null);
+      alert(err.message);
     } finally {
       setLoading(false);
     }

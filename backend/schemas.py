@@ -68,6 +68,10 @@ class ArgumentSubmit(BaseModel):
     speech_text: str = Field(min_length=1, max_length=20000)
 
 
+class CounterargumentSubmit(BaseModel):
+    speech_text: str = Field(min_length=1, max_length=20000)
+
+
 class FallacyDetail(BaseModel):
     fallacy_type: str
     explanation: str
@@ -136,6 +140,15 @@ class WeightedScoreResponse(BaseModel):
     rebuttal_effectiveness: float = Field(ge=0, le=100)
     communication_skills: float = Field(ge=0, le=100)
     overall_weighted_score: float = Field(ge=0, le=100)
+
+
+class WeightedScoreSubmit(BaseModel):
+    session_id: int = Field(gt=0)
+    argument_quality: float = Field(ge=0, le=100)
+    evidence_use: float = Field(ge=0, le=100)
+    logical_consistency: float = Field(ge=0, le=100)
+    rebuttal_effectiveness: float = Field(ge=0, le=100)
+    communication_skills: float = Field(ge=0, le=100)
 
 
 class CoachingPlanResponse(BaseModel):

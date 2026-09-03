@@ -13,6 +13,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from services.scoring_agent import calculate_score
 
 try:  # FAISS is optional at runtime, but included in the backend requirements.
     import faiss
@@ -270,8 +271,7 @@ class AIEngine:
         components = [arg_quality, evidence, logic, rebuttal, comms]
         if any(value < 0 or value > 100 for value in components):
             raise ValueError("Every score component must be between 0 and 100.")
-        weighted = (0.30 * arg_quality) + (0.20 * evidence) + (0.20 * logic) + (0.15 * rebuttal) + (0.15 * comms)
-        return round(weighted, 1)
+        return calculate_score(arg_quality, evidence, logic, rebuttal, comms)
 
 
 ai_engine_service = AIEngine()

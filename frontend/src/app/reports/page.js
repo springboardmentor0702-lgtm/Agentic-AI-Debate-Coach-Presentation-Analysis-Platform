@@ -1,20 +1,41 @@
 "use client";
 
 import { useState } from 'react';
+import { apiFetch } from '../../lib/api';
 
 export default function ReportsPage() {
   const [downloading, setDownloading] = useState(false);
 
+  const download = async (path, filename) => {
+    setDownloading(true);
+    try {
+      const response = await apiFetch(path);
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleDownloadPDF = () => {
-    window.open("http://localhost:8000/api/v1/reports/export/pdf/1", "_blank");
+    const sessionId = localStorage.getItem('logos_ai_session_id');
+    if (sessionId) download(`/reports/export/pdf/${sessionId}`, `logos_ai_session_${sessionId}.pdf`);
   };
 
   const handleDownloadExcel = () => {
-    window.open("http://localhost:8000/api/v1/reports/export/excel/1", "_blank");
+    const sessionId = localStorage.getItem('logos_ai_session_id');
+    if (sessionId) download(`/reports/export/excel/${sessionId}`, `logos_ai_session_${sessionId}.csv`);
   };
 
   const handleDownloadCoachingPDF = () => {
-    window.open("http://localhost:8000/api/v1/reports/export/coaching/pdf/1", "_blank");
+    const userId = localStorage.getItem('logos_ai_user_id');
+    if (userId) download(`/reports/export/coaching/pdf/${userId}`, `logos_ai_coaching_${userId}.pdf`);
   };
 
   return (
