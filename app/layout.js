@@ -3,8 +3,8 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 export const metadata = {
-  title: 'LOGOS.AI | Agentic AI Debate Coach & Presentation Analytics Platform',
-  description: 'Detect fallacies in real-time. Simulate world-class opponents. Master the podium.',
+  title: 'LOGOS.AI — Debate Coach & Presentation Intelligence',
+  description: 'Practice arguments, audit logic, and become a stronger communicator with agentic coaching.',
 };
 
 export default function RootLayout({ children }) {
