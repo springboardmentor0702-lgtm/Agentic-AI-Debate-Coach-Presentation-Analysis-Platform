@@ -47,7 +47,7 @@ export default function CoachingPage() {
         {/* HEADER */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
-            Module 10 • Recommendation & Coaching Engine
+            Recommendation & Coaching Pathways
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
             Personalized Coaching Pathways

@@ -160,7 +160,7 @@ export default function SimulationPage() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
-              Module 8 • AI Debate Simulation Engine
+              Interactive Debate Arena & Simulation
             </span>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
               Interactive Debate Arena

@@ -66,9 +66,9 @@ export default function AnalyzePage() {
         
         {/* HEADER */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
-            Modules 4, 5 & 6 • Argument Mining & Fallacy Intelligence
-          </span>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
+              Argument Mining & Fallacy Intelligence
+            </span>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
             Argument & Fallacy Analysis Engine
           </h1>
@@ -193,7 +193,7 @@ export default function AnalyzePage() {
               </div>
             </div>
 
-            {/* LOGICAL FALLACIES DETECTION (MODULE 5) */}
+            {/* LOGICAL FALLACIES DETECTION */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -234,7 +234,7 @@ export default function AnalyzePage() {
               )}
             </div>
 
-            {/* COUNTERARGUMENT GENERATION ENGINE (MODULE 6) */}
+            {/* COUNTERARGUMENT GENERATION ENGINE */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
