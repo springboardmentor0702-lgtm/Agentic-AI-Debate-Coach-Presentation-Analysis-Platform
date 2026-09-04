@@ -3,297 +3,79 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+const modules = [
+  ['01 / 08', 'Argument mining', 'Extract claims, evidence, and reasoning from your text in seconds.'],
+  ['02 / 08', 'Logic audit', 'Spot ad hominem, straw man, false dilemma, and more before your opponent does.'],
+  ['03 / 08', 'Rebuttal engine', 'Generate evidence-led counterpoints with a configurable AI opponent.'],
+  ['04 / 08', 'Vocal metrics', 'Track pace, filler words, clarity, confidence, and audience engagement.'],
+  ['05 / 08', 'Simulation lab', 'Practice one-on-one, Oxford, parliamentary, policy, or public forum debate.'],
+  ['06 / 08', 'Scoring model', 'A weighted view of argument quality, evidence, logic, rebuttal, and delivery.'],
+  ['07 / 08', 'Coaching paths', 'Turn every session into a focused improvement plan.'],
+  ['08 / 08', 'Analytics suite', 'See progress over time across debate and presentation performance.'],
+];
+
 export default function Home() {
-  const [activePersona, setActivePersona] = useState('THE CONTRARIAN');
-
+  const [persona, setPersona] = useState('The Contrarian');
   return (
-    <div className="watermark-container">
-      {/* Hero Section */}
-      <section className="hero-section">
-        {/* Background Watermark Text */}
-        <div className="watermark-text" style={{ bottom: '0px', left: '-2rem', zIndex: -1 }}>RHETORIC</div>
-
+    <>
+      <section className="hero">
         <div>
-          <div className="badge-red-pill">
-            <span className="badge-dot"></span> AGENTIC REASONING ENGINE V 4.0
+          <div className="eyebrow">Agentic reasoning engine · v4.0</div>
+          <h1 className="display">Win the <em>argument.</em></h1>
+          <p className="hero-copy">An AI debate coach for sharper thinking, stronger rebuttals, and presentations that hold the room. Practice under pressure, then understand exactly where to improve.</p>
+          <div className="hero-actions">
+            <Link href="/simulation" className="btn btn-red">Start simulation <span>↗</span></Link>
+            <Link href="/dashboard" className="btn btn-ghost">View analytics</Link>
           </div>
-          
-          <h1 className="hero-title">
-            WIN THE<br />
-            <span className="red">ARGUMENT.</span>
-          </h1>
-
-          <p className="hero-subtitle">
-            The world's first agentic AI platform for high-stakes rhetoric. Detect fallacies in real-time. Simulate world-class opponents. Master the podium.
-          </p>
-
-          <div className="hero-cta-group">
-            <Link href="/simulation" className="btn btn-dark">
-              START SIMULATION
-            </Link>
-            <Link href="/dashboard" className="btn btn-login">
-              VIEW ANALYTICS
-            </Link>
+          <div className="hero-meta">
+            <div><span className="label muted">Core modules</span><strong>08</strong></div>
+            <div><span className="label muted">Scoring dimensions</span><strong>05</strong></div>
+            <div><span className="label muted">Debate formats</span><strong>06</strong></div>
           </div>
         </div>
-
-        {/* Hero Interactive Terminal Mockup */}
-        <div style={{ position: 'relative', animation: 'fadeIn var(--transition-slow)' }}>
-          {/* Floating Rebuttal Strength Badge */}
-          <div 
-            className="font-mono glass"
-            style={{
-              position: 'absolute',
-              bottom: '1.5rem',
-              left: '-1rem',
-              color: 'var(--accent-red)',
-              padding: '0.4rem 0.8rem',
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              zIndex: 10,
-              borderRadius: '4px'
-            }}
-          >
-            REBUTTAL_STRENGTH: 98.4%
-          </div>
-
-          {/* Floating Fallacy Badge */}
-          <div 
-            className="font-mono glass"
-            style={{
-              position: 'absolute',
-              top: '1.5rem',
-              right: '-1rem',
-              color: 'var(--text-primary)',
-              padding: '0.4rem 0.8rem',
-              fontSize: '0.75rem',
-              border: '1px solid var(--accent-red)',
-              zIndex: 10,
-              borderRadius: '4px',
-              animation: 'pulseGlow 2s infinite'
-            }}
-          >
-            FALLACY: STRAW_MAN_DETECTED
-          </div>
-
-          <div className="terminal-window">
-            <div className="terminal-header">
-              <div className="terminal-dots">
-                <span className="dot dot-red"></span>
-                <span className="dot dot-yellow"></span>
-                <span className="dot dot-green"></span>
-              </div>
-              <div className="terminal-title">SIMULATION_INTERFACE.EXE</div>
-            </div>
-            
-            <div className="terminal-body">
-              <div className="terminal-line">
-                <span className="line-num">01</span>
-                <span className="text-muted">Initiating Agentic Engine v4.0...</span>
-              </div>
-              <div className="terminal-line">
-                <span className="line-num">02</span>
-                <span>User Input: <span className="text-cyan">"We must immediately restrict AI deployments."</span></span>
-              </div>
-              <div className="terminal-line">
-                <span className="line-num">03</span>
-                <span className="text-red">[AUDIT] Fallacy Detected: False Dilemma in premise #1</span>
-              </div>
-              <div className="terminal-line">
-                <span className="line-num">04</span>
-                <span className="text-green">Opponent Rebuttal: "Asserting a binary choice ignores risk-mitigated regulatory sandboxes."</span>
-              </div>
-              <div className="terminal-line">
-                <span className="line-num">05</span>
-                <span>Claim Evidence Score: <span className="text-green">89.2 / 100</span></span>
-              </div>
-              <div className="terminal-line">
-                <span className="line-num">06</span>
-                <span className="text-muted">Vocal Pace: 142 WPM (Optimal Range)</span>
-              </div>
-            </div>
+        <div className="terminal">
+          <div className="terminal-head"><span className="dots"><i/><i/><i/></span><span>SIMULATION_INTERFACE.EXE</span><span>LIVE</span></div>
+          <div className="terminal-body">
+            <div className="terminal-line"><span className="line-number">01</span><span>Initiating agentic engine v4.0...</span></div>
+            <div className="terminal-line"><span className="line-number">02</span><span>User input: <span className="cyan">“AI deployments need immediate limits.”</span></span></div>
+            <div className="terminal-line"><span className="line-number">03</span><span className="red">[AUDIT] False dilemma in premise #1</span></div>
+            <div className="terminal-line"><span className="line-number">04</span><span className="green">Counterpoint: Risk-mitigated sandboxes provide a third path.</span></div>
+            <div className="terminal-line"><span className="line-number">05</span><span>Claim evidence score: <span className="green">89.2 / 100</span></span></div>
+            <div className="terminal-line"><span className="line-number">06</span><span>Vocal pace: 142 WPM · <span className="green">optimal</span></span></div>
+            <div className="terminal-line"><span className="line-number">&gt;</span><span className="red">Awaiting rebuttal<span className="terminal-caret"/></span></div>
           </div>
         </div>
       </section>
 
-      {/* Debate Simulation Showcase (Dark Section) */}
-      <section style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', padding: '6rem 3rem', borderTop: '1px solid var(--border-light)' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '4rem', alignItems: 'center' }}>
+      <section className="dark-band">
+        <div className="dark-band-inner">
           <div>
-            <h2 className="font-display" style={{ fontSize: '3.2rem', fontWeight: '900', lineHeight: 1.05, textTransform: 'uppercase', marginBottom: '1.5rem' }}>
-              DEBATE SIMULATION<br />
-              <span style={{ color: 'var(--accent-red)' }}>OPPONENT</span>
-            </h2>
-
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: '1.6', marginBottom: '2.5rem' }}>
-              Train against AI agents configured for Parliamentary, Oxford, or Policy debate formats. Real-time rebuttal pressure.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div 
-                onClick={() => setActivePersona('THE CONTRARIAN')}
-                style={{ cursor: 'pointer', opacity: activePersona === 'THE CONTRARIAN' ? 1 : 0.4, transition: 'opacity var(--transition-fast)' }}
-              >
-                <div className="font-mono text-red" style={{ fontSize: '0.75rem', marginBottom: '0.2rem' }}>ACTIVE PERSONA</div>
-                <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '800' }}>THE CONTRARIAN</div>
-              </div>
-
-              <div 
-                onClick={() => setActivePersona('THE ACADEMIC')}
-                style={{ cursor: 'pointer', opacity: activePersona === 'THE ACADEMIC' ? 1 : 0.4, transition: 'opacity var(--transition-fast)' }}
-              >
-                <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.2rem' }}>AVAILABLE PERSONA</div>
-                <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '800' }}>THE ACADEMIC</div>
-              </div>
+            <div className="eyebrow">Simulation engine</div>
+            <h2 className="display">Train against the <span className="red">pressure.</span></h2>
+            <p>Choose a topic, position, format, and opponent persona. LOGOS adapts its cross-examination as you argue — then shows you the move you missed.</p>
+            <div style={{display:'flex', gap:10, marginTop:28, flexWrap:'wrap'}}>
+              {['The Contrarian','The Academic','The Strategist'].map(item => <button key={item} className={persona === item ? 'btn btn-red' : 'btn'} onClick={() => setPersona(item)}>{item}</button>)}
             </div>
           </div>
-
-          <div>
-            <div className="terminal-window glass">
-              <div className="terminal-header" style={{ background: 'rgba(0,0,0,0.5)' }}>
-                <div className="terminal-dots">
-                  <span className="dot dot-red"></span>
-                  <span className="dot dot-yellow"></span>
-                  <span className="dot dot-green"></span>
-                </div>
-                <div className="terminal-title">ANI Debates - {activePersona}</div>
-              </div>
-              <div className="terminal-body" style={{ minHeight: '320px' }}>
-                <p className="text-cyan" style={{ marginBottom: '1rem' }}>
-                  &gt; Mode: Multi-turn Cross-Examination [{activePersona}]
-                </p>
-                <p style={{ marginBottom: '1rem' }}>
-                  <span className="text-red">AI Opponent:</span> "Your proposal assumes fiscal neutrality, but fails to account for implementation overhead. How do you justify the capital allocation?"
-                </p>
-                <p className="text-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  [Awaiting User Rebuttal Input...] <span style={{ width: '8px', height: '14px', background: 'var(--text-muted)', display: 'inline-block', animation: 'fadeIn 1s infinite alternate' }}></span>
-                </p>
-              </div>
+          <div className="terminal">
+            <div className="terminal-head"><span className="dots"><i/><i/><i/></span><span>AI_DEBATE / {persona.toUpperCase()}</span><span>TURN 04</span></div>
+            <div className="terminal-body" style={{minHeight:240}}>
+              <div className="terminal-line"><span className="cyan">&gt; MODE:</span><span>Multi-turn cross-examination</span></div>
+              <div style={{margin:'28px 0', lineHeight:1.8}}><span className="red">AI opponent:</span> “Your proposal assumes fiscal neutrality, but doesn’t account for implementation overhead. How do you justify the capital allocation?”</div>
+              <div className="muted">[ awaiting user rebuttal input ] <span className="terminal-caret"/></div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* The Analysis Suite Grid Section */}
-      <section className="section-container" id="engines">
-        <div className="section-header">
-          <h2 className="section-title">THE ANALYSIS SUITE</h2>
-          <div className="font-mono text-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ width: '6px', height: '6px', background: 'var(--accent-cyan)', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px var(--accent-cyan)' }}></span>
-            [8 CORE MODULES]
-          </div>
-        </div>
-
-        <div className="modules-grid">
-          <div className="module-card">
-            <div className="module-num">01/08</div>
-            <h3 className="module-title">ARGUMENT MINING</h3>
-            <p className="module-desc">Automatic extraction of claims and evidence from live speech or text streams.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">02/08</div>
-            <h3 className="module-title">LOGIC AUDIT</h3>
-            <p className="module-desc">Detects ad hominem, straw man, and 24+ other logical fallacies instantly.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">03/08</div>
-            <h3 className="module-title">REBUTTAL GEN</h3>
-            <p className="module-desc">Generates evidence-backed counterpoints using diverse agentic personas.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">04/08</div>
-            <h3 className="module-title">VOCAL METRICS</h3>
-            <p className="module-desc">Analyzes cadence, filler words, and confidence levels through prosody analysis.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">05/08</div>
-            <h3 className="module-title">SIMULATION ENGINE</h3>
-            <p className="module-desc">Engage with LLM-driven opponents across five debate formats.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">06/08</div>
-            <h3 className="module-title">SCORING MODEL</h3>
-            <p className="module-desc">Weighted assessment of argument quality, logic, and delivery.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">07/08</div>
-            <h3 className="module-title">COACHING ENGINE</h3>
-            <p className="module-desc">Personalized feedback, improvement plans, and skill gap analysis.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">08/08</div>
-            <h3 className="module-title">ANALYTICS SUITE</h3>
-            <p className="module-desc">Learner, coach, educator, and admin dashboards with progress tracking.</p>
-            <div className="module-line"></div>
-          </div>
-        </div>
+      <section className="module-section" id="engines">
+        <div className="section-heading"><div><div className="eyebrow">The intelligence layer</div><h2 className="display">The analysis suite</h2></div><span className="label muted">[ 08 core modules ]</span></div>
+        <div className="module-grid">{modules.map(([number, title, description]) => <div className="module-card" key={number}><div className="module-no">{number}</div><h3>{title}</h3><p>{description}</p></div>)}</div>
       </section>
 
-      {/* Weighted Performance Scoring Bar */}
-      <section className="scoring-bar">
-        <div className="score-item">
-          <div className="score-val">30%</div>
-          <div className="score-lbl">ARGUMENT QUALITY</div>
-        </div>
-        <div className="score-item">
-          <div className="score-val">20%</div>
-          <div className="score-lbl">EVIDENCE USE</div>
-        </div>
-        <div className="score-item">
-          <div className="score-val">20%</div>
-          <div className="score-lbl">CONSISTENCY</div>
-        </div>
-        <div className="score-item">
-          <div className="score-val">15%</div>
-          <div className="score-lbl">REBUTTAL EFFECTIVENESS</div>
-        </div>
-        <div className="score-item">
-          <div className="score-val">15%</div>
-          <div className="score-lbl">COMMUNICATION</div>
-        </div>
+      <section className="weight-strip">
+        {[['30%','Argument quality'],['20%','Evidence use'],['20%','Logical consistency'],['15%','Rebuttal effectiveness'],['15%','Communication']].map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
       </section>
-
-      {/* Onboarding & Personas Section */}
-      <section className="section-container" style={{ textAlign: 'center', padding: '6rem 3rem' }}>
-        <h2 className="font-display" style={{ fontSize: '3.5rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '3rem' }}>
-          READY FOR THE PODIUM?
-        </h2>
-
-        <div className="persona-grid" style={{ textAlign: 'left' }}>
-          <div className="persona-card">
-            <h3 className="persona-card-title">LEARNER</h3>
-            <p className="persona-card-desc">Master critical thinking via real-time feedback.</p>
-          </div>
-
-          <div className="persona-card">
-            <h3 className="persona-card-title">COACH</h3>
-            <p className="persona-card-desc">Mentor students with structured analytics.</p>
-          </div>
-
-          <div className="persona-card">
-            <h3 className="persona-card-title">EDUCATOR</h3>
-            <p className="persona-card-desc">Monitor student progress and gaps.</p>
-          </div>
-
-          <Link href="/simulation" className="btn btn-dark" style={{ height: '100%', fontSize: '1.1rem', justifyContent: 'center' }}>
-            GET STARTED
-          </Link>
-        </div>
-      </section>
-    </div>
+    </>
   );
 }
