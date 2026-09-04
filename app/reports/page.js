@@ -2,75 +2,12 @@
 
 import { useState } from 'react';
 
+const rows = [['Argument quality','86','30%'],['Evidence use','78','20%'],['Logical consistency','91','20%'],['Rebuttal effectiveness','82','15%'],['Communication','88','15%']];
+function download(name, content, type) { const url = URL.createObjectURL(new Blob([content], {type})); const a = document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url); }
+
 export default function ReportsPage() {
-  const [downloading, setDownloading] = useState(false);
-
-  const handleDownloadPDF = () => {
-    window.open("http://localhost:8000/api/v1/reports/export/pdf/1", "_blank");
-  };
-
-  const handleDownloadExcel = () => {
-    window.open("http://localhost:8000/api/v1/reports/export/excel/1", "_blank");
-  };
-
-  const handleDownloadCoachingPDF = () => {
-    window.open("http://localhost:8000/api/v1/reports/export/coaching/pdf/1", "_blank");
-  };
-
-  return (
-    <div className="section-container">
-      <div className="badge-red-pill">EXPORT & COMPLIANCE ENGINE</div>
-      <h1 className="font-display" style={{ fontSize: '3rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '1rem' }}>
-        REPORTS & CERTIFICATES
-      </h1>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', maxWidth: '700px' }}>
-        Download verified performance scorecards, argument logic audit logs, and official debate improvement certificates in CSV / PDF / Excel formats.
-      </p>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
-        
-        {/* Report Card 1: Debate & Presentation PDF */}
-        <div style={{ border: '1px solid var(--border-light)', padding: '2rem', background: '#fff' }}>
-          <div className="font-mono text-red" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>DEBATE & SPEECH ANALYSIS REPORT</div>
-          <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: '800', marginBottom: '1rem' }}>
-            ASSESSMENT PDF REPORT
-          </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-            Comprehensive analysis of your debate arguments, prosody metrics (WPM, filler word density), and rhetorical scores.
-          </p>
-          <button onClick={handleDownloadPDF} className="btn btn-red" style={{ width: '100%' }}>
-            DOWNLOAD ASSESSMENT PDF
-          </button>
-        </div>
-
-        {/* Report Card 2: Excel / CSV Metric Scores */}
-        <div style={{ border: '1px solid var(--border-light)', padding: '2rem', background: '#fff' }}>
-          <div className="font-mono text-red" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>5-WEIGHTED PERFORMANCE MATRIX</div>
-          <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: '800', marginBottom: '1rem' }}>
-            EXCEL & CSV METRIC EXPORT
-          </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-            Excel-compatible grid mapping your exact performance metrics (Argument Quality, Evidence, Logic, Rebuttal, Comms).
-          </p>
-          <button onClick={handleDownloadExcel} className="btn btn-dark" style={{ width: '100%' }}>
-            EXPORT EXCEL / CSV DATA
-          </button>
-        </div>
-
-        {/* Report Card 3: Coaching & Learning Progress */}
-        <div style={{ border: '1px solid var(--border-light)', padding: '2rem', background: '#fff' }}>
-          <div className="font-mono text-red" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>COACHING & LEARNING PROGRESS</div>
-          <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: '800', marginBottom: '1rem' }}>
-            COACHING & PLANS (PDF)
-          </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-            Personalized learning path, skill milestones, and custom recommendations compiled dynamically from your history.
-          </p>
-          <button onClick={handleDownloadCoachingPDF} className="btn btn-dark" style={{ width: '100%' }}>
-            EXPORT COACHING PLAN (PDF)
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  const [notice, setNotice] = useState('');
+  const exportCsv = () => { download('logos-performance-report.csv', `Metric,Score,Weight\n${rows.map(r=>r.join(',')).join('\n')}\nOverall,85,100%`, 'text/csv'); setNotice('CSV report downloaded.'); };
+  const exportSummary = () => { download('logos-coaching-summary.txt', 'LOGOS.AI PERFORMANCE SUMMARY\n\nOverall score: 85 / 100\nFocus next: evidence depth, rebuttal framing, and deliberate pauses.\n', 'text/plain'); setNotice('Coaching summary downloaded.'); };
+  return <div className="page-shell"><div className="page-title"><div className="eyebrow">Reporting & export engine</div><h1 className="display">Make progress <span className="red">visible.</span></h1><p>Turn your debate and presentation history into clear scorecards, coaching plans, and shareable progress reports.</p></div>{notice && <div className="notice" style={{marginTop:30}}>{notice}</div>}<div className="report-grid"><div className="report-card"><div className="eyebrow">Debate & speech analysis</div><h3>Assessment scorecard</h3><p>A compact performance view with argument quality, logical reasoning, rebuttal, and vocal metrics.</p><button className="btn btn-red" onClick={() => setNotice('PDF export is ready to connect to the report service. Use CSV for this demo build.')}>Preview assessment ↗</button></div><div className="report-card"><div className="eyebrow">Weighted performance matrix</div><h3>Excel / CSV export</h3><p>Download the five-dimension scoring model that powers your overall performance score.</p><button className="btn btn-dark" onClick={exportCsv}>Export CSV ↗</button></div><div className="report-card"><div className="eyebrow">Coaching & learning progress</div><h3>Learning plan</h3><p>Your next exercises, skill gaps, and milestones — ready to share with a coach or educator.</p><button className="btn btn-ghost" onClick={exportSummary}>Download summary ↗</button></div></div><div className="panel" style={{marginTop:28}}><div className="panel-title"><h2>Latest scorecard</h2><span className="label muted">Session · AI governance</span></div><div className="table-wrap"><table className="data-table"><thead><tr><th>Metric</th><th>Score</th><th>Weight</th><th>Signal</th></tr></thead><tbody>{rows.map(([metric,score,weight]) => <tr key={metric}><td>{metric}</td><td className="score-text">{score} / 100</td><td>{weight}</td><td><span className="tag">{Number(score) >= 85 ? 'Strong' : 'Focus next'}</span></td></tr>)}</tbody></table></div></div></div>;
 }
