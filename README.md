@@ -1,12 +1,12 @@
 # LOGOS.AI: Agentic AI Debate Coach & Presentation Analysis Platform
 
-**LOGOS.AI** is a state-of-the-art, AI-powered Agentic Debate Coach & Presentation Analytics Platform engineered to assist learners, debate coaches, educators, and administrators in mastering high-[...] 
+**LOGOS.AI** is a state-of-the-art, AI-powered Agentic Debate Coach & Presentation Analytics Platform engineered to assist learners, debate coaches, educators, and administrators in mastering high-stakes rhetoric, argument structure, public speaking, and logical fallacy defence.
 
 ---
 
 ## 🌟 Features
 
-1. **Exact Editorial Design Identity**: Recreated faithfully from visual design mockups featuring a premium white/obsidian/cyber-red palette (`#D90429`), clean monospace accents, `LOGOS.AI` typogra[...]
+1. **Exact Editorial Design Identity**: Recreated faithfully from visual design mockups featuring a premium white/obsidian/cyber-red palette (`#D90429`), clean monospace accents, `LOGOS.AI` typography, and background `"RHETORIC"` watermarks.
 2. **The Analysis Suite (8 Core Modules)**:
    - **Argument Mining**: Automatic claim & evidence extraction.
    - **Logic Audit**: Real-time detection of 8 key fallacies (*Ad Hominem, Straw Man, False Dilemma, Slippery Slope, Appeal to Authority, Circular Reasoning, Hasty Generalization, Red Herring*).
@@ -59,10 +59,10 @@ Agentic-AI-Debate-Coach/
 ## 📋 Prerequisites
 
 Ensure you have the following installed on your machine:
-* [Node.js (v18.x or later)](https://nodejs.org/)
-* [Python (3.10 or later)](https://www.python.org/)
-* [Git](https://git-scm.com/)
-* [PostgreSQL](https://www.postgresql.org/) & [MongoDB](https://www.mongodb.com/) (Optional: SQLite Fallback active by default)
+* Node.js (v18.x or later)
+* Python (3.10 or later)
+* Git
+* PostgreSQL & MongoDB (Optional: SQLite Fallback active by default)
 
 ---
 
@@ -106,7 +106,7 @@ Ensure the parameters are filled:
 ## 🔗 Port Mappings & Backend Connections
 * **Frontend Port**: Runs locally on port **`3000`** (`http://localhost:3000`).
 * **Backend Port**: Runs locally on port **`8000`** (`http://localhost:8000`).
-* **Connection Interface**: The frontend connects to the backend REST API by dispatching async requests to `http://localhost:8000/api/v1/*`. The token retrieved upon authentication is appended in[...]
+* **Connection Interface**: The frontend connects to the backend REST API by dispatching async requests to `http://localhost:8000/api/v1/*`. The token retrieved upon authentication is appended inside the standard `Authorization: Bearer <JWT>` request header.
 
 ---
 
