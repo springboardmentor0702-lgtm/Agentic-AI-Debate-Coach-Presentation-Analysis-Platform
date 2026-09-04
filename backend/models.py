@@ -157,3 +157,19 @@ class CoachingPlan(Base):
     learning_path_steps = Column(Text)
     progress_status = Column(String, default="In Progress")
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    category = Column(String, nullable=False, default="General")
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    related_entity_type = Column(String, nullable=True)
+    related_entity_id = Column(Integer, nullable=True)
+    read = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", backref="notifications")

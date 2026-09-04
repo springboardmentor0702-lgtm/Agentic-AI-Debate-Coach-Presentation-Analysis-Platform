@@ -1,10 +1,11 @@
 import json
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from database import get_db
+from database import get_db, get_mongo_db
 from routers.auth import get_current_user
 from services.ai_engine import SUPPORTED_PERSONAS, ai_engine_service
 import models
@@ -49,6 +50,24 @@ def run_simulation_turn(
     )
     db.add(turn)
     db.commit()
+
+    # Write to MongoDB document store collection
+    mongo_db = get_mongo_db()
+    if mongo_db is not None:
+        try:
+            mongo_db.transcripts.insert_one({
+                "session_id": payload.session_id,
+                "user_id": current_user.id,
+                "timestamp": datetime.utcnow(),
+                "user_argument": payload.user_argument,
+                "opponent_rebuttal": simulation_result["opponent_rebuttal"],
+                "fallacies_detected": simulation_result["fallacies_detected"],
+                "rebuttal_strength_percent": simulation_result["rebuttal_strength_percent"],
+                "coaching_tip": simulation_result["coaching_tip"]
+            })
+        except Exception as e:
+            # Safe catch to ensure app continues working if local Mongo is restarting
+            print(f"MongoDB write failed: {e}")
 
     return {
         "session_id": payload.session_id,
