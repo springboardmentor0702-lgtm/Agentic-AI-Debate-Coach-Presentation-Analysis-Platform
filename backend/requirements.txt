@@ -1,0 +1,14 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+sqlalchemy==2.0.43
+psycopg[binary]==3.2.9
+pymongo==4.14.1
+pydantic-settings==2.10.1
+python-multipart==0.0.20
+httpx==0.28.1
+python-pptx==1.0.2
+reportlab==4.4.3
+openpyxl==3.1.5
+email-validator==2.3.0
+pytest==8.4.1
+pytest-asyncio==1.1.0

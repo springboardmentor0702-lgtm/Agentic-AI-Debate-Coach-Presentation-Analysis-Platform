@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: debate_coach
+      POSTGRES_USER: debate
+      POSTGRES_PASSWORD: debate
+    ports: ["55432:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U debate -d debate_coach"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  mongodb:
+    image: mongo:8
+    ports: ["57017:27017"]
+    volumes: [mongo_data:/data/db]
+    healthcheck:
+      test: ["CMD","mongosh","--eval","db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  backend:
+    build: ./backend
+    command: ["sh","-c","python scripts/migrate.py && python scripts/seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    environment:
+      AI_PROVIDER: ${AI_PROVIDER:-groq}
+      AI_FALLBACK_ENABLED: ${AI_FALLBACK_ENABLED:-true}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      POSTGRES_DATABASE_URL: postgresql+psycopg://debate:debate@postgres:5432/debate_coach
+      MONGODB_URI: mongodb://mongodb:27017
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-in-production}
+      CORS_ORIGINS: http://localhost:3200,http://localhost:3000,http://localhost:5173
+      FRONTEND_URL: http://localhost:3200
+      BACKEND_URL: http://localhost:8200
+      UPLOAD_DIRECTORY: /app/uploads
+    ports: ["8200:8000"]
+    volumes: [./uploads:/app/uploads]
+    depends_on:
+      postgres: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+  frontend:
+    build: ./frontend
+    ports: ["3200:80"]
+    depends_on: [backend]
+volumes:
+  postgres_data:
+  mongo_data:

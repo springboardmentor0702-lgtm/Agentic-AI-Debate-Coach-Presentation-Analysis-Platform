@@ -1,0 +1,153 @@
+from datetime import datetime, timezone
+from sqlalchemy import String, Integer, Float, Boolean, DateTime, Text, ForeignKey, JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.database.db import Base
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    name: Mapped[str] = mapped_column(String(120))
+    role: Mapped[str] = mapped_column(String(30), default="learner", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    profile: Mapped["Profile"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+class Profile(Base):
+    __tablename__ = "profiles"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+    experience_level: Mapped[str] = mapped_column(String(30), default="beginner")
+    preferred_topics: Mapped[list] = mapped_column(JSON, default=list)
+    presentation_domains: Mapped[list] = mapped_column(JSON, default=list)
+    learning_goals: Mapped[list] = mapped_column(JSON, default=list)
+    coaching_preferences: Mapped[dict] = mapped_column(JSON, default=dict)
+    user: Mapped[User] = relationship(back_populates="profile")
+
+class Debate(Base):
+    __tablename__ = "debates"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    topic: Mapped[str] = mapped_column(Text)
+    format: Mapped[str] = mapped_column(String(50), default="one_on_one")
+    position_a: Mapped[str] = mapped_column(String(20), default="for")
+    position_b: Mapped[str] = mapped_column(String(20), default="against")
+    rounds: Mapped[int] = mapped_column(Integer, default=3)
+    status: Mapped[str] = mapped_column(String(30), default="created")
+    join_code: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class DebateParticipant(Base):
+    __tablename__ = "debate_participants"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    debate_id: Mapped[int] = mapped_column(ForeignKey("debates.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    position: Mapped[str] = mapped_column(String(20))
+
+
+class DebateMessage(Base):
+    __tablename__ = "debate_messages"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    debate_id: Mapped[int] = mapped_column(ForeignKey("debates.id"), index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    role: Mapped[str] = mapped_column(String(20))
+    text: Mapped[str] = mapped_column(Text)
+    round_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    phase: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class Score(Base):
+    __tablename__ = "scores"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    debate_id: Mapped[int | None] = mapped_column(ForeignKey("debates.id"), nullable=True)
+    presentation_id: Mapped[int | None] = mapped_column(ForeignKey("presentations.id"), nullable=True)
+    argument_quality: Mapped[float] = mapped_column(Float, default=0)
+    evidence_usage: Mapped[float] = mapped_column(Float, default=0)
+    logical_consistency: Mapped[float] = mapped_column(Float, default=0)
+    rebuttal_effectiveness: Mapped[float] = mapped_column(Float, default=0)
+    communication_skills: Mapped[float] = mapped_column(Float, default=0)
+    overall: Mapped[float] = mapped_column(Float, default=0)
+    critical_thinking: Mapped[float] = mapped_column(Float, default=0)
+    persuasiveness: Mapped[float] = mapped_column(Float, default=0)
+    clarity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source: Mapped[str] = mapped_column(String(40), default="real")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class Friendship(Base):
+    __tablename__ = "friendships"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    requester_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    addressee_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class Invitation(Base):
+    __tablename__ = "invitations"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    debate_id: Mapped[int] = mapped_column(ForeignKey("debates.id"))
+    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    recipient_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    title: Mapped[str] = mapped_column(String(200))
+    message: Mapped[str] = mapped_column(Text)
+    type: Mapped[str] = mapped_column(String(50), default="system")
+    read: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class Presentation(Base):
+    __tablename__ = "presentations"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    filename: Mapped[str] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(30), default="uploaded")
+    slide_count: Mapped[int] = mapped_column(Integer, default=0)
+    overall_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    slide_data: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class LearningPlan(Base):
+    __tablename__ = "learning_plans"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    title: Mapped[str] = mapped_column(String(200))
+    days: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(20), default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class Class(Base):
+    __tablename__ = "classes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    educator_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    name: Mapped[str] = mapped_column(String(150))
+    description: Mapped[str] = mapped_column(Text, default="")
+
+class ClassMembership(Base):
+    __tablename__ = "class_memberships"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("classes.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+
+
+class CoachAssignment(Base):
+    __tablename__ = "coach_assignments"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    coach_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    learner_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    action: Mapped[str] = mapped_column(String(120))
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

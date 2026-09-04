@@ -1,0 +1,3 @@
+const BASE=import.meta.env.VITE_API_URL||'/api';
+export async function api(path,opts={}){const token=localStorage.getItem('token');const headers={...(opts.headers||{})};if(token)headers.Authorization=`Bearer ${token}`;let body=opts.body;if(body && !(body instanceof FormData)){headers['Content-Type']='application/json';body=JSON.stringify(body)}const r=await fetch(BASE+path,{...opts,headers,body});if(!r.ok){let m='Request failed';try{m=(await r.json()).detail||m}catch{};throw new Error(m)}const ct=r.headers.get('content-type')||'';return ct.includes('application/json')?r.json():r.blob()}
+export {BASE};
