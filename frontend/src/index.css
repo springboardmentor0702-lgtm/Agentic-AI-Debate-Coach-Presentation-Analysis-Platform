@@ -1,0 +1,236 @@
+@import "tailwindcss";
+
+/*
+ * Every color used anywhere in the app is one of these named tokens -
+ * never a raw hex value in a component. Add a new token here, use it
+ * everywhere, and both light and dark mode stay correct automatically.
+ *
+ * v2 palette: moved off red-as-accent (red is now reserved for
+ * `danger`/destructive actions only, never the brand color) to a
+ * indigo/violet accent - modern, distinct from error states, and
+ * reads well on both light and dark surfaces.
+ */
+@theme {
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+
+  /*
+   * Glass-revamp additions (Segment 28c). Purely additive - every
+   * token above this line is untouched, so any page not yet migrated
+   * to the new look renders pixel-identical to before. These new
+   * tokens only exist to be opted into by GlassCard/GlassButton/
+   * GlassInput and the new Home/Login/Register pages.
+   */
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-border: var(--glass-border);
+  --color-glass-shine: var(--glass-shine);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-soft: var(--accent-2-soft);
+  --color-void: var(--void);
+
+  --font-display: "Fraunces", serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root,
+[data-theme="dark"] {
+  --surface: #0f1117;
+  --surface-2: #171a23;
+  --line: #262b3a;
+  --ink: #f2f1ee;
+  --faint: #939bb0;
+  --accent: #8b80f9;
+  --accent-soft: #241f42;
+  --ok: #4caf6d;
+  --danger: #ef5a5f;
+
+  /* Glass tokens - dark. --void sits a shade below --surface, giving
+     the WebGL/glass pages somewhere deeper to recede into than the
+     flat app surface, without touching --surface itself anywhere. */
+  --void: #06070b;
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-strong: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.11);
+  --glass-shine: rgba(255, 255, 255, 0.5);
+  --accent-2: #ff8a5c;
+  --accent-2-soft: rgba(255, 138, 92, 0.14);
+}
+
+[data-theme="light"] {
+  --surface: #f4f5fa;
+  --surface-2: #ffffff;
+  --line: #dde1eb;
+  --ink: #14171f;
+  --faint: #5b6472;
+  --accent: #5b4fe0;
+  --accent-soft: #ece9fd;
+  --ok: #2f8f55;
+  --danger: #d33a3a;
+
+  /* Glass tokens - light. Glass fills lean white+opaque instead of
+     transparent-dark, so blurred content behind still reads as "light
+     glass" rather than muddying into gray. */
+  --void: #e7e9f2;
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-strong: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(20, 23, 31, 0.08);
+  --glass-shine: rgba(255, 255, 255, 0.9);
+  --accent-2: #e2661f;
+  --accent-2-soft: rgba(226, 102, 31, 0.1);
+}
+
+/*
+ * Scales the ENTIRE type system up ~12.5% in one line, since rem units
+ * (which every Tailwind text-* utility uses) are relative to the root
+ * <html> font-size, not <body>. This is a deliberate, global fix for
+ * "everything feels small" instead of hand-editing font sizes on every
+ * page individually.
+ */
+html {
+  font-size: 112.5%;
+}
+
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/*
+ * Theme toggle affects background/text/border color on essentially
+ * every element at once (each one reads a CSS variable that just
+ * changed). Without a shared transition, some elements repaint before
+ * others and the switch looks like a delayed, uneven flash - most
+ * noticeably on form inputs. Applying one smooth, synchronized
+ * transition to every element fixes that in one rule instead of
+ * chasing it element by element.
+ */
+*, *::before, *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/*
+ * Tailwind's preflight resets <button> cursor to `default` (matching
+ * native OS button behavior) rather than `pointer` - which is why
+ * clicks were working but no hand cursor ever showed. This restores
+ * the expected pointer cursor on every actually-clickable element,
+ * globally, instead of adding `cursor-pointer` to every button by hand.
+ */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+a {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/*
+ * Placeholder text was falling back to each browser's own default
+ * placeholder color/opacity heuristic instead of our theme's --faint
+ * token, so it could look inconsistent (or low-contrast) switching
+ * between light and dark. Pin it to the theme explicitly. Firefox
+ * needs the opacity override - it defaults placeholder opacity to
+ * ~0.54 on top of the color, which double-dims it.
+ */
+::placeholder {
+  color: var(--faint);
+  opacity: 1;
+}
+
+/*
+ * Native <select> dropdown fix. Tailwind classes on a <select>
+ * element only ever style the closed box - the popup list of
+ * <option>s is rendered by the OS/browser itself and ignores the
+ * select's own background/text classes entirely. Left alone, that
+ * popup defaults to the platform's own light-mode colors regardless
+ * of our theme, which is exactly why dropdown content was unreadable
+ * in dark mode (and inconsistent in light mode). Setting color
+ * directly on <option> is broadly respected across Chrome, Edge, and
+ * Firefox and is the standard fix for this.
+ */
+select option {
+  background-color: var(--surface-2);
+  color: var(--ink);
+}
+
+/*
+ * Glass intensity: adjusts how strong the frosted-glass blur looks on
+ * decorative surfaces (GlassCard, GlassField, HistoryPanel/Drawer,
+ * etc. - anything using Tailwind's `backdrop-blur-xl`). Deliberately
+ * scoped to that one class only. The nav chrome (top bar, sidebar,
+ * dropdown panels) uses `backdrop-blur-md` and is never touched here -
+ * that was made solid/opaque on purpose for legibility in an earlier
+ * fix, and stays that way regardless of this preference.
+ * "balanced" needs no rule - Tailwind's own blur-xl (24px) already is
+ * the balanced/default look.
+ */
+[data-glass="subtle"] .backdrop-blur-xl {
+  backdrop-filter: blur(8px) saturate(92%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(92%) !important;
+}
+[data-glass="vivid"] .backdrop-blur-xl {
+  backdrop-filter: blur(40px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(165%) !important;
+}
+[data-glass="ultra"] .backdrop-blur-xl {
+  backdrop-filter: blur(56px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(56px) saturate(200%) !important;
+}
+
+/*
+ * Ambient aurora drift used behind glass panels on Home/Login/Register.
+ * Pure CSS, GPU-cheap (background-position only), so it costs nothing
+ * on pages that don't opt in via .aurora-drift.
+ */
+@keyframes aurora-drift {
+  0%   { background-position: 0% 50%, 100% 30%, 50% 100%; }
+  50%  { background-position: 100% 40%, 0% 60%, 60% 0%; }
+  100% { background-position: 0% 50%, 100% 30%, 50% 100%; }
+}
+
+.aurora-drift {
+  background-size: 200% 200%;
+  animation: aurora-drift 28s ease-in-out infinite;
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.float-y {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+/*
+ * Respect the OS-level motion preference: every custom animation
+ * added for the glass revamp collapses to a single static frame.
+ * Tailwind's own animate-spin (used by Spinner, functional loading
+ * state) is deliberately left alone - that's information, not flair.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-drift,
+  .float-y {
+    animation: none !important;
+  }
+}

@@ -1,47 +1,31 @@
-# Dependency directories
-node_modules/
-jspm_packages/
-web_modules/
-
-# Next.js build and cache
-.next/
-out/
-build/
-dist/
-
-# Local env files
+# === Secrets - never commit these ===
 .env
-.env.*
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
 
-# Debug & system logs
+# === Python (backend) ===
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# === Node (frontend) ===
+node_modules/
+dist/
+.vite/
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-logs/
-*.log
 
-# Code coverage
-coverage/
-.coverage
-
-# IDE settings
+# === Editor / OS ===
 .vscode/
 .idea/
-
-# Python cache & environments
-__pycache__/
-*.py[cod]
-*$py.class
-venv/
-.venv/
-env/
-ENV/
-
-# Databases & local databases
-*.db
-*.sqlite3
-
-# OS metadata
 .DS_Store
 Thumbs.db
+
+# === Misc ===
+*.log
+.cache/
