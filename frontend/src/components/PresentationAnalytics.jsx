@@ -3,7 +3,7 @@
 export default function PresentationAnalytics({
   metrics = {},
 }) {
-  const metricsList = [
+  const values = [
     ["Confidence", metrics.confidence_score ?? 0],
     ["Clarity", metrics.clarity_score ?? 0],
     ["Engagement", metrics.engagement_score ?? 0],
@@ -12,55 +12,132 @@ export default function PresentationAnalytics({
   ];
 
   return (
-    <div className="glass" style={{ padding: "25px" }}>
-      <span className="badge-red-pill">
-        PRESENTATION ANALYTICS
-      </span>
-
+    <section
+      className="glass"
+      style={{
+        padding: "25px",
+        borderRadius: "8px",
+      }}
+    >
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          margin: "15px 0 25px",
+          alignItems: "center",
+          marginBottom: "25px",
         }}
       >
-        <h2>Presentation Quality</h2>
+        <div>
+          <span className="badge-red-pill">
+            PRESENTATION ANALYSIS ENGINE
+          </span>
 
-        <strong style={{ fontSize: "2rem" }}>
+          <h2
+            className="font-display"
+            style={{
+              fontSize: "1.5rem",
+              marginTop: "12px",
+            }}
+          >
+            Presentation Intelligence
+          </h2>
+        </div>
+
+        <strong
+          style={{
+            fontSize: "2.5rem",
+          }}
+        >
           {metrics.overall_score ?? 0}%
         </strong>
       </div>
 
-      {metricsList.map(([label, value]) => (
-        <div key={label} style={{ marginBottom: "18px" }}>
+      {values.map(([name, value]) => (
+        <div
+          key={name}
+          style={{
+            marginBottom: "18px",
+          }}
+        >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               fontSize: "13px",
+              marginBottom: "7px",
             }}
           >
-            <span>{label}</span>
+            <span>{name}</span>
             <strong>{value}%</strong>
           </div>
 
           <div
             style={{
-              height: "8px",
+              height: "9px",
               background: "#e5e7eb",
-              marginTop: "7px",
+              borderRadius: "10px",
             }}
           >
             <div
               style={{
-                width: `${value}%`,
                 height: "100%",
+                width: `${Math.min(value, 100)}%`,
                 background: "var(--accent-red)",
+                borderRadius: "10px",
               }}
             />
           </div>
         </div>
       ))}
-    </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(3,1fr)",
+          gap: "12px",
+          marginTop: "25px",
+          paddingTop: "20px",
+          borderTop:
+            "1px solid var(--border-light)",
+        }}
+      >
+        <div>
+          <small>WPM</small>
+          <strong
+            style={{
+              display: "block",
+              fontSize: "1.5rem",
+            }}
+          >
+            {metrics.speech_pace_wpm ?? 0}
+          </strong>
+        </div>
+
+        <div>
+          <small>FILLERS</small>
+          <strong
+            style={{
+              display: "block",
+              fontSize: "1.5rem",
+            }}
+          >
+            {metrics.filler_words_count ?? 0}
+          </strong>
+        </div>
+
+        <div>
+          <small>PAUSES</small>
+          <strong
+            style={{
+              display: "block",
+              fontSize: "1.5rem",
+            }}
+          >
+            {metrics.pause_count ?? 0}
+          </strong>
+        </div>
+      </div>
+    </section>
   );
 }

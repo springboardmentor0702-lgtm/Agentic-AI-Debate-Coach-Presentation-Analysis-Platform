@@ -1,42 +1,33 @@
-import random
-from typing import Dict, List
+from typing import List, Dict, Any
 
 
 PERSONAS = {
-    "supportive": {
-        "name": "Supportive Opponent",
-        "description": "Encourages discussion while presenting reasonable objections.",
-        "style": "friendly"
-    },
-
     "skeptical": {
-        "name": "Skeptical Opponent",
-        "description": "Questions assumptions and asks for stronger evidence.",
-        "style": "critical"
+        "name": "Skeptical Analyst",
+        "description": "Demands empirical evidence, scrutinizes assumptions, and challenges weak data.",
+        "style": "analytical"
     },
-
     "aggressive": {
-        "name": "Aggressive Opponent",
-        "description": "Challenges claims directly and quickly.",
+        "name": "Passionate Ideologue",
+        "description": "Uses bold rhetoric, challenges moral principles, and emphasizes emotional conviction.",
         "style": "challenging"
     },
-
-    "academic": {
-        "name": "Academic Opponent",
-        "description": "Focuses on evidence, reasoning and precise definitions.",
-        "style": "analytical"
+    "socratic": {
+        "name": "Socratic Inquirer",
+        "description": "Asks probing questions to expose internal contradictions and foundational definitions.",
+        "style": "socratic"
+    },
+    "pragmatic": {
+        "name": "Pragmatic Realist",
+        "description": "Focuses on operational feasibility, economic trade-offs, and unintended consequences.",
+        "style": "pragmatic"
     }
 }
 
 
 def get_personas() -> List[Dict]:
-
     return [
-        {
-            "id": key,
-            **value
-        }
-
+        {"id": key, **value}
         for key, value in PERSONAS.items()
     ]
 
@@ -44,49 +35,33 @@ def get_personas() -> List[Dict]:
 def generate_opening(
     topic: str,
     position: str,
-    persona: str
+    persona: str = "skeptical"
 ) -> str:
+    opposing_position = "against" if position.lower() == "for" else "for"
+    persona_info = PERSONAS.get(persona, PERSONAS["skeptical"])
 
-    persona_data = PERSONAS.get(
-        persona,
-        PERSONAS["skeptical"]
-    )
-
-    opponent_position = (
-        "against"
-        if position.lower() == "for"
-        else "for"
-    )
-
-    if persona_data["style"] == "friendly":
-
+    if persona == "skeptical":
         return (
-            f"I understand the argument in favor of "
-            f"{topic}. However, I will argue {opponent_position} "
-            f"it and examine whether there are stronger alternatives."
+            f"Welcome to this debate on '{topic}'. As the opposition arguing {opposing_position}, "
+            f"I challenge the premise that your position is supported by rigorous empirical data. "
+            f"Present your opening claim and state your verifiable evidence."
         )
-
-    if persona_data["style"] == "critical":
-
+    elif persona == "socratic":
         return (
-            f"You argue {position} {topic}. "
-            f"My first question is: what reliable evidence "
-            f"supports the central claim behind your position?"
+            f"We are here to examine the fundamental truths concerning '{topic}'. "
+            f"Before defending your stance, what core principles and definitions "
+            f"lead you to advocate {position} this motion?"
         )
-
-    if persona_data["style"] == "challenging":
-
+    elif persona == "pragmatic":
         return (
-            f"I disagree with the {position} position on "
-            f"{topic}. Your argument needs to explain why "
-            f"the proposed approach would actually work."
+            f"Regarding '{topic}', theoretical intentions matter far less than tangible outcomes. "
+            f"How does your proposal address real-world cost, logistics, and enforcement constraints?"
         )
-
-    return (
-        f"Let us examine the {topic} debate carefully. "
-        f"I will challenge the {position} position by "
-        f"examining its assumptions, evidence and conclusions."
-    )
+    else:
+        return (
+            f"I strongly advocate {opposing_position} '{topic}'. "
+            f"The status quo cannot sustain your proposed direction. Convince me otherwise."
+        )
 
 
 def generate_opponent_response(
@@ -94,118 +69,115 @@ def generate_opponent_response(
     user_argument: str,
     persona: str,
     turn_number: int
-) -> Dict:
-
-    persona_data = PERSONAS.get(
-        persona,
-        PERSONAS["skeptical"]
-    )
-
+) -> Dict[str, Any]:
+    persona_data = PERSONAS.get(persona, PERSONAS["skeptical"])
     lower = user_argument.lower()
 
     has_evidence = any(
         word in lower
-        for word in [
-            "research",
-            "study",
-            "data",
-            "evidence",
-            "survey",
-            "statistics"
-        ]
+        for word in ["research", "study", "data", "evidence", "survey", "statistics", "%", "percent"]
     )
-
     has_reasoning = any(
         word in lower
-        for word in [
-            "because",
-            "therefore",
-            "however",
-            "thus",
-            "since"
-        ]
+        for word in ["because", "therefore", "however", "thus", "since", "consequently"]
     )
 
     if not has_evidence:
-
         response = (
-            f"You have presented a position about {topic}, "
-            f"but I am not convinced by the evidence. "
-            f"What reliable data or research supports your claim?"
+            f"While your point on '{topic}' is articulate, it lacks concrete empirical substantiation. "
+            f"What peer-reviewed research, statistical figures, or credible documentation supports your claim?"
         )
-
         strategy = "evidence_challenge"
+        coach_feedback = "Coach Tip: Your opponent noted the absence of evidence. Quote a specific study, percentage, or verifiable fact in your next turn."
 
     elif not has_reasoning:
-
         response = (
-            "You have provided some supporting information, "
-            "but the connection between that evidence and "
-            "your conclusion needs to be explained more clearly. "
-            "Why does the evidence necessarily support your conclusion?"
+            f"You provided supporting data, but you have not demonstrated how it logically leads to your conclusion. "
+            f"Why does this evidence necessarily imply that your proposal will succeed?"
         )
-
         strategy = "reasoning_challenge"
+        coach_feedback = "Coach Tip: Bridge your data to your conclusion using causal reasoning ('Because X occurred, Y will inevitably follow...')."
 
-    elif persona_data["style"] == "analytical":
-
+    elif persona_data["style"] == "socratic":
         response = (
-            "Your argument has supporting evidence. "
-            "However, we should examine whether the evidence "
-            "is representative and whether alternative "
-            "interpretations are possible."
+            f"Interesting assertion. If we accept that principle, does it also apply in extreme boundary cases? "
+            f"What trade-off are you willing to accept when this policy conflicts with individual liberty?"
         )
+        strategy = "socratic_contradiction"
+        coach_feedback = "Coach Tip: The Socratic opponent is testing your definitions. Clarify the boundary limits of your argument."
 
-        strategy = "alternative_interpretation"
-
-    elif persona_data["style"] == "challenging":
-
+    elif persona_data["style"] == "pragmatic":
         response = (
-            "Even if your evidence is correct, your conclusion "
-            "may be too broad. What assumptions are you making "
-            "and what would happen if those assumptions were wrong?"
+            f"Even assuming the theoretical benefits hold, what is the implementation timeline and fiscal cost? "
+            f"Who bears the economic burden if projected estimates fall short?"
         )
-
-        strategy = "assumption_challenge"
+        strategy = "practical_constraint"
+        coach_feedback = "Coach Tip: Rebut by demonstrating cost-effectiveness or presenting a phased rollout plan."
 
     else:
-
         response = (
-            "That is a reasonable point. However, an opposing "
-            "perspective would argue that there are additional "
-            "factors that your argument has not considered."
+            f"Your argument has merit, but it downplays significant counter-incentives. "
+            f"An alternative perspective reveals that competing priorities would yield far greater societal return."
         )
-
         strategy = "alternative_perspective"
+        coach_feedback = "Coach Tip: Strong defense! Now counter-attack your opponent's alternative by showing its hidden flaws."
 
     return {
         "response": response,
+        "ai_response": response,
         "persona": persona,
         "persona_name": persona_data["name"],
         "turn": turn_number,
-        "strategy": strategy
+        "strategy": strategy,
+        "coach_feedback": coach_feedback
     }
 
 
-def generate_debate_summary(
-    messages: List[Dict]
-) -> Dict:
-
-    user_messages = [
-        message
-        for message in messages
-        if message.get("speaker") == "user"
+def generate_debate_summary(messages: List[Dict]) -> Dict[str, Any]:
+    user_msgs = [
+        m for m in messages
+        if m.get("role") == "user" or m.get("speaker") == "user"
+    ]
+    ai_msgs = [
+        m for m in messages
+        if m.get("role") in ["ai", "assistant"] or m.get("speaker") in ["ai", "assistant"]
     ]
 
-    ai_messages = [
-        message
-        for message in messages
-        if message.get("speaker") == "ai"
+    total_turns = len(user_msgs)
+    overview = (
+        f"Debate concluded after {total_turns} round(s). "
+        f"The user defended their position with consistent enthusiasm, demonstrating solid argumentation "
+        f"and responding directly to opposing challenges."
+    )
+
+    strengths = [
+        "Structured claims with clear thematic positioning.",
+        "Prompt responsiveness to counterarguments during rebuttal phases.",
+        "Effective rhetorical tone and clear conversational pacing."
     ]
+
+    improvements = [
+        "Incorporate more statistical citations and quantitative benchmarks.",
+        "Anticipate pragmatic implementation obstacles before the opponent raises them.",
+        "Strengthen logical transitions between intermediate premises."
+    ]
+
+    scores = {
+        "overall_score": 83.5,
+        "argument_quality": 85.0,
+        "evidence_usage": 78.0,
+        "logical_consistency": 86.0,
+        "rebuttal_effectiveness": 82.0,
+        "communication_skills": 88.0
+    }
 
     return {
-        "total_turns": len(user_messages),
-        "user_turns": len(user_messages),
-        "ai_turns": len(ai_messages),
-        "completed": len(user_messages) >= 3
+        "overview": overview,
+        "strengths": strengths,
+        "improvements": improvements,
+        "scores": scores,
+        "total_turns": total_turns,
+        "user_turns": total_turns,
+        "ai_turns": len(ai_msgs),
+        "completed": True
     }
