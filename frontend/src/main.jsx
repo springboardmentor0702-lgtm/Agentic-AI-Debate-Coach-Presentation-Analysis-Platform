@@ -222,7 +222,7 @@ function LearnerAnalytics({page,setPage}){
    <Kpi title="Overall" value={a.overall_score==null?'Unavailable':`${a.overall_score}/100`}/>
    <Kpi title="Progress" value={`${a.progress?.completed_domains||0}/${a.progress?.total_domains||3}`} delta="Domains assessed"/>
    <Kpi title="Daily streak" value={a.daily_streak??0} delta="Actual learning activity"/>
-   <Kpi title="Improvement" value={a.improvement_rate==null?'Not enough history':`${a.improvement_rate}%`} delta="Requires 2+ comparable assessments"/>
+   <Kpi title="Improvement" value={a.improvement_rate==null?"Not enough history":(a.improvement_rate>0?"+":"")+a.improvement_rate+"%"} delta="Relative change from first to latest assessment"/>
   </div>
 
   {isPerf&&<><div className="grid two">
@@ -381,126 +381,54 @@ function Coaching({page}){
 }
 
 function CoachCoaching(){
- const[learners,setLearners]=useState([]),[selected,setSelected]=useState(''),[data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState(false);
+ const[learners,setLearners]=useState([]),[selected,setSelected]=useState(''),[data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState(false),[planTitle,setPlanTitle]=useState(''),[planText,setPlanText]=useState('');
 
- const loadLearners=async()=>{try{const list=await api('/coach/students');setLearners(list||[]);const remembered=localStorage.getItem('arguai-coach-learner');if(remembered&&(list||[]).some(x=>String(x.id)===String(remembered))){localStorage.removeItem('arguai-coach-learner');await selectLearner(Number(remembered))}}catch(e){setError(e.message)}};
+ const loadLearners=async()=>{try{const list=await api('/coach/students');setLearners(list||[])}catch(e){setError(e.message)}};
  useEffect(()=>{loadLearners()},[]);
 
  const selectLearner=async(id)=>{
-   setSelected(String(id));
-   setData(null);
-   setPlan(null);
-   setSaved(false);
+   setSelected(String(id));setData(null);setSaved(false);
    if(!id)return;
-   setBusy(true);
-   setError('');
-   try{
-     setData(await api(`/coach/coaching/${id}`));
-   }catch(e){
-     setError(e.message);
-   }finally{
-     setBusy(false);
-   }
+   setBusy(true);setError('');
+   try{setData(await api(`/coach/coaching/${id}`))}catch(e){setError(e.message)}finally{setBusy(false)}
  };
 
- const[plan,setPlan]=useState(null);
-
- const createPlan=async()=>{
-   if(!data?.learner?.id)return;
-   setBusy(true);
-   setError('');
-   setSaved(false);
+ const sendPlan=async()=>{
+   if(!data?.learner?.id||!planTitle.trim()||!planText.trim())return;
+   setBusy(true);setError('');setSaved(false);
    try{
-     const result=await api('/coach/coaching/plan',{
-       method:'POST',
-       body:{
-         learner_id:data.learner.id,
-         title:`${data.learner.name}'s Coach Improvement Plan`
-       }
-     });
-     setPlan(result);
+     const days=planText.split(/\r?\n/).filter(x=>x.trim()).map((x,i)=>({day:i+1,activity:x.trim(),focus:'Coach assigned',duration_minutes:20,reason:'Assigned by coach',completed:false}));
+     await api('/coach/coaching/plan',{method:'POST',body:{learner_id:data.learner.id,title:planTitle.trim(),days}});
      setSaved(true);
      setData(await api(`/coach/coaching/${data.learner.id}`));
-   }catch(e){
-     setError(e.message);
-   }finally{
-     setBusy(false);
-   }
+   }catch(e){setError(e.message)}finally{setBusy(false)}
  };
 
- const refresh=async()=>{
-   if(selected)await selectLearner(Number(selected));
- };
-
- return <Section title="Coach Coaching" sub="Review assigned learners using their real assessment evidence and create targeted coaching plans.">
+ return <Section title="Coach Coaching" sub="Create a simple learning plan for your assigned learner.">
    <Card title="Select an assigned learner">
      <select value={selected} onChange={e=>selectLearner(e.target.value)}>
        <option value="">Choose a learner</option>
-       {learners.map(x=><option key={x.id} value={x.id}>{x.name} ? {x.email}</option>)}
+       {learners.map(x=><option key={x.id} value={x.id}>{x.name} — {x.email}</option>)}
      </select>
    </Card>
 
    {error&&<div className="error">{error}</div>}
-   {busy&&<div className="notice">Loading real learner evidence?</div>}
-
-   {!selected&&!busy&&
-     <Empty title="Select an assigned learner" text="Choose a learner above to review their assessments, measured skill gaps, and coaching plan."/>
-   }
+   {busy&&<div className="notice">Working…</div>}
 
    {data&&!busy&&<div className="grid two">
-     <Card title={`${data.learner.name} ? Evidence`}>
-       <div className="grid three">
-         <Kpi title="Assessments" value={data.assessment_count}/>
-         <Kpi title="Latest score" value={data.latest_score==null?'Unavailable':`${data.latest_score}/100`}/>
-         <Kpi title="Skill gaps" value={data.gaps?.length??0}/>
-       </div>
-
-       <h3>Measured skill gaps</h3>
-       {data.gaps?.length?
-         data.gaps.map((g,i)=><div className="owner-row" key={i}>
-           <span><b>{g.skill}</b><small>{g.recommendation}</small></span>
-           <span>{g.score}/100</span>
-         </div>)
-         :
-         <Empty title="No measured gaps" text={data.assessment_count?"The latest assessment does not show a skill below the current coaching threshold.":"No real assessment exists yet."}/>
-       }
+     <Card title={`Create plan for ${data.learner.name}`}>
+       <label>Plan title<input value={planTitle} onChange={e=>setPlanTitle(e.target.value)} placeholder="Improve Presentation Skills"/></label>
+       <label>Activities <span className="muted">one activity per line</span><textarea rows="8" value={planText} onChange={e=>setPlanText(e.target.value)} placeholder={"Practice introduction — 15 min\nPractice explaining main argument — 20 min\nRecord 3-minute presentation — 20 min"}/></label>
+       <div className="right-actions"><button className="primary" disabled={busy||!planTitle.trim()||!planText.trim()} onClick={sendPlan}>Send Plan</button></div>
+       {saved&&<div className="success">Plan sent to the learner.</div>}
      </Card>
 
-     <Card title="Assessment history">
-       {data.history?.length?
-         <div className="timeline">
-           {data.history.map((s,i)=><div key={s.id}>
-             <b>{i===0?'Latest assessment':'Assessment'}</b>
-             <span>{s.overall}/100 ? {s.source}</span>
-             <small>{new Date(s.created_at).toLocaleString()}</small>
-           </div>)}
-         </div>
-         :
-         <Empty title="No assessment history" text="The learner must complete a real assessment before a coaching plan can be generated."/>
-       }
-     </Card>
-
-     <Card title="Coach plan">
-       {plan?
-         <><p><b>{plan.title}</b></p><p className="muted">Created from the learner's measured weaknesses.</p><div className="timeline">{plan.days?.map(d=><div key={d.day}><b>Day {d.day}</b><span>{d.activity} ? Focus: {d.focus}</span><small>{d.duration_minutes} min ? Baseline {d.score_baseline}/100</small></div>)}</div></>
-         :
-         data.plan?
-         <><p><b>{data.plan.title}</b></p><p className="muted">An active coaching plan already exists for this learner.</p><div className="timeline">{data.plan.days?.map(d=><div key={d.day} className={d.completed?'completed':''}><b>Day {d.day}</b><span>{d.activity} ? Focus: {d.focus}</span><small>{d.duration_minutes} min ? Baseline {d.score_baseline??'?'}/100</small></div>)}</div></>
-         :
-         <Empty title="No coach plan yet" text="Create one from the learner's actual measured skill gaps."/>
-       }
-
-       {data.assessment_count>0&&<div className="right-actions">
-         <button className="primary" disabled={busy} onClick={createPlan}>{data.plan?'Create new plan from latest assessment':'Create coaching plan'}</button>
-         <button className="secondary" disabled={busy} onClick={refresh}>Refresh evidence</button>
-       </div>}
-
-       {saved&&<div className="success">Coaching plan saved for the learner and notification sent.</div>}
+     <Card title="Current learning plan">
+       {data.plan?<><p><b>{data.plan.title}</b></p><div className="timeline">{data.plan.days?.map(d=><div key={d.day} className={d.completed?'completed':''}><b>Day {d.day}</b><span>{d.activity}</span><small>{d.duration_minutes??20} min</small></div>)}</div></>:<Empty title="No plan yet" text="Write a plan and send it to this learner."/>}
      </Card>
    </div>}
  </Section>;
 }
-
 function CoachDashboard({user}){const[d,setD]=useState(null);useEffect(()=>{api('/role-dashboard').then(setD)},[]);return <Section title={`Welcome, ${user.name.split(' ')[0]}`} sub="Coach workspace â€” focus on the learners assigned to you."><div className="grid four"><Kpi title="Assigned learners" value={d?.counts?.assigned??0}/><Kpi title="Pending reviews" value={d?.counts?.pending_reviews??0}/><Kpi title="Learners improving" value={d?.learners?.filter(x=>x.previous_score!=null&&x.latest_score>x.previous_score).length??0}/><Kpi title="Needs attention" value={d?.learners?.filter(x=>x.latest_score!=null&&x.latest_score<70).length??0}/></div><Card title="Learner coaching queue">{d?.learners?.length?d.learners.map(s=><div className="owner-row" key={s.id}><span><b>{s.name}</b><small>{s.email}</small></span><span>{s.latest_score==null?'No assessment':`Latest ${s.latest_score}`}</span><span>{s.previous_score!=null?`Change ${(s.latest_score-s.previous_score).toFixed(1)}`:'New learner'}</span></div>):<Empty title="No learners assigned." text="Search learners and assign them from Students."/>}</Card></Section>}
 function CoachStudents(){const[students,setStudents]=useState([]),[q,setQ]=useState(''),[users,setUsers]=useState([]);const load=()=>api('/coach/students').then(setStudents);useEffect(load,[]);const search=async()=>setUsers(await api('/friends/search?q='+encodeURIComponent(q)));return <Section title="Students" sub="Your private coaching roster. Search, assign, then coach the learners you own."><div className="search-row"><input placeholder="Find learner by name" value={q} onChange={e=>setQ(e.target.value)}/><button className="primary" onClick={search}>Search</button></div><div className="grid three">{users.filter(u=>u.role==='learner').map(u=><Action key={u.id} title={u.name} text={u.email} button="Assign learner" onClick={async()=>{try{await api('/coach/assign',{method:'POST',body:{learner_id:u.id}});load()}catch(e){alert(e.message)}}}/>)}</div><Card title="Assigned learners">{students.length?students.map(s=><div className="owner-row" key={s.id}><span><b>{s.name}</b><small>{s.email}</small></span><span className="status-chip">Assigned</span></div>):<Empty title="No assigned learners." text="Search above to build your coaching roster."/>}</Card></Section>}
 function CoachEvaluations(){const[d,setD]=useState(null);useEffect(()=>{api('/role-dashboard').then(setD)},[]);return <Section title="Evaluations" sub="Review learner results and decide what deserves coaching attention."><div className="grid two">{d?.learners?.length?d.learners.map(s=><Card key={s.id} title={s.name}><p>{s.email}</p><p><b>Latest:</b> {s.latest_score??'No assessment'}</p><p><b>Previous:</b> {s.previous_score??'â€”'}</p><p><b>Status:</b> {s.latest_score==null?'Waiting for first assessment':s.latest_score<70?'Needs coaching':'On track'}</p></Card>):<Empty title="No evaluations yet." text="Assigned learners will appear here after they complete activities."/>}</div></Section>}
@@ -626,3 +554,8 @@ function RolePage({page,user,setPage,setUser}){if(page==='Dashboard')return user
 
 function App(){const[user,setUser]=useState(null),[page,setPage]=useState('Dashboard');useEffect(()=>{if(localStorage.getItem('token'))api('/me').then(setUser).catch(()=>localStorage.removeItem('token'))},[]);if(!user)return <Login onLogin={setUser}/>;const logout=async()=>{try{await api('/auth/logout',{method:'POST'})}catch{}localStorage.removeItem('token');setUser(null)};return <Layout user={user} page={page} setPage={setPage} onLogout={logout}><RolePage page={page} user={user} setPage={setPage} setUser={setUser}/></Layout>}
 createRoot(document.getElementById('root')).render(<App/>);
+
+
+
+
+

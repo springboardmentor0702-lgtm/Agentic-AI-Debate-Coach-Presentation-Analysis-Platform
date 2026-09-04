@@ -13,7 +13,7 @@ from app.schemas.schemas import *
 from app.core.security import hash_password, verify_password, create_token, current_user, require_roles
 from app.providers import provider_manager
 from app.services.analysis import analyze_argument, detect_fallacies, counterarguments
-from app.services.scoring import score_debate
+from app.services.scoring import score_debate, score_presentation_content, score_presentation_content
 from app.services.presentation import parse_pptx, analyze_slides
 from app.services.reports import pdf_report, excel_report
 from app.services.mongo import store_artifact
@@ -285,7 +285,7 @@ async def presentation_analyze(presentation_id:int,payload:dict|None=None,user=D
     # A presentation score is created only when at least one slide has enough
     # actual captured speech. Slide-content quality is never presented as
     # delivery performance.
-    if result.get("performance_available"):
+    if result.get("content_quality") is not None:
         metrics={
             "argument_quality":float(result.get("content_quality") or 0),
             "evidence_usage":float(result.get("content_quality") or 0),
@@ -295,7 +295,8 @@ async def presentation_analyze(presentation_id:int,payload:dict|None=None,user=D
             "clarity":float(result.get("clarity")) if result.get("clarity") is not None else None,
             "confidence":float(result.get("confidence")) if result.get("confidence") is not None else None,
         }
-        score=Score(user_id=user.id,presentation_id=p.id,source="real_presentation",**score_debate(metrics))
+        score_data=score_debate(metrics) if result.get("performance_available") else score_presentation_content(metrics)
+        score=Score(user_id=user.id,presentation_id=p.id,source="real_presentation",**score_data)
         db.add(score)
     audit(db,user,"presentation_analysis",{"presentation_id":p.id,"performance_available":result.get("performance_available",False)})
     db.commit()
@@ -611,7 +612,7 @@ async def plan(user=Depends(current_user),db:Session=Depends(get_db)):
     for i in range(7):
         target=focuses[i % len(focuses)]
         activity=activities[target["domain"]]
-        days.append({
+        generated_days.append({
             "day":i+1,
             "focus":target["focus"],
             "domain":target["domain"],
@@ -622,6 +623,8 @@ async def plan(user=Depends(current_user),db:Session=Depends(get_db)):
             "success_check":f"Complete the {activity} and review the {target['focus']} feedback.",
             "completed":False
         })
+
+    days = payload.days or generated_days
 
     db.query(LearningPlan).filter(LearningPlan.user_id==user.id,LearningPlan.status=="active").update({"status":"superseded"})
     p=LearningPlan(user_id=user.id,title="7-Day Adaptive Improvement Plan",days=days,status="active")
@@ -912,7 +915,7 @@ async def coach_create_plan(
 
     selected = gaps[:3]
 
-    days = []
+    generated_days = []
     durations = [10, 15, 15, 20, 20, 15, 20]
 
     for i in range(7):
@@ -935,7 +938,7 @@ async def coach_create_plan(
         else:
             activity = "Mixed Debate Practice"
 
-        days.append({
+        generated_days.append({
             "day": i + 1,
             "focus": skill,
             "score_baseline": round(value, 1),
@@ -943,6 +946,8 @@ async def coach_create_plan(
             "duration_minutes": durations[i],
             "reason": f"Based on the learner's latest measured score of {round(value, 1)} in {skill}."
         })
+
+    days = payload.days or generated_days
 
     db.query(LearningPlan).filter(
         LearningPlan.user_id == learner.id,
@@ -1321,3 +1326,9 @@ async def transcribe(file:UploadFile=File(...),user=Depends(current_user)):
 
 @app.get("/api/roles")
 def roles(): return {"roles":["learner","coach","educator","admin"]}
+
+
+
+
+
+
