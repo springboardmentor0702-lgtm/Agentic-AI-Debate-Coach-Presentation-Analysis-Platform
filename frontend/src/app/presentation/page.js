@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import AuthModal from '../../components/AuthModal';
@@ -42,6 +42,7 @@ export default function PresentationPage() {
   const [audioUrl, setAudioUrl] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
+  const [micError, setMicError] = useState(null);
 
   // Refs for Web Audio API & MediaRecorder
   const mediaRecorderRef = useRef(null);
@@ -185,7 +186,10 @@ export default function PresentationPage() {
       }, 1000);
 
     } catch (err) {
-      alert("Microphone access denied or not available. Please allow microphone permissions in your browser.");
+      console.warn("Microphone access blocked or unavailable:", err);
+      setMicError(
+        "Microphone access was denied or is not available. To record live speech: (1) Click the lock/settings icon next to the URL bar in your browser and set Microphone to 'Allow', (2) In Windows Settings > Privacy & Security > Microphone, ensure microphone access is toggled ON. Alternatively, you can select any sample speech below or type your speech to analyze metrics immediately!"
+      );
     }
   };
 
@@ -277,6 +281,41 @@ export default function PresentationPage() {
               Record live speech directly from your microphone. The prosody engine computes real-time speaking pace (WPM), detects filler words, and audits vocal delivery clarity.
             </p>
           </div>
+
+          {/* Microphone Permission Help Banner */}
+          {micError && (
+            <div style={{
+              background: '#FEF2F2',
+              border: '1px solid #F87171',
+              color: '#991B1B',
+              padding: '1.25rem 1.5rem',
+              borderRadius: '12px',
+              marginBottom: '2rem',
+              fontSize: '0.9rem',
+              lineHeight: '1.6'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '0.25rem' }}>🎙️ Microphone Permission Notice:</strong>
+                  {micError}
+                </div>
+                <button
+                  onClick={() => setMicError(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.2rem',
+                    color: '#991B1B',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    padding: '0 0.5rem'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Audio Recording Control Bar */}
           <div style={{ background: '#0E0E12', color: '#FFF', padding: '1.75rem 2rem', borderRadius: '16px', border: '1px solid var(--dark-border)', marginBottom: '2rem', boxShadow: '0 12px 30px rgba(0,0,0,0.2)' }}>
