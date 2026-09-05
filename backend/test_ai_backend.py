@@ -1,7 +1,9 @@
 import os
+import sys
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
 
 TEST_DB = Path(__file__).with_name(".test_ai_backend.db")
 if TEST_DB.exists():

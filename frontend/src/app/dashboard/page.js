@@ -31,35 +31,20 @@ export default function DashboardPage() {
   const [pathSteps, setPathSteps] = useState([]);
   const [progressStatus, setProgressStatus] = useState('');
 
-  // Simulated Datasets for Learner
-  const [debateHistory, setDebateHistory] = useState([
-    { id: 101, topic: 'AI Legal Liability & Regulatory Frameworks', format: 'Oxford Style', position: 'Affirmative', score: 86.4, status: 'Completed', date: '2026-07-22' },
-    { id: 102, topic: 'Universal Basic Income Feasibility', format: 'Parliamentary', position: 'Negative', score: 81.2, status: 'Completed', date: '2026-07-20' },
-    { id: 103, topic: 'Space Colonization Funding Priority', format: 'AI Simulation', position: 'Affirmative', score: 79.5, status: 'Completed', date: '2026-07-18' }
-  ]);
-
-  const [presentationHistory, setPresentationHistory] = useState([
-    { id: 201, title: 'Keynote on Generative Models & Rhetoric', duration: '2m 15s', wpm: 138, fillerWords: 4, confidence: '94%', clarity: '88%' },
-    { id: 202, title: 'Opening Statement - Oxford Debate Mock', duration: '1m 40s', wpm: 146, fillerWords: 9, confidence: '81%', clarity: '79%' },
-    { id: 203, title: 'Elevator Pitch - Venture Capital Simulation', duration: '45s', wpm: 128, fillerWords: 2, confidence: '96%', clarity: '92%' }
-  ]);
-
-  // Skill Metrics Matrix
-  const skillsMatrix = [
-    { name: 'Logical Consistency', value: 88, color: '#D90429', description: 'Ability to avoid fallacy traps (e.g. straw man, ad hominem) under cross-examination.' },
-    { name: 'Argument Construction', value: 84, color: '#111827', description: 'Evidence strength, claim isolation, and structural reasoning relevance.' },
-    { name: 'Vocal Clarity & Cadence', value: 80, color: '#4B5563', description: 'Pacing precision (target: 130-150 WPM) and voice modulation.' },
-    { name: 'Filler Word Control', value: 92, color: '#10B981', description: 'Minimal use of vocal pauses (e.g. "um", "uh", "you know").' },
-    { name: 'Rebuttal Effectiveness', value: 78, color: '#3B82F6', description: 'Addressing critical challenges using 5-type argument strategies.' }
-  ];
+  // Persistent Datasets fetched directly from PostgreSQL
+  const [debateHistory, setDebateHistory] = useState([]);
+  const [presentationHistory, setPresentationHistory] = useState([]);
 
   // Coach Dashboard States
-  const [coachStudents, setCoachStudents] = useState([
-    { name: 'Alex Mercer', topic: 'AI Governance', grade: 'A', gap: 'Slippery Slope' },
-    { name: 'Sofia Chen', topic: 'Climate Policy', grade: 'A-', gap: 'Straw Man' },
-    { name: 'David Kim', topic: 'Universal Basic Income', grade: 'B+', gap: 'Circular Reasoning' },
-    { name: 'Marcus Aurelius', topic: 'Space Priorities', grade: 'A', gap: 'False Dilemma' }
-  ]);
+  const [coachOverview, setCoachOverview] = useState({
+    assigned_students: 0,
+    class_performance_average: 85.0,
+    pending_evaluations: 0,
+    system_status: '100% ONLINE',
+    top_class_pain_points: []
+  });
+  const [coachStudents, setCoachStudents] = useState([]);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
   const [coachFeedbackInput, setCoachFeedbackInput] = useState('');
   const [coachSuccessMsg, setCoachSuccessMsg] = useState('');
 
@@ -80,6 +65,9 @@ export default function DashboardPage() {
       
       fetchProfile(savedToken);
       fetchCoachingPlan();
+      fetchDebateHistory(savedToken);
+      fetchPresentationHistory(savedToken);
+      fetchCoachData(savedToken);
     } catch (e) {
       localStorage.removeItem('logos_ai_jwt');
       setIsAuthModalOpen(true);
@@ -94,13 +82,13 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setFullName(data.full_name);
-        setUserName(data.full_name);
-        setExperience(data.experience_level);
-        setTopics(data.preferred_topics);
-        setDomains(data.presentation_domains);
-        setGoals(data.learning_goals);
-        setCoaching(data.coaching_preferences);
+        setFullName(data.full_name || 'Debater');
+        setUserName(data.full_name || 'Debater');
+        setExperience(data.experience_level || 'Intermediate');
+        setTopics(data.preferred_topics || 'Technology, AI, Policy');
+        setDomains(data.presentation_domains || 'Public Speaking, Keynotes');
+        setGoals(data.learning_goals || 'Reduce filler words, Master counterarguments');
+        setCoaching(data.coaching_preferences || 'Real-time alerts');
       }
       setLoading(false);
     } catch (err) {
@@ -119,13 +107,117 @@ export default function DashboardPage() {
         setProgressStatus(data.progress_status);
       }
     } catch (err) {
-      // Fallback defaults
       setSkillGapSummary("Your metrics indicate solid progress. Focus on reducing filler words and logical fallacies.");
       setRecommendations(["Practice Logical Consistency", "Vocal Pacing drills", "Review fallacy shield guidelines."]);
-      setPathSteps(["Speech Cadence (Completed)", "Filler Word Mitigation (Active)", "Socratic Cross-examination (Upcoming)"]);
+      setPathSteps(["Speech Cadence (Active)", "Filler Word Mitigation (Active)", "Socratic Cross-examination (Upcoming)"]);
       setProgressStatus("Level 2 - Competent Debater");
     }
   };
+
+  const fetchDebateHistory = async (token) => {
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/sessions/history", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setDebateHistory(data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load debate history:", err);
+    }
+  };
+
+  const fetchPresentationHistory = async (token) => {
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/presentation-analysis/history", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setPresentationHistory(data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load presentation history:", err);
+    }
+  };
+
+  const fetchCoachData = async (token) => {
+    try {
+      const [overviewRes, studentsRes] = await Promise.all([
+        fetch("http://localhost:8000/api/v1/coaching/coach/overview", {
+          headers: { "Authorization": `Bearer ${token}` }
+        }),
+        fetch("http://localhost:8000/api/v1/coaching/coach/students", {
+          headers: { "Authorization": `Bearer ${token}` }
+        })
+      ]);
+      if (overviewRes.ok) {
+        const ovData = await overviewRes.json();
+        setCoachOverview(ovData);
+      }
+      if (studentsRes.ok) {
+        const stData = await studentsRes.json();
+        if (Array.isArray(stData)) {
+          setCoachStudents(stData);
+          if (stData.length > 0) {
+            setSelectedStudentId((prev) => prev || stData[0].id);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load coach data:", err);
+    }
+  };
+
+  // Compile unified recent activity (Top 3 most recent sessions)
+  const unifiedRecentSessions = [
+    ...debateHistory.map(d => ({
+      id: `deb-${d.id}`,
+      title: d.title || d.topic,
+      topic: d.topic,
+      format: d.format || d.session_type || 'Debate Session',
+      type: d.session_type === 'Vocal Matrix' ? 'Vocal Matrix' : 'Debate',
+      score: d.score || 85,
+      date: d.date || 'Recent',
+      created_at: d.created_at
+    })),
+    ...presentationHistory.filter(p => !debateHistory.some(d => d.id === p.session_id)).map(p => ({
+      id: `pres-${p.id}`,
+      title: p.title || 'Vocal Metrics Session',
+      topic: p.topic || 'Speech Prosody Evaluation',
+      format: 'Vocal Matrix',
+      type: 'Vocal Matrix',
+      score: p.overall_score || Math.round(p.confidence_score * 0.5 + p.clarity_score * 0.5),
+      date: p.date || 'Recent',
+      created_at: p.created_at
+    }))
+  ].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  const top3Recent = unifiedRecentSessions.slice(0, 3);
+
+  // Dynamic calculations
+  const totalDebates = debateHistory.filter(d => d.session_type !== 'Vocal Matrix').length;
+  const totalVocalSessions = presentationHistory.length;
+  const avgScore = unifiedRecentSessions.length > 0 
+    ? Math.round((unifiedRecentSessions.reduce((acc, curr) => acc + (parseFloat(curr.score) || 85), 0) / unifiedRecentSessions.length) * 10) / 10 
+    : 86.5;
+
+  const latestVocal = presentationHistory[0];
+  const currentPace = latestVocal ? `${latestVocal.wpm} WPM` : '142 WPM';
+
+  // Skill Metrics Matrix
+  const skillsMatrix = [
+    { name: 'Logical Consistency', value: Math.min(98, Math.max(75, Math.round(avgScore * 1.02))), color: '#D90429', description: 'Ability to avoid fallacy traps under cross-examination.' },
+    { name: 'Argument Construction', value: Math.min(96, Math.max(70, Math.round(avgScore * 0.98))), color: '#111827', description: 'Evidence strength, claim isolation, and structural reasoning relevance.' },
+    { name: 'Vocal Clarity & Cadence', value: latestVocal ? Math.round(latestVocal.clarity_score) : 80, color: '#4B5563', description: 'Pacing precision (target: 130-150 WPM) and voice modulation.' },
+    { name: 'Filler Word Control', value: latestVocal ? Math.max(60, 100 - latestVocal.filler_words_count * 6) : 92, color: '#10B981', description: 'Minimal use of vocal pauses (e.g. "um", "uh", "you know").' },
+    { name: 'Rebuttal Effectiveness', value: Math.min(95, Math.max(68, Math.round(avgScore * 0.95))), color: '#3B82F6', description: 'Addressing critical challenges using structured counterargument strategies.' }
+  ];
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -156,12 +248,34 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSendCoachFeedback = (e) => {
+  const handleSendCoachFeedback = async (e) => {
     e.preventDefault();
-    if (!coachFeedbackInput.trim()) return;
-    setCoachSuccessMsg("Coaching feedback dispatched to student dashboard!");
-    setCoachFeedbackInput('');
-    setTimeout(() => setCoachSuccessMsg(''), 3000);
+    if (!coachFeedbackInput.trim() || !selectedStudentId) return;
+    const token = localStorage.getItem('logos_ai_jwt');
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/coaching/coach/feedback", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          student_id: parseInt(selectedStudentId),
+          feedback: coachFeedbackInput
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCoachSuccessMsg(data.message || "Coaching recommendation dispatched to student dashboard!");
+        setCoachFeedbackInput('');
+        setTimeout(() => setCoachSuccessMsg(''), 4000);
+        fetchCoachData(token);
+      } else {
+        setCoachSuccessMsg("Failed to dispatch recommendation. Verify student selection.");
+      }
+    } catch (err) {
+      setCoachSuccessMsg("Failed to connect to API backend.");
+    }
   };
 
   const handleLogout = () => {
@@ -202,9 +316,9 @@ export default function DashboardPage() {
       {userRole === 'Learner' && (
         <div style={{ display: 'flex', gap: '0.5rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0, padding: '6px', marginBottom: '2.5rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
           {[
-            { id: 'overview', label: 'OVERVIEW & SKILL MATRIX' },
-            { id: 'debates', label: 'DEBATE HISTORY' },
-            { id: 'presentations', label: 'PRESENTATION ARCHIVE' },
+            { id: 'overview', label: 'OVERVIEW & SUMMARY' },
+            { id: 'debates', label: `DEBATE HISTORY (${totalDebates})` },
+            { id: 'presentations', label: `VOCAL MATRIX ARCHIVE (${totalVocalSessions})` },
             { id: 'settings', label: 'PROFILE SETTINGS' }
           ].map((tab) => (
             <button
@@ -240,20 +354,92 @@ export default function DashboardPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>DEBATES COMPLETED</div>
-                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>14</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{totalDebates}</div>
+                </div>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>VOCAL MATRIX SESSIONS</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{totalVocalSessions}</div>
                 </div>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>AVG OVERALL SCORE</div>
-                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>88.5%</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{avgScore}%</div>
                 </div>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE DRILL STATUS</div>
-                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>Level 2</div>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>LATEST SPEAKING PACE</div>
+                  <div className="font-display" style={{ fontSize: '2rem', fontWeight: '900' }}>{currentPace}</div>
                 </div>
-                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOP AVOIDED FALLACY</div>
-                  <div className="font-display" style={{ fontSize: '1.8rem', fontWeight: '900', textTransform: 'uppercase' }}>Straw Man</div>
+              </div>
+
+              {/* 3 Most Recent Entries Summary Card */}
+              <div style={{ background: '#FFF', border: '1px solid #E5E7EB', padding: '2rem', marginBottom: '2.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <div>
+                    <h3 className="font-display" style={{ fontSize: '1.35rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>
+                      Recent Completed Sessions (Latest 3)
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '0.2rem 0 0' }}>
+                      Summary of your most recent debate and vocal matrix practice sessions saved in the database.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab(totalDebates > 0 ? 'debates' : 'presentations')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-red)',
+                      fontWeight: 700,
+                      fontSize: '0.825rem',
+                      fontFamily: 'var(--font-mono)',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    VIEW FULL HISTORY ({unifiedRecentSessions.length} SESSIONS) →
+                  </button>
                 </div>
+
+                {top3Recent.length > 0 ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
+                          <th style={{ padding: '0.75rem 1rem' }}>Session Topic / Title</th>
+                          <th style={{ padding: '0.75rem 1rem' }}>Format / Type</th>
+                          <th style={{ padding: '0.75rem 1rem' }}>Performance Score</th>
+                          <th style={{ padding: '0.75rem 1rem' }}>Date Completed</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {top3Recent.map((s) => (
+                          <tr key={s.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                            <td style={{ padding: '1rem', fontWeight: 600 }}>{s.topic || s.title}</td>
+                            <td style={{ padding: '1rem' }}>
+                              <span style={{
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: '4px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                background: s.type === 'Vocal Matrix' ? '#FEF2F2' : '#F0FDF4',
+                                color: s.type === 'Vocal Matrix' ? '#DC2626' : '#166534',
+                                border: `1px solid ${s.type === 'Vocal Matrix' ? '#FECACA' : '#BBF7D0'}`
+                              }}>
+                                {s.format}
+                              </span>
+                            </td>
+                            <td style={{ padding: '1rem', fontWeight: 700, color: 'var(--accent-red)' }}>
+                              {s.score}%
+                            </td>
+                            <td style={{ padding: '1rem', color: '#6B7280' }}>{s.date}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#9CA3AF', background: '#FAFAFC', border: '1px dashed #E5E7EB' }}>
+                    No completed sessions found yet. Start a simulation or record in the Vocal Matrix studio to see your metrics!
+                  </div>
+                )}
               </div>
 
               {/* Main Content Layout */}
@@ -303,11 +489,23 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-
           {/* Tab 2: Debate History */}
           {activeTab === 'debates' && (
             <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
-              <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Debate Practice History</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>
+                    Complete Debate History & Practice Log
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0' }}>
+                    All completed parliamentary, Oxford, and AI agent simulation debate sessions stored in PostgreSQL.
+                  </p>
+                </div>
+                <Link href="/simulation" className="btn btn-red" style={{ padding: '0.6rem 1.25rem', fontSize: '0.825rem' }}>
+                  + START NEW DEBATE
+                </Link>
+              </div>
+
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                   <thead>
@@ -317,24 +515,32 @@ export default function DashboardPage() {
                       <th style={{ padding: '0.75rem 1rem' }}>Position</th>
                       <th style={{ padding: '0.75rem 1rem' }}>Performance Score</th>
                       <th style={{ padding: '0.75rem 1rem' }}>Status</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Date</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Date Completed</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {debateHistory.map((d) => (
-                      <tr key={d.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                        <td style={{ padding: '1rem', fontWeight: 600 }}>{d.topic}</td>
-                        <td style={{ padding: '1rem' }}>{d.format}</td>
-                        <td style={{ padding: '1rem' }}>{d.position}</td>
-                        <td style={{ padding: '1rem', color: 'var(--accent-red)', fontWeight: 700 }}>{d.score}%</td>
-                        <td style={{ padding: '1rem' }}>
-                          <span style={{ background: '#ECFDF5', color: '#059669', padding: '0.25rem 0.6rem', borderRadius: 0, fontSize: '0.75rem', fontWeight: 700 }}>
-                            {d.status}
-                          </span>
+                    {debateHistory.length > 0 ? (
+                      debateHistory.map((d) => (
+                        <tr key={d.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                          <td style={{ padding: '1rem', fontWeight: 600 }}>{d.topic || d.title}</td>
+                          <td style={{ padding: '1rem' }}>{d.format}</td>
+                          <td style={{ padding: '1rem' }}>{d.position}</td>
+                          <td style={{ padding: '1rem', color: 'var(--accent-red)', fontWeight: 700 }}>{d.score}%</td>
+                          <td style={{ padding: '1rem' }}>
+                            <span style={{ background: '#ECFDF5', color: '#059669', padding: '0.25rem 0.6rem', borderRadius: 0, fontSize: '0.75rem', fontWeight: 700 }}>
+                              {d.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '1rem', color: '#6B7280' }}>{d.date}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
+                          No debate sessions recorded yet. Launch the simulation to record your first debate!
                         </td>
-                        <td style={{ padding: '1rem', color: '#6B7280' }}>{d.date}</td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -344,30 +550,55 @@ export default function DashboardPage() {
           {/* Tab 3: Presentation History */}
           {activeTab === 'presentations' && (
             <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
-              <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Presentation Prosody Archive</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>
+                    Complete Vocal Matrix & Speech Prosody Archive
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0' }}>
+                    Every recorded presentation, speaking pace metric, filler word count, and confidence rating preserved across sessions.
+                  </p>
+                </div>
+                <Link href="/presentation" className="btn btn-red" style={{ padding: '0.6rem 1.25rem', fontSize: '0.825rem' }}>
+                  + RECORD VOCAL MATRIX
+                </Link>
+              </div>
+
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
-                      <th style={{ padding: '0.75rem 1rem' }}>Speech Title</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Duration</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Speaking Pace (WPM)</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Filler Word Usage</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Confidence Score</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Speech Title / Topic</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Speaking Pace</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Filler Words</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Confidence</th>
                       <th style={{ padding: '0.75rem 1rem' }}>Vocal Clarity</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Overall Score</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Date Completed</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {presentationHistory.map((p) => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                        <td style={{ padding: '1rem', fontWeight: 600 }}>{p.title}</td>
-                        <td style={{ padding: '1rem' }}>{p.duration}</td>
-                        <td style={{ padding: '1rem' }}>{p.wpm} WPM</td>
-                        <td style={{ padding: '1rem', color: '#D90429', fontWeight: 600 }}>{p.fillerWords} fillers</td>
-                        <td style={{ padding: '1rem', color: '#059669', fontWeight: 700 }}>{p.confidence}</td>
-                        <td style={{ padding: '1rem' }}>{p.clarity}</td>
+                    {presentationHistory.length > 0 ? (
+                      presentationHistory.map((p) => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                          <td style={{ padding: '1rem', fontWeight: 600 }}>{p.topic || p.title}</td>
+                          <td style={{ padding: '1rem' }}>{p.wpm} WPM</td>
+                          <td style={{ padding: '1rem', color: p.filler_words_count > 2 ? '#D90429' : '#10B981', fontWeight: 600 }}>
+                            {p.filler_words_count} fillers
+                          </td>
+                          <td style={{ padding: '1rem', color: '#059669', fontWeight: 700 }}>{p.confidence_score}%</td>
+                          <td style={{ padding: '1rem' }}>{p.clarity_score}%</td>
+                          <td style={{ padding: '1rem', color: 'var(--accent-red)', fontWeight: 700 }}>{p.overall_score || 85}%</td>
+                          <td style={{ padding: '1rem', color: '#6B7280' }}>{p.date}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
+                          No Vocal Matrix sessions recorded yet. Open the Vocal Metrics studio to evaluate your first speech!
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -475,50 +706,87 @@ export default function DashboardPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ASSIGNED STUDENTS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>28</div>
+              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachOverview.assigned_students}</div>
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>CLASS PERFORMANCE AVERAGE</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>85.4%</div>
+              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachOverview.class_performance_average}%</div>
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>PENDING EVALUATIONS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>4</div>
+              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachOverview.pending_evaluations}</div>
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>STATUS SYSTEM</div>
-              <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '900', color: '#10B981' }}>100% ONLINE</div>
+              <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '900', color: '#10B981' }}>{coachOverview.system_status}</div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
             {/* Student Progress Monitoring */}
             <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Student Progress Monitoring</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
-                    <th style={{ padding: '0.75rem' }}>Student Name</th>
-                    <th style={{ padding: '0.75rem' }}>Active Debate Topic</th>
-                    <th style={{ padding: '0.75rem' }}>Grade Rating</th>
-                    <th style={{ padding: '0.75rem' }}>Top Logic Gap</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coachStudents.map((student, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                      <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.name}</td>
-                      <td style={{ padding: '0.85rem' }}>{student.topic}</td>
-                      <td style={{ padding: '0.85rem', color: '#D90429', fontWeight: 700 }}>{student.grade}</td>
-                      <td style={{ padding: '0.85rem', color: '#555' }}>
-                        <span style={{ background: '#FEE2E2', color: '#D90429', padding: '0.2rem 0.5rem', fontSize: '0.72rem', fontWeight: 700 }}>
-                          {student.gap}
-                        </span>
-                      </td>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>Student Progress Monitoring</h3>
+                <span className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{coachStudents.length} ENROLLED</span>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
+                      <th style={{ padding: '0.75rem' }}>Student Name</th>
+                      <th style={{ padding: '0.75rem' }}>Active Debate / Session Topic</th>
+                      <th style={{ padding: '0.75rem' }}>Sessions</th>
+                      <th style={{ padding: '0.75rem' }}>Grade</th>
+                      <th style={{ padding: '0.75rem' }}>Avg Score</th>
+                      <th style={{ padding: '0.75rem' }}>Top Logic Gap / Metric</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {coachStudents.length > 0 ? (
+                      coachStudents.map((student) => (
+                        <tr key={student.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                          <td style={{ padding: '0.85rem' }}>
+                            <div style={{ fontWeight: 600, color: '#111827' }}>{student.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{student.email}</div>
+                          </td>
+                          <td style={{ padding: '0.85rem', maxWidth: '200px' }}>
+                            <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
+                              {student.topic}
+                            </div>
+                            <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>{student.format}</span>
+                          </td>
+                          <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.total_sessions}</td>
+                          <td style={{ padding: '0.85rem' }}>
+                            <span style={{
+                              padding: '0.2rem 0.5rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: student.grade.startsWith('A') ? '#ECFDF5' : student.grade.startsWith('B') ? '#EFF6FF' : '#FEF2F2',
+                              color: student.grade.startsWith('A') ? '#059669' : student.grade.startsWith('B') ? '#2563EB' : '#DC2626'
+                            }}>
+                              {student.grade}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.85rem', color: 'var(--accent-red)', fontWeight: 700 }}>
+                            {student.score > 0 ? `${student.score}%` : 'N/A'}
+                          </td>
+                          <td style={{ padding: '0.85rem' }}>
+                            <span style={{ background: '#FEE2E2', color: '#D90429', padding: '0.2rem 0.5rem', fontSize: '0.72rem', fontWeight: 700 }}>
+                              {student.gap}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#9CA3AF' }}>
+                          No students registered in the database yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Sidebar Skill Gaps and Recommendations Panel */}
@@ -527,9 +795,16 @@ export default function DashboardPage() {
                 <div className="font-mono text-red" style={{ fontSize: '0.72rem', marginBottom: '0.5rem' }}>ROSTER SKILL GAP ANALYSIS</div>
                 <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Top Class Pain Points</h4>
                 <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
-                  <li><strong>Straw Man fallacies</strong> flagged in 8 student transcripts.</li>
-                  <li>Inability to cite empirical statistics (low **Evidence Strength**).</li>
-                  <li>Speaking pace exceeding 165 WPM under cross-examination rebuttal.</li>
+                  {coachOverview.top_class_pain_points && coachOverview.top_class_pain_points.length > 0 ? (
+                    coachOverview.top_class_pain_points.map((pt, idx) => (
+                      <li key={idx}>{pt}</li>
+                    ))
+                  ) : (
+                    <>
+                      <li>Logical consistency remains steady across recent debate transcripts.</li>
+                      <li>Encourage speech recordings in Vocal Matrix studio to evaluate speaking cadence.</li>
+                    </>
+                  )}
                 </ul>
               </div>
 
@@ -537,28 +812,34 @@ export default function DashboardPage() {
               <div style={{ background: '#FFF', border: '1px solid #E5E7EB', padding: '2rem', borderRadius: 0 }}>
                 <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Dispatch Coaching Recommendations</h4>
                 {coachSuccessMsg && (
-                  <div style={{ background: '#ECFDF5', border: '1px solid #6EE7B7', color: '#059669', padding: '0.5rem', fontSize: '0.8rem', marginBottom: '1rem' }}>
+                  <div style={{ background: '#ECFDF5', border: '1px solid #6EE7B7', color: '#059669', padding: '0.75rem', fontSize: '0.825rem', marginBottom: '1rem', fontWeight: 600 }}>
                     {coachSuccessMsg}
                   </div>
                 )}
                 <form onSubmit={handleSendCoachFeedback}>
                   <div style={{ marginBottom: '1rem' }}>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '0.3rem' }}>Select Student</label>
-                    <select style={{ width: '100%', padding: '0.5rem', border: '1px solid #E5E7EB', background: '#FFF' }}>
-                      {coachStudents.map((s, i) => <option key={i}>{s.name}</option>)}
+                    <select 
+                      value={selectedStudentId} 
+                      onChange={(e) => setSelectedStudentId(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E7EB', background: '#FFF', fontSize: '0.85rem' }}
+                    >
+                      {coachStudents.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
+                      ))}
                     </select>
                   </div>
                   <div style={{ marginBottom: '1rem' }}>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '0.3rem' }}>Feedback / Recommendations</label>
                     <textarea 
-                      rows={2} 
+                      rows={3} 
                       value={coachFeedbackInput}
                       onChange={(e) => setCoachFeedbackInput(e.target.value)}
-                      placeholder="e.g. Focus on pausing. Slow down speech pace to 140 WPM during rebuttal." 
-                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box' }}
+                      placeholder="e.g. Work on pausing to reduce filler words. Aim for 140 WPM during rebuttal." 
+                      style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.85rem' }}
                     />
                   </div>
-                  <button type="submit" className="btn btn-red" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem' }}>
+                  <button type="submit" className="btn btn-red" style={{ width: '100%', padding: '0.7rem', fontSize: '0.85rem', cursor: 'pointer' }}>
                     Send Recommendations
                   </button>
                 </form>
@@ -577,51 +858,57 @@ export default function DashboardPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE CLASSES</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>3</div>
+              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>1</div>
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOTAL ENROLLED STUDENTS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>72</div>
+              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachStudents.length}</div>
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>CLASS DEBATE AVERAGE</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>84.2%</div>
+              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachOverview.class_performance_average}%</div>
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>CLASS SPEAKING PACE</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>142 WPM</div>
+              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>PLATFORM STATUS</div>
+              <div className="font-display text-red" style={{ fontSize: '1.6rem', fontWeight: '900' }}>100% ONLINE</div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
             {/* Student Rankings */}
             <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Student Leaderboard Rankings</h3>
+              <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Student Leaderboard Rankings</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
                     <th style={{ padding: '0.75rem' }}>Rank</th>
                     <th style={{ padding: '0.75rem' }}>Student Name</th>
-                    <th style={{ padding: '0.75rem' }}>Rhetorical Logic Rating</th>
-                    <th style={{ padding: '0.75rem' }}>Speech Clarity Rating</th>
-                    <th style={{ padding: '0.75rem' }}>Overall Debate Score</th>
+                    <th style={{ padding: '0.75rem' }}>Active Debate / Session</th>
+                    <th style={{ padding: '0.75rem' }}>Total Sessions</th>
+                    <th style={{ padding: '0.75rem' }}>Overall Score</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { rank: 1, name: 'Sofia Chen', logic: '94%', clarity: '91%', overall: '92.5%' },
-                    { rank: 2, name: 'Alex Mercer', logic: '91%', clarity: '88%', overall: '89.4%' },
-                    { rank: 3, name: 'David Kim', logic: '89%', clarity: '86%', overall: '87.1%' },
-                    { rank: 4, name: 'Elena Rostova', logic: '87%', clarity: '89%', overall: '86.8%' }
-                  ].map((student, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                      <td style={{ padding: '0.85rem', fontWeight: 700 }}>#{student.rank}</td>
-                      <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.name}</td>
-                      <td style={{ padding: '0.85rem' }}>{student.logic}</td>
-                      <td style={{ padding: '0.85rem' }}>{student.clarity}</td>
-                      <td style={{ padding: '0.85rem', color: 'var(--accent-red)', fontWeight: 700 }}>{student.overall}</td>
+                  {coachStudents.length > 0 ? (
+                    [...coachStudents].sort((a, b) => (b.score || 0) - (a.score || 0)).map((student, i) => (
+                      <tr key={student.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                        <td style={{ padding: '0.85rem', fontWeight: 700 }}>#{i + 1}</td>
+                        <td style={{ padding: '0.85rem' }}>
+                          <div style={{ fontWeight: 600 }}>{student.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{student.email}</div>
+                        </td>
+                        <td style={{ padding: '0.85rem' }}>{student.topic}</td>
+                        <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.total_sessions}</td>
+                        <td style={{ padding: '0.85rem', color: 'var(--accent-red)', fontWeight: 700 }}>{student.score > 0 ? `${student.score}%` : 'N/A'}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#9CA3AF' }}>
+                        No enrolled student metrics found yet.
+                      </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -629,11 +916,11 @@ export default function DashboardPage() {
             {/* Reports Panel */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
-                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Active Debate Topics</h4>
+                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Active Debate Motion Topics</h4>
                 <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
-                  <li>AI Governance and System Liability policies</li>
-                  <li>Climate Mitigation Carbon Taxes</li>
-                  <li>Universal Basic Income feasibility trials</li>
+                  <li>Autonomous AI systems legal liability standards</li>
+                  <li>Space Exploration vs. Deep Ocean Funding Priorities</li>
+                  <li>Universal Basic Income and Macroeconomic Stability</li>
                 </ul>
               </div>
 
@@ -645,12 +932,9 @@ export default function DashboardPage() {
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <button onClick={() => alert("Debate Performance Report generated!")} className="btn btn-dark" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem' }}>
-                    Generate Debate Performance Report
-                  </button>
-                  <button onClick={() => alert("Presentation Assessment Report generated!")} className="btn btn-login" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', border: '1px solid #E5E7EB' }}>
-                    Generate Presentation Assessment Report
-                  </button>
+                  <Link href="/reports" className="btn btn-dark" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', textAlign: 'center' }}>
+                    Open Assessment Reports Hub
+                  </Link>
                 </div>
               </div>
             </div>

@@ -41,7 +41,6 @@ export default function PresentationPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioUrl, setAudioUrl] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
-  const [uploadedFileName, setUploadedFileName] = useState("");
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
 
   // Refs for Web Audio API & MediaRecorder
@@ -176,7 +175,6 @@ export default function PresentationPage() {
       setIsRecording(true);
       setRecordingTime(0);
       setAudioUrl(null);
-      setUploadedFileName("");
 
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => {
@@ -208,29 +206,6 @@ export default function PresentationPage() {
       cancelAnimationFrame(animationFrameRef.current);
     }
     setIsRecording(false);
-  };
-
-  // Handle Audio File Upload
-  const handleFileUpload = (e) => {
-    if (!checkAuth()) {
-      e.target.value = "";
-      return;
-    }
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadedFileName(file.name);
-    const url = URL.createObjectURL(file);
-    setAudioUrl(url);
-    setAudioBlob(file);
-
-    // Calculate duration from audio file
-    const audio = new Audio();
-    audio.src = url;
-    audio.onloadedmetadata = () => {
-      const calculatedDuration = Math.round(audio.duration) || 30;
-      setDuration(calculatedDuration);
-    };
   };
 
   // Analyze Speech Metrics via API
@@ -299,11 +274,11 @@ export default function PresentationPage() {
               VOCAL METRICS & PRESENTATION STUDIO
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: '800px', lineHeight: '1.6' }}>
-              Record live speech from your microphone or upload audio files. The prosody engine computes real-time speaking pace (WPM), detects filler words, and audits vocal delivery clarity.
+              Record live speech directly from your microphone. The prosody engine computes real-time speaking pace (WPM), detects filler words, and audits vocal delivery clarity.
             </p>
           </div>
 
-          {/* Audio Recording & Upload Control Bar */}
+          {/* Audio Recording Control Bar */}
           <div style={{ background: '#0E0E12', color: '#FFF', padding: '1.75rem 2rem', borderRadius: '16px', border: '1px solid var(--dark-border)', marginBottom: '2rem', boxShadow: '0 12px 30px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
               
@@ -362,44 +337,12 @@ export default function PresentationPage() {
                 </div>
               </div>
 
-              {/* Middle / Right: Audio File Upload */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <label 
-                  onClick={(e) => {
-                    if (!checkAuth()) {
-                      e.preventDefault();
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem 1.25rem',
-                    border: '1px solid #27272A',
-                    borderRadius: '8px',
-                    background: '#18181B',
-                    color: '#E4E4E7',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.825rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  📁 UPLOAD AUDIO FILE (.wav, .mp3, .m4a)
-                  <input 
-                    type="file" 
-                    accept="audio/*" 
-                    onChange={handleFileUpload} 
-                    style={{ display: 'none' }} 
-                  />
-                </label>
-
-                {uploadedFileName && (
-                  <span style={{ fontSize: '0.8rem', color: '#10B981', fontFamily: 'var(--font-mono)' }}>
-                    ✓ {uploadedFileName}
-                  </span>
-                )}
+              {/* Status Tag */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '0.8rem', color: isRecording ? '#10B981' : '#9CA3AF', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isRecording ? '#10B981' : '#6B7280' }}></span>
+                  {isRecording ? 'STREAMING VOCAL SIGNAL...' : 'MICROPHONE STANDBY'}
+                </span>
               </div>
             </div>
 
@@ -423,7 +366,7 @@ export default function PresentationPage() {
               {audioUrl && !isRecording && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: '#18181B', padding: '0.85rem 1.25rem', borderRadius: '10px' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#A0A0B0' }}>
-                    AUDIO PLAYBACK:
+                    RECORDED AUDIO PLAYBACK:
                   </div>
                   <audio controls src={audioUrl} style={{ height: '36px', flex: 1 }} />
                 </div>
@@ -444,7 +387,6 @@ export default function PresentationPage() {
                   setSpeechText(sample.text);
                   setDuration(sample.duration);
                   setAudioUrl(null);
-                  setUploadedFileName("");
                 }}
                 style={{
                   padding: '0.45rem 0.85rem',
@@ -517,7 +459,7 @@ export default function PresentationPage() {
                   style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border-light)', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 />
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.3rem', display: 'block' }}>
-                  Auto-calculated from microphone/audio playback duration or manually editable.
+                  Auto-calculated from live microphone recording duration or manually editable.
                 </span>
               </div>
 
@@ -597,9 +539,9 @@ export default function PresentationPage() {
               ) : (
                 <div style={{ padding: '3.5rem 2rem', border: '2px dashed var(--border-light)', borderRadius: '16px', textAlign: 'center', color: 'var(--text-muted)', background: '#FAFAFC' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🎙️</div>
-                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#374151', marginBottom: '0.5rem' }}>Audio & Speech Ready</div>
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#374151', marginBottom: '0.5rem' }}>Live Microphone Recording Ready</div>
                   <p style={{ fontSize: '0.88rem', maxWidth: '340px', margin: '0 auto' }}>
-                    Click <strong>"Start Live Recording"</strong>, upload an audio file, or choose a preset sample to compute real-time prosody analytics.
+                    Click <strong>"Start Live Recording"</strong> to speak into your microphone or choose a preset sample to compute real-time prosody analytics.
                   </p>
                 </div>
               )}
