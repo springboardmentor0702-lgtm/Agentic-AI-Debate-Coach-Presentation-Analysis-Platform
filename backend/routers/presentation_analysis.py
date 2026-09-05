@@ -31,6 +31,7 @@ def _persist_metric(db: Session, session_id: int, user_id: int, metric_data: dic
             "speech_pace_wpm", "filler_words_count", "filler_words_list",
             "confidence_score", "clarity_score", "engagement_score",
             "duration_seconds", "pause_count", "silence_ratio_percent", "average_volume_percent",
+            "ai_feedback",
         )
         if key in metric_data
     }

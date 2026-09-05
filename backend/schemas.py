@@ -278,6 +278,7 @@ class SpeechAnalysisSubmit(BaseModel):
 
 
 class PresentationMetricResponse(BaseModel):
+    id: Optional[int] = None
     session_id: int
     artifact_id: Optional[int] = None
     speech_pace_wpm: float
@@ -290,6 +291,23 @@ class PresentationMetricResponse(BaseModel):
     pause_count: Optional[int] = None
     silence_ratio_percent: Optional[float] = None
     average_volume_percent: Optional[float] = None
+    ai_feedback: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DebateSessionStatusUpdate(BaseModel):
+    status: str = Field(min_length=1, max_length=40)
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, value: str) -> str:
+        value = value.strip()
+        allowed = {"Active", "Completed", "Ended", "Scheduled", "Paused"}
+        if value not in allowed:
+            raise ValueError(f"Status must be one of: {', '.join(allowed)}")
+        return value
 
 
 class SimulationTurnSubmit(BaseModel):
@@ -325,6 +343,16 @@ class WeightedScoreResponse(BaseModel):
     rebuttal_effectiveness: float = Field(ge=0, le=100)
     communication_skills: float = Field(ge=0, le=100)
     overall_weighted_score: float = Field(ge=0, le=100)
+
+
+class DebateSessionDetailResponse(BaseModel):
+    session: DebateSessionResponse
+    latest_presentation_metric: Optional[PresentationMetricResponse] = None
+    presentation_metrics: List[PresentationMetricResponse] = []
+    latest_argument_analysis: Optional[ArgumentAnalysisResponse] = None
+    simulation_turns: List[SimulationTurnResponse] = []
+    performance_score: Optional[WeightedScoreResponse] = None
+
 
 
 class CoachingPlanResponse(BaseModel):

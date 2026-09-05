@@ -17,6 +17,7 @@ from main import app
 from database import SessionLocal
 import models
 from services.ai_engine import AIEngine
+from routers.auth import hash_password
 from migrations import CURRENT_SCHEMA_VERSION, run_migrations
 
 
@@ -208,6 +209,33 @@ class BackendAndAIIntegrationTests(unittest.TestCase):
         listed = self.client.get("/api/v1/workflows/progress/me", headers=self.headers)
         self.assertEqual(listed.status_code, 200, listed.text)
         self.assertTrue(any(item["skill"] == "Rebuttal" for item in listed.json()))
+
+        db = SessionLocal()
+        try:
+            coach = models.User(
+                email="coach-progress@example.com",
+                hashed_password=hash_password("strong-coach-pass-123"),
+                full_name="Progress Coach",
+                role="Debate Coach",
+            )
+            db.add(coach)
+            db.flush()
+            db.add(models.CoachAssignment(coach_id=coach.id, learner_id=self.user_id, status="Active"))
+            db.commit()
+            coach_id = coach.id
+        finally:
+            db.close()
+        coach_login = self.client.post(
+            "/api/v1/auth/login",
+            json={"email": "coach-progress@example.com", "password": "strong-coach-pass-123"},
+        )
+        self.assertEqual(coach_login.status_code, 200, coach_login.text)
+        coach_headers = {"Authorization": f"Bearer {coach_login.json()['access_token']}"}
+        coach_progress = self.client.get(f"/api/v1/workflows/progress/{self.user_id}", headers=coach_headers)
+        self.assertEqual(coach_progress.status_code, 200, coach_progress.text)
+        self.assertTrue(any(item["skill"] == "Rebuttal" for item in coach_progress.json()))
+        self.assertGreater(coach_id, 0)
+
         oauth = self.client.post("/api/v1/auth/oauth2/login?provider=Google")
         self.assertEqual(oauth.status_code, 404)
 

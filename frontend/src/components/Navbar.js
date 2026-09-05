@@ -3,28 +3,28 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { apiFetch, clearAuth } from '../lib/api';
+import { apiFetch, clearAuth, getStoredUser } from '../lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     const checkLoginStatus = () => {
-      const token = localStorage.getItem('logos_ai_jwt');
-      setIsLoggedIn(!!token);
-      if (token) {
+      const stored = getStoredUser();
+      if (stored?.access_token) {
+        setUser(stored);
         fetchNotifications();
+      } else {
+        setUser(null);
       }
     };
 
     checkLoginStatus();
-    
-    // Set interval to poll notifications periodically
     const interval = setInterval(checkLoginStatus, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -47,7 +47,7 @@ export default function Navbar() {
     } catch (err) {
       if (err.status === 401) {
         clearAuth();
-        setIsLoggedIn(false);
+        setUser(null);
       }
       setNotifications([]);
     }
@@ -57,23 +57,19 @@ export default function Navbar() {
     try {
       await apiFetch(`/notifications/read/${id}`, { method: 'POST' });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    } catch (err) {
-      // Keep the item unread when the server rejects the update.
-    }
+    } catch (err) {}
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await apiFetch('/notifications/read-all', { method: 'POST' });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (err) {
-      // Keep the current state when the server rejects the update.
-    }
+    } catch (err) {}
   };
 
   const handleLogout = () => {
     clearAuth();
-    setIsLoggedIn(false);
+    setUser(null);
     setShowDropdown(false);
     router.push('/login');
   };
@@ -81,14 +77,22 @@ export default function Navbar() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <nav className="navbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 3rem', background: '#fff', borderBottom: '1px solid #e5e5eb', position: 'relative', zIndex: 100 }}>
-      <Link href="/" className="brand-logo" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.5rem', fontWeight: 900, color: '#000' }}>
-        LOGOS.AI
+    <nav className="navbar">
+      {/* Brand Logo with iOS 26 Glossy Icon */}
+      <Link href="/" className="brand-logo-container">
+        <div className="brand-logo-icon">
+          <img 
+            src="/logo.png" 
+            alt="LOGOS.AI" 
+            className="brand-logo-img" 
+          />
+        </div>
+        <span className="brand-logo-text">LOGOS.AI</span>
       </Link>
 
-      {/* Nav Links */}
-      <div className="nav-links" style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-        <Link href="/#engines" className="nav-link">
+      {/* Nav Links with iOS Glass Hover Pills */}
+      <div className="nav-links">
+        <Link href="/#engines" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>
           ENGINES
         </Link>
         <Link href="/simulation" className={`nav-link ${pathname === '/simulation' ? 'active' : ''}`}>
@@ -103,76 +107,115 @@ export default function Navbar() {
         <Link href="/reports" className={`nav-link ${pathname === '/reports' ? 'active' : ''}`}>
           REPORTS
         </Link>
-        {isLoggedIn && (
+        {user && (
           <Link href="/notifications" className={`nav-link ${pathname === '/notifications' ? 'active' : ''}`}>
             ALERTS
           </Link>
         )}
-        
-        <Link href="/simulation" className="btn btn-red" style={{ padding: '0.45rem 1rem', fontSize: '0.75rem', borderRadius: '4px' }}>
-          DEPLOY_AGENT
-        </Link>
       </div>
 
-      {/* Actions / Notifications */}
-      <div className="nav-actions" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-        
-        {/* Interactive Notification Bell */}
-        {isLoggedIn && (
+      {/* Right Actions / User Profile Pill */}
+      <div className="nav-actions">
+        {/* Interactive Notification Bell with Glass Badge */}
+        {user && (
           <div ref={dropdownRef} style={{ position: 'relative' }}>
             <button 
               onClick={() => setShowDropdown(!showDropdown)}
-              style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', position: 'relative', padding: '0.25rem' }}
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.75)', 
+                border: '1px solid rgba(226, 232, 240, 0.8)', 
+                borderRadius: '50%',
+                width: '38px',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.05rem', 
+                cursor: 'pointer', 
+                position: 'relative',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                transition: 'all 0.2s'
+              }}
             >
               🔔
               {unreadCount > 0 && (
-                <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--accent-red)', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '0.15rem 0.35rem', borderRadius: '50%' }}>
+                <span style={{ 
+                  position: 'absolute', 
+                  top: '-2px', 
+                  right: '-2px', 
+                  background: 'linear-gradient(135deg, #f43f5e, #e11d48)', 
+                  color: '#fff', 
+                  fontSize: '0.65rem', 
+                  fontWeight: 800, 
+                  padding: '0.12rem 0.38rem', 
+                  borderRadius: '9999px',
+                  boxShadow: '0 2px 6px rgba(244, 63, 94, 0.5)'
+                }}>
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Notification Dropdown Drawer */}
+            {/* iOS Glass Notification Dropdown */}
             {showDropdown && (
-              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '320px', background: '#fff', border: '1px solid #e5e5eb', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e5eb', paddingBottom: '0.5rem' }}>
-                  <strong style={{ fontSize: '0.88rem' }}>NOTIFICATIONS ({unreadCount})</strong>
+              <div style={{ 
+                position: 'absolute', 
+                top: 'calc(100% + 8px)', 
+                right: 0, 
+                width: '340px', 
+                background: 'rgba(255, 255, 255, 0.92)', 
+                backdropFilter: 'blur(28px) saturate(190%)',
+                WebkitBackdropFilter: 'blur(28px) saturate(190%)',
+                border: '1px solid rgba(255, 255, 255, 0.9)', 
+                borderRadius: '20px',
+                boxShadow: '0 20px 40px -10px rgba(0,0,0,0.12), 0 0 0 1px rgba(255, 255, 255, 0.7) inset', 
+                padding: '1.25rem', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '0.75rem', 
+                maxHeight: '420px', 
+                overflowY: 'auto',
+                zIndex: 1000
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(226, 232, 240, 0.8)', paddingBottom: '0.6rem' }}>
+                  <strong style={{ fontSize: '0.88rem', fontWeight: 800 }}>NOTIFICATIONS ({unreadCount})</strong>
                   <button 
                     onClick={handleMarkAllAsRead}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-red)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--ios-indigo)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
                   >
-                    Clear All
+                    Mark All Read
                   </button>
                 </div>
 
                 {notifications.length === 0 ? (
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280', textAlign: 'center', padding: '1.5rem 0' }}>
-                    No active notifications.
+                  <div style={{ fontSize: '0.82rem', color: '#64748b', textAlign: 'center', padding: '2rem 0' }}>
+                    ✨ You're all caught up!
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {notifications.map((notif) => (
                       <div 
                         key={notif.id} 
                         onClick={() => handleMarkAsRead(notif.id)}
                         style={{ 
-                          padding: '0.6rem 0.75rem', 
-                          background: notif.read ? '#fff' : '#F9FAFB', 
-                          borderLeft: `3px solid ${notif.read ? '#e5e5eb' : 'var(--accent-red)'}`,
+                          padding: '0.7rem 0.85rem', 
+                          background: notif.read ? 'rgba(255, 255, 255, 0.5)' : 'rgba(238, 242, 255, 0.85)', 
+                          border: '1px solid rgba(226, 232, 240, 0.8)',
+                          borderRadius: '12px',
                           cursor: 'pointer',
-                          transition: 'background 0.2s'
+                          transition: 'all 0.2s ease'
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--accent-red)', fontWeight: 800, textTransform: 'uppercase' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--ios-indigo)', fontWeight: 800, textTransform: 'uppercase' }}>
                             {notif.category}
                           </span>
-                          <span style={{ fontSize: '0.65rem', color: '#9CA3AF' }}>{notif.timestamp}</span>
+                          <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{notif.timestamp}</span>
                         </div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: notif.read ? 500 : 700, color: '#111827', marginBottom: '0.1rem' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: notif.read ? 600 : 800, color: '#0f172a', marginBottom: '0.15rem' }}>
                           {notif.title}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#4B5563', lineHeight: '1.3' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#475569', lineHeight: '1.35' }}>
                           {notif.message}
                         </div>
                       </div>
@@ -184,23 +227,65 @@ export default function Navbar() {
           </div>
         )}
 
-        {isLoggedIn ? (
-          <button 
-            onClick={handleLogout}
-            className="btn btn-login" 
-            style={{ padding: '0.55rem 1.25rem', border: '1px solid #e5e5eb', borderRadius: '4px', background: 'transparent', color: '#000', textTransform: 'uppercase', fontSize: '0.78rem', fontWeight: 700 }}
-          >
-            Logout
-          </button>
+        {/* User Pill / Login CTA */}
+        {user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Link 
+              href="/dashboard" 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                padding: '0.35rem 0.85rem 0.35rem 0.4rem',
+                background: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(226, 232, 240, 0.9)',
+                borderRadius: '9999px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                boxShadow: '0 2px 6px rgba(99, 102, 241, 0.4)'
+              }}>
+                {(user.full_name || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ lineHeight: 1.15, textAlign: 'left' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a' }}>
+                  {user.full_name || 'User'}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>
+                  {user.role || 'Learner'}
+                </div>
+              </div>
+            </Link>
+
+            <button 
+              onClick={handleLogout}
+              className="btn btn-login" 
+              style={{ padding: '0.45rem 1rem', fontSize: '0.75rem' }}
+            >
+              Logout
+            </button>
+          </div>
         ) : (
-          <>
-            <Link href="/login" className="btn btn-login" style={{ padding: '0.55rem 1.25rem', border: '1px solid #e5e5eb', borderRadius: '4px', background: 'transparent', color: '#000', textTransform: 'uppercase', fontSize: '0.78rem', fontWeight: 700 }}>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+            <Link href="/login" className="btn btn-login">
               Login
             </Link>
-            <Link href="/signup" className="btn btn-dark" style={{ padding: '0.55rem 1.25rem', borderRadius: '4px', background: '#18181b', color: '#fff', textTransform: 'uppercase', fontSize: '0.78rem', fontWeight: 700 }}>
+            <Link href="/signup" className="btn btn-red">
               Sign Up
             </Link>
-          </>
+          </div>
         )}
       </div>
     </nav>

@@ -158,6 +158,7 @@ class PresentationMetric(Base):
     pause_count = Column(Integer, nullable=True)
     silence_ratio_percent = Column(Float, nullable=True)
     average_volume_percent = Column(Float, nullable=True)
+    ai_feedback = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utc_now_naive)
 
     session = relationship("DebateSession", back_populates="presentation_metrics")

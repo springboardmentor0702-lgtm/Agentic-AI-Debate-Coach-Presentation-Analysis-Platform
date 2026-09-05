@@ -5,6 +5,11 @@ import Footer from '../components/Footer';
 export const metadata = {
   title: 'LOGOS.AI | Agentic AI Debate Coach & Presentation Analytics Platform',
   description: 'Detect fallacies in real-time. Simulate world-class opponents. Master the podium.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({ children }) {

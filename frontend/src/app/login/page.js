@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, storeAuth } from '../../lib/api';
 
-// --- SVG Icons ---
 const EyeIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -28,7 +27,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Custom Dropdown States
   const [role, setRole] = useState('Learner');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -57,7 +55,7 @@ export default function LoginPage() {
       
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1200);
+      }, 1000);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -66,112 +64,136 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '85vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', position: 'relative' }}>
       
+      {/* Aurora Ambient Glow Orbs */}
+      <div style={{
+        position: 'absolute',
+        top: '20%',
+        left: '20%',
+        width: '350px',
+        height: '350px',
+        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(50px)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }} />
+
       {message && (
-        <div style={{ maxWidth: '440px', width: '100%', marginBottom: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: 0, fontSize: '0.875rem', fontWeight: 500, background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: message.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`, textAlign: 'center' }}>
+        <div style={{ maxWidth: '440px', width: '100%', marginBottom: '1.5rem', padding: '0.9rem 1.25rem', borderRadius: '16px', fontSize: '0.875rem', fontWeight: 600, background: message.type === 'error' ? 'rgba(254, 242, 242, 0.9)' : 'rgba(236, 253, 245, 0.9)', backdropFilter: 'blur(12px)', color: message.type === 'error' ? '#dc2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#fca5a5' : '#6ee7b7'}`, textAlign: 'center', zIndex: 1 }}>
           {message.text}
         </div>
       )}
 
-      <div style={{ width: '100%', maxWidth: '440px', background: '#FFFFFF', borderRadius: 0, padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB', position: 'relative' }}>
-        <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center', color: '#111827' }}>
-          Login
-        </h2>
+      {/* iOS Glass Login Card */}
+      <div className="glass-card" style={{ width: '100%', maxWidth: '440px', padding: '2.5rem', position: 'relative', zIndex: 1 }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+            <img 
+              src="/logo.png" 
+              alt="LOGOS.AI" 
+              style={{ 
+                width: '64px', 
+                height: '64px', 
+                borderRadius: '18px', 
+                boxShadow: '0 8px 24px rgba(99, 102, 241, 0.45)',
+                border: '1.5px solid rgba(255, 255, 255, 0.5)'
+              }} 
+            />
+          </div>
+          <div className="badge-red-pill" style={{ marginBottom: '0.75rem' }}>
+            <span className="badge-dot"></span> SECURE AUTHENTICATION
+          </div>
+          <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#0f172a' }}>
+            Login to <span className="text-gradient">LOGOS.AI</span>
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+            Enter your credentials to access your debate cockpit.
+          </p>
+        </div>
 
         <form onSubmit={handleLogin}>
           {/* Email */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Email address</label>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+              Email Address
+            </label>
             <input
               type="email"
               required
-              placeholder="Enter your email address"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </div>
 
+          {/* Password */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <div style={{ marginBottom: '0.4rem' }}>
-              <label style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Password</label>
-            </div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+              Password
+            </label>
             <div style={{ position: 'relative' }}>
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="Enter your password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem 2.8rem 0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                style={{ width: '100%', boxSizing: 'border-box', paddingRight: '2.75rem' }}
               />
-              <button 
-                type="button" 
-                onClick={() => setShowPassword(!showPassword)} 
-                style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: 0, display: 'flex', alignItems: 'center' }}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
               </button>
             </div>
           </div>
 
-          {/* Select Role Custom Dropdown with Spacious ▼ Arrow */}
-          <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Select Role</label>
-            
+          {/* Role Dropdown */}
+          <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+              Select Role
+            </label>
             <div
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               style={{
                 width: '100%',
-                padding: '0.85rem 3rem 0.85rem 1.25rem',
-                borderRadius: 0,
-                border: '1px solid #E5E7EB',
-                background: '#FFFFFF',
-                fontSize: '0.9rem',
-                color: '#111827',
-                cursor: 'pointer',
+                padding: '0.75rem 1rem',
+                borderRadius: '14px',
+                border: '1px solid rgba(203, 213, 225, 0.8)',
+                background: '#ffffff',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                color: '#0f172a',
                 boxSizing: 'border-box',
-                userSelect: 'none',
-                position: 'relative'
               }}
             >
               <span>{role}</span>
-              
-              {/* Down Arrow with spacious padding on the right */}
-              <span 
-                style={{ 
-                  position: 'absolute',
-                  right: '1.5rem',
-                  fontSize: '0.75rem',
-                  color: '#6B7280',
-                  transition: 'transform 0.2s', 
-                  transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' 
-                }}
-              >
-                ▼
-              </span>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>▼</span>
             </div>
 
             {isDropdownOpen && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  background: '#FFFFFF',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: 0,
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-                  marginTop: '0.5rem',
-                  zIndex: 100,
-                  padding: '4px',
-                  boxSizing: 'border-box'
-                }}
-              >
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(226, 232, 240, 0.9)',
+                borderRadius: '14px',
+                boxShadow: '0 12px 28px -6px rgba(0, 0, 0, 0.12)',
+                zIndex: 20,
+                overflow: 'hidden',
+              }}>
                 {rolesList.map((r) => (
                   <div
                     key={r}
@@ -180,26 +202,12 @@ export default function LoginPage() {
                       setIsDropdownOpen(false);
                     }}
                     style={{
-                      padding: '0.75rem 1.25rem',
-                      borderRadius: 0,
-                      fontSize: '0.9rem',
-                      color: role === r ? 'var(--accent-red)' : '#374151',
-                      background: role === r ? '#FEF2F2' : 'transparent',
+                      padding: '0.75rem 1rem',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      fontWeight: role === r ? 600 : 400
-                    }}
-                    onMouseEnter={(e) => {
-                      if (role !== r) {
-                        e.target.style.background = '#F3F4F6';
-                        e.target.style.color = '#111827';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (role !== r) {
-                        e.target.style.background = 'transparent';
-                        e.target.style.color = '#374151';
-                      }
+                      fontSize: '0.88rem',
+                      fontWeight: role === r ? 700 : 500,
+                      color: role === r ? 'var(--ios-indigo)' : '#334155',
+                      background: role === r ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
                     }}
                   >
                     {r}
@@ -209,37 +217,22 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Remember Me */}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <input
-              type="checkbox"
-              id="remember"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              style={{ accentColor: '#18181B' }}
-            />
-            <label htmlFor="remember" style={{ fontSize: '0.85rem', color: '#6B7280', userSelect: 'none', cursor: 'pointer' }}>Remember Me</label>
-          </div>
-
-          {/* Login Button */}
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: 0, background: '#18181B', color: '#FFFFFF', border: 'none', fontWeight: 600, cursor: 'pointer', marginBottom: '1rem', fontSize: '0.95rem' }}>
-            {loading ? 'Authenticating...' : 'Login'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-red"
+            style={{ width: '100%', padding: '0.9rem', fontSize: '0.92rem' }}
+          >
+            {loading ? 'AUTHENTICATING…' : 'Sign In'}
           </button>
-
-          {/* Sign Up Redirect */}
-          <div style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6B7280', marginBottom: '0.75rem' }}>
-            Don't have an account yet?{' '}
-            <Link href="/signup" style={{ color: '#111827', fontWeight: 600, textDecoration: 'underline' }}>
-              Sign Up
-            </Link>
-          </div>
-
-          <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>
-            <a href="#forgot" style={{ color: '#6B7280', fontWeight: 600, textDecoration: 'underline' }}>
-              Forgot Password?
-            </a>
-          </div>
         </form>
+
+        <div style={{ marginTop: '1.75rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
+          Don't have an account?{' '}
+          <Link href="/signup" style={{ color: 'var(--ios-indigo)', fontWeight: 700 }}>
+            Sign Up
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -62,6 +62,16 @@ class SpeechEngine:
         clarity_score = max(30.0, min(99.0, pace_score * 0.45 + confidence_score * 0.45 + min(10.0, average_sentence_length / 4)))
         engagement_score = max(40.0, min(98.0, 70.0 + min(18.0, sentence_count * 2.0) + min(10.0, total_words / 40.0) - total_fillers * 1.5))
 
+        feedback = self._generate_ai_feedback(
+            wpm=wpm,
+            filler_count=total_fillers,
+            filler_str=filler_str,
+            confidence=round(confidence_score, 1),
+            clarity=round(clarity_score, 1),
+            engagement=round(engagement_score, 1),
+            is_audio=False,
+        )
+
         return {
             "speech_pace_wpm": wpm,
             "filler_words_count": total_fillers,
@@ -69,7 +79,76 @@ class SpeechEngine:
             "confidence_score": round(confidence_score, 1),
             "clarity_score": round(clarity_score, 1),
             "engagement_score": round(engagement_score, 1),
+            "ai_feedback": feedback,
         }
+
+    def _generate_ai_feedback(
+        self,
+        wpm: float,
+        filler_count: int,
+        filler_str: str,
+        confidence: float,
+        clarity: float,
+        engagement: float,
+        is_audio: bool = False,
+        pause_count: int = 0,
+        silence_ratio: float = 0.0,
+    ) -> str:
+        feedback_points = []
+
+        # Pacing assessment
+        if 130 <= wpm <= 160:
+            feedback_points.append(
+                f"🎯 **Cadence & Pace ({wpm} WPM)**: Excellent conversational pacing within the ideal rhetorical benchmark (130-160 WPM). Your delivery maintains a steady rhythm that gives listeners ample cognitive headroom to process claims."
+            )
+        elif 110 <= wpm < 130:
+            feedback_points.append(
+                f"🎯 **Cadence & Pace ({wpm} WPM)**: Deliberate and controlled delivery. While clear, consider accelerating slightly during transitional arguments to project higher dynamism."
+            )
+        elif wpm < 110:
+            feedback_points.append(
+                f"⚠️ **Cadence & Pace ({wpm} WPM)**: Speech rate is measured and deliberate. Increase cadence towards 120-140 WPM to prevent energy drop-offs and maintain audience momentum."
+            )
+        else:
+            feedback_points.append(
+                f"⚠️ **Cadence & Pace ({wpm} WPM)**: Rapid speech rate. Slow down during core propositions and statistical evidence to ensure maximum audience retention."
+            )
+
+        # Filler words assessment
+        if filler_count == 0:
+            feedback_points.append(
+                "✨ **Fluency & Filler Words**: Outstanding vocal precision! Zero filler words detected. This projects commanding executive presence and thorough rhetorical preparation."
+            )
+        elif filler_count <= 2:
+            feedback_points.append(
+                f"👍 **Fluency & Filler Words**: High fluency with only {filler_count} minor filler(s) ({filler_str}). Minimal impact on overall speech authority."
+            )
+        else:
+            feedback_points.append(
+                f"💡 **Fluency & Filler Words**: Detected {filler_count} filler words ({filler_str}). Practice replacing verbal placeholders with intentional 1-2 second silent pauses."
+            )
+
+        # Confidence & Clarity assessment
+        if confidence >= 85 and clarity >= 80:
+            feedback_points.append(
+                f"🚀 **Vocal Confidence ({confidence}%) & Clarity ({clarity}%)**: Strong rhetorical conviction and articulate sentence structure. Your claims are delivered with authoritative weight."
+            )
+        else:
+            feedback_points.append(
+                f"📈 **Vocal Confidence ({confidence}%) & Clarity ({clarity}%)**: Solid foundation. Focus on enunciating sentence conclusions and maintaining vocal projection across complex clauses."
+            )
+
+        # Engagement & Actionable coaching tip
+        if is_audio and pause_count > 0:
+            feedback_points.append(
+                f"🎙️ **Audio Prosody**: Captured {pause_count} natural pauses with {silence_ratio:.1f}% silence ratio. Use intentional pauses immediately before and after your key thesis to maximize impact."
+            )
+        else:
+            feedback_points.append(
+                f"🔥 **Engagement ({engagement}%)**: Good rhetorical engagement. To level up, emphasize contrasting arguments and conclude each claim with a clear call-to-reason."
+            )
+
+        return "\n\n".join(feedback_points)
 
     def transcribe_audio(self, audio_path: str | Path) -> str:
         """Transcribe audio only when explicitly enabled; return empty text on failure."""
@@ -149,15 +228,41 @@ class SpeechEngine:
             "average_volume_percent": round(min(100.0, average_volume * 150.0), 1),
         }
         if transcript.strip():
-            audio_metrics.update(self.analyze_speech(transcript, duration))
+            analyzed = self.analyze_speech(transcript, duration)
+            audio_metrics.update(analyzed)
+            audio_metrics["ai_feedback"] = self._generate_ai_feedback(
+                wpm=analyzed["speech_pace_wpm"],
+                filler_count=analyzed["filler_words_count"],
+                filler_str=analyzed["filler_words_list"],
+                confidence=analyzed["confidence_score"],
+                clarity=analyzed["clarity_score"],
+                engagement=analyzed["engagement_score"],
+                is_audio=True,
+                pause_count=pause_count,
+                silence_ratio=silence_ratio * 100,
+            )
         else:
+            conf = round(max(30.0, min(99.0, 92.0 - silence_ratio * 35.0)), 1)
+            clar = round(max(30.0, min(99.0, 90.0 - silence_ratio * 30.0)), 1)
+            eng = round(max(40.0, min(98.0, 78.0 + min(12.0, average_volume * 80.0) - pause_count * 1.5)), 1)
             audio_metrics.update({
                 "speech_pace_wpm": 0.0,
                 "filler_words_count": 0,
                 "filler_words_list": "Transcript not supplied",
-                "confidence_score": round(max(30.0, min(99.0, 92.0 - silence_ratio * 35.0)), 1),
-                "clarity_score": round(max(30.0, min(99.0, 90.0 - silence_ratio * 30.0)), 1),
-                "engagement_score": round(max(40.0, min(98.0, 78.0 + min(12.0, average_volume * 80.0) - pause_count * 1.5)), 1),
+                "confidence_score": conf,
+                "clarity_score": clar,
+                "engagement_score": eng,
+                "ai_feedback": self._generate_ai_feedback(
+                    wpm=0.0,
+                    filler_count=0,
+                    filler_str="None",
+                    confidence=conf,
+                    clarity=clar,
+                    engagement=eng,
+                    is_audio=True,
+                    pause_count=pause_count,
+                    silence_ratio=silence_ratio * 100,
+                ),
             })
         return audio_metrics
 

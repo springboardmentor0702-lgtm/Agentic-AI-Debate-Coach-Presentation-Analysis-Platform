@@ -7,20 +7,43 @@ export default function Home() {
   const [activePersona, setActivePersona] = useState('THE CONTRARIAN');
 
   return (
-    <div className="watermark-container">
-      {/* Hero Section */}
-      <section className="hero-section">
-        {/* Background Watermark Text */}
-        <div className="watermark-text" style={{ bottom: '0px', left: '-2rem', zIndex: -1 }}>RHETORIC</div>
+    <div className="watermark-container" style={{ position: 'relative' }}>
+      {/* Soft Ambient Aurora Glow Orbs */}
+      <div style={{
+        position: 'absolute',
+        top: '5%',
+        right: '10%',
+        width: '450px',
+        height: '450px',
+        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, rgba(99, 102, 241, 0.12) 50%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(60px)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '25%',
+        left: '5%',
+        width: '380px',
+        height: '380px',
+        background: 'radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.08) 50%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(50px)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }} />
 
+      {/* Hero Section */}
+      <section className="hero-section" style={{ position: 'relative', zIndex: 1 }}>
         <div>
           <div className="badge-red-pill">
-            <span className="badge-dot"></span> AGENTIC REASONING ENGINE V 4.0
+            <span className="badge-dot"></span> AGENTIC REASONING ENGINE v4.0
           </div>
           
           <h1 className="hero-title">
-            WIN THE<br />
-            <span className="red">ARGUMENT.</span>
+            Win the<br />
+            <span className="red">Argument.</span>
           </h1>
 
           <p className="hero-subtitle">
@@ -28,53 +51,68 @@ export default function Home() {
           </p>
 
           <div className="hero-cta-group">
-            <Link href="/simulation" className="btn btn-dark">
-              START SIMULATION
+            <Link href="/simulation" className="btn btn-red" style={{ padding: '0.85rem 2rem', fontSize: '0.92rem' }}>
+              Start Simulation
             </Link>
-            <Link href="/dashboard" className="btn btn-login">
-              VIEW ANALYTICS
+            <Link href="/dashboard" className="btn btn-login" style={{ padding: '0.85rem 2rem', fontSize: '0.92rem' }}>
+              View Analytics
             </Link>
           </div>
         </div>
 
-        {/* Hero Interactive Terminal Mockup */}
+        {/* Hero Interactive Terminal Mockup with iOS Glass Elements */}
         <div style={{ position: 'relative' }}>
-          {/* Floating Rebuttal Strength Badge */}
+          {/* Floating Rebuttal Strength Glass Badge */}
           <div 
-            className="font-mono"
             style={{
               position: 'absolute',
-              bottom: '1.5rem',
+              bottom: '-1rem',
               left: '-1rem',
-              background: 'var(--accent-red)',
-              color: '#fff',
-              padding: '0.4rem 0.8rem',
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
+              background: 'rgba(255, 255, 255, 0.92)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.9)',
+              borderRadius: '16px',
+              padding: '0.65rem 1.1rem',
+              boxShadow: '0 12px 28px -6px rgba(99, 102, 241, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
               zIndex: 10
             }}
           >
-            REBUTTAL_STRENGTH: 98.4%
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+            <div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b' }}>REBUTTAL STRENGTH</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>98.4% · High Impact</div>
+            </div>
           </div>
 
-          {/* Floating Fallacy Badge */}
+          {/* Floating Fallacy Glass Badge */}
           <div 
-            className="font-mono"
             style={{
               position: 'absolute',
-              top: '1.5rem',
+              top: '-1rem',
               right: '-1rem',
-              background: '#000',
-              color: '#fff',
-              padding: '0.4rem 0.8rem',
-              fontSize: '0.75rem',
-              border: '1px solid var(--accent-red)',
+              background: 'rgba(255, 255, 255, 0.92)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(254, 205, 211, 0.9)',
+              borderRadius: '16px',
+              padding: '0.65rem 1.1rem',
+              boxShadow: '0 12px 28px -6px rgba(244, 63, 94, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
               zIndex: 10
             }}
           >
-            FALLACY: STRAW_MAN_DETECTED
+            <span style={{ fontSize: '1rem' }}>⚖️</span>
+            <div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#e11d48' }}>FALLACY DETECTED</div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>Straw Man Detected</div>
+            </div>
           </div>
 
+          {/* Glass Terminal Container */}
           <div className="terminal-window">
             <div className="terminal-header">
               <div className="terminal-dots">
@@ -82,91 +120,57 @@ export default function Home() {
                 <span className="dot dot-yellow"></span>
                 <span className="dot dot-green"></span>
               </div>
-              <div className="terminal-title">SIMULATION_INTERFACE.EXE</div>
+              <div className="terminal-title">SIMULATION_INTERFACE_ERE</div>
             </div>
             
             <div className="terminal-body">
               <div className="terminal-line">
-                <span className="line-num">01</span>
+                <span className="line-num">&gt;&gt;</span>
                 <span className="text-muted">Initiating Agentic Engine v4.0...</span>
               </div>
               <div className="terminal-line">
-                <span className="line-num">02</span>
-                <span>User Input: <span className="text-cyan">"We must immediately restrict AI deployments."</span></span>
+                <span className="line-num">&gt;&gt;</span>
+                <span className="text-muted">Loading rhetorical frameworks...</span>
               </div>
               <div className="terminal-line">
-                <span className="line-num">03</span>
-                <span className="text-red">[AUDIT] Fallacy Detected: False Dilemma in premise #1</span>
+                <span className="line-num">&gt;&gt;</span>
+                <span className="text-purple">Opponent Model: The Contrarian</span>
+              </div>
+              <div style={{ height: '0.5rem' }} />
+              <div className="terminal-line">
+                <span className="text-cyan font-bold">User Input:</span>
+                <span>"We must immediately restrict AI deployments."</span>
               </div>
               <div className="terminal-line">
-                <span className="line-num">04</span>
-                <span className="text-green">Opponent Rebuttal: "Asserting a binary choice ignores risk-mitigated regulatory sandboxes."</span>
+                <span className="text-red font-bold">[AUDIT]</span>
+                <span className="text-red">Fallacy Detected: False Dilemma in premise #1</span>
               </div>
-              <div className="terminal-line">
-                <span className="line-num">05</span>
-                <span>Claim Evidence Score: <span className="text-green">89.2 / 100</span></span>
-              </div>
-              <div className="terminal-line">
-                <span className="line-num">06</span>
-                <span className="text-muted">Vocal Pace: 142 WPM (Optimal Range)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Debate Simulation Showcase (Dark Section) */}
-      <section style={{ background: 'var(--dark-bg)', color: '#fff', padding: '6rem 3rem' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '4rem', alignItems: 'center' }}>
-          <div>
-            <h2 className="font-display" style={{ fontSize: '3.2rem', fontWeight: '900', lineHeight: 1.05, textTransform: 'uppercase', marginBottom: '1.5rem' }}>
-              DEBATE SIMULATION<br />
-              <span style={{ color: 'var(--accent-red)' }}>OPPONENT</span>
-            </h2>
-
-            <p style={{ color: '#a0a0b0', fontSize: '1.05rem', lineHeight: '1.6', marginBottom: '2.5rem' }}>
-              Train against AI agents configured for Parliamentary, Oxford, or Policy debate formats. Real-time rebuttal pressure.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div 
-                onClick={() => setActivePersona('THE CONTRARIAN')}
-                style={{ cursor: 'pointer', opacity: activePersona === 'THE CONTRARIAN' ? 1 : 0.4 }}
-              >
-                <div className="font-mono text-red" style={{ fontSize: '0.75rem', marginBottom: '0.2rem' }}>ACTIVE PERSONA</div>
-                <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '800' }}>THE CONTRARIAN</div>
-              </div>
-
-              <div 
-                onClick={() => setActivePersona('THE ACADEMIC')}
-                style={{ cursor: 'pointer', opacity: activePersona === 'THE ACADEMIC' ? 1 : 0.4 }}
-              >
-                <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.2rem' }}>AVAILABLE PERSONA</div>
-                <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '800' }}>THE ACADEMIC</div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="terminal-window" style={{ background: '#0e0e12' }}>
-              <div className="terminal-header" style={{ background: '#14141c' }}>
-                <div className="terminal-dots">
-                  <span className="dot dot-red"></span>
-                  <span className="dot dot-yellow"></span>
-                  <span className="dot dot-green"></span>
+              <div style={{ height: '0.5rem' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', padding: '0.75rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', marginTop: '0.5rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Rebuttal Strength:</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981' }}>98.4%</div>
                 </div>
-                <div className="terminal-title">ANI Debates - {activePersona}</div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Confidence Score:</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#38bdf8' }}>89.2 / 100</div>
+                </div>
               </div>
-              <div className="terminal-body" style={{ minHeight: '320px' }}>
-                <p className="text-cyan" style={{ marginBottom: '1rem' }}>
-                  &gt; Mode: Multi-turn Cross-Examination [{activePersona}]
-                </p>
-                <p style={{ marginBottom: '1rem' }}>
-                  <span className="text-red">AI Opponent:</span> "Your proposal assumes fiscal neutrality, but fails to account for implementation overhead. How do you justify the capital allocation?"
-                </p>
-                <p className="text-muted">
-                  [Awaiting User Rebuttal Input...]
-                </p>
+
+              {/* Animated Soundwave Preview */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '24px', marginTop: '1.25rem', justifyContent: 'center' }}>
+                {[12, 18, 8, 22, 14, 24, 10, 16, 20, 12, 19, 15, 8, 21, 13, 24, 11, 17].map((h, i) => (
+                  <span 
+                    key={i} 
+                    style={{ 
+                      width: '3px', 
+                      height: `${h}px`, 
+                      background: 'linear-gradient(to top, #4f46e5, #ec4899)', 
+                      borderRadius: '9999px',
+                      opacity: 0.8
+                    }} 
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -176,117 +180,90 @@ export default function Home() {
       {/* The Analysis Suite Grid Section */}
       <section className="section-container" id="engines">
         <div className="section-header">
-          <h2 className="section-title">THE ANALYSIS SUITE</h2>
-          <div className="font-mono text-muted">[8 CORE MODULES]</div>
+          <div>
+            <div className="badge-red-pill">AGENTIC CAPABILITIES</div>
+            <h2 className="section-title">The Analysis Suite</h2>
+          </div>
+          <div className="font-mono text-muted" style={{ fontSize: '0.85rem' }}>[8 CORE MODULES]</div>
         </div>
 
         <div className="modules-grid">
-          <div className="module-card">
-            <div className="module-num">01/08</div>
-            <h3 className="module-title">ARGUMENT MINING</h3>
-            <p className="module-desc">Automatic extraction of claims and evidence from live speech or text streams.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">02/08</div>
-            <h3 className="module-title">LOGIC AUDIT</h3>
-            <p className="module-desc">Detects ad hominem, straw man, and 24+ other logical fallacies instantly.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">03/08</div>
-            <h3 className="module-title">REBUTTAL GEN</h3>
-            <p className="module-desc">Generates evidence-backed counterpoints using diverse agentic personas.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">04/08</div>
-            <h3 className="module-title">VOCAL METRICS</h3>
-            <p className="module-desc">Analyzes cadence, filler words, and confidence levels through prosody analysis.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">05/08</div>
-            <h3 className="module-title">SIMULATION ENGINE</h3>
-            <p className="module-desc">Engage with LLM-driven opponents across five debate formats.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">06/08</div>
-            <h3 className="module-title">SCORING MODEL</h3>
-            <p className="module-desc">Weighted assessment of argument quality, logic, and delivery.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">07/08</div>
-            <h3 className="module-title">COACHING ENGINE</h3>
-            <p className="module-desc">Personalized feedback, improvement plans, and skill gap analysis.</p>
-            <div className="module-line"></div>
-          </div>
-
-          <div className="module-card">
-            <div className="module-num">08/08</div>
-            <h3 className="module-title">ANALYTICS SUITE</h3>
-            <p className="module-desc">Learner, coach, educator, and admin dashboards with progress tracking.</p>
-            <div className="module-line"></div>
-          </div>
+          {[
+            { num: '01/08', title: 'Argument Mining', desc: 'Automatic extraction of claims and evidence from live speech or text streams.', icon: '🔍' },
+            { num: '02/08', title: 'Logic Audit', desc: 'Detects ad hominem, straw man, and 24+ other logical fallacies in real-time.', icon: '⚖️' },
+            { num: '03/08', title: 'Rebuttal Gen', desc: 'Generates evidence-backed counterpoints using diverse agentic opponent personas.', icon: '⚡' },
+            { num: '04/08', title: 'Vocal Metrics', desc: 'Analyzes cadence, filler words, clarity, and confidence with real-time mic streaming.', icon: '🎙️' },
+            { num: '05/08', title: 'Simulation Engine', desc: 'Engage with LLM-driven opponents across five international debate formats.', icon: '🤖' },
+            { num: '06/08', title: 'Scoring Model', desc: 'Weighted assessment of argument quality, logic, rebuttal, and communication.', icon: '📊' },
+            { num: '07/08', title: 'Coaching Engine', desc: 'Personalized feedback, skill gap analysis, and tailored rhetorical drills.', icon: '🎯' },
+            { num: '08/08', title: 'Analytics Suite', desc: 'Learner, coach, educator, and admin dashboards with full progress telemetry.', icon: '📈' },
+          ].map((mod) => (
+            <div key={mod.num} className="module-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <span className="module-num">{mod.num}</span>
+                <span style={{ fontSize: '1.25rem' }}>{mod.icon}</span>
+              </div>
+              <h3 className="module-title">{mod.title}</h3>
+              <p className="module-desc">{mod.desc}</p>
+              <div className="module-line"></div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Weighted Performance Scoring Bar */}
-      <section className="scoring-bar">
-        <div className="score-item">
-          <div className="score-val">30%</div>
-          <div className="score-lbl">ARGUMENT QUALITY</div>
-        </div>
-        <div className="score-item">
-          <div className="score-val">20%</div>
-          <div className="score-lbl">EVIDENCE USE</div>
-        </div>
-        <div className="score-item">
-          <div className="score-val">20%</div>
-          <div className="score-lbl">CONSISTENCY</div>
-        </div>
-        <div className="score-item">
-          <div className="score-val">15%</div>
-          <div className="score-lbl">REBUTTAL EFFECTIVENESS</div>
-        </div>
-        <div className="score-item">
-          <div className="score-val">15%</div>
-          <div className="score-lbl">COMMUNICATION</div>
+      <section className="section-container" style={{ paddingTop: 0 }}>
+        <div className="scoring-bar">
+          <div className="score-item">
+            <div className="score-val">30%</div>
+            <div className="score-lbl">Argument Quality</div>
+          </div>
+          <div className="score-item">
+            <div className="score-val">20%</div>
+            <div className="score-lbl">Evidence Use</div>
+          </div>
+          <div className="score-item">
+            <div className="score-val">20%</div>
+            <div className="score-lbl">Logical Consistency</div>
+          </div>
+          <div className="score-item">
+            <div className="score-val">15%</div>
+            <div className="score-lbl">Rebuttal Depth</div>
+          </div>
+          <div className="score-item">
+            <div className="score-val">15%</div>
+            <div className="score-lbl">Delivery & Prosody</div>
+          </div>
         </div>
       </section>
 
       {/* Onboarding & Personas Section */}
-      <section className="section-container" style={{ textAlign: 'center', padding: '6rem 3rem' }}>
-        <h2 className="font-display" style={{ fontSize: '3.5rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '3rem' }}>
-          READY FOR THE PODIUM?
+      <section className="section-container" style={{ textAlign: 'center', padding: '4rem 3rem 6rem' }}>
+        <h2 className="font-display" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: '900', marginBottom: '2.5rem' }}>
+          Ready for the Podium?
         </h2>
 
         <div className="persona-grid" style={{ textAlign: 'left' }}>
           <div className="persona-card">
-            <h3 className="persona-card-title">LEARNER</h3>
-            <p className="persona-card-desc">Master critical thinking via real-time feedback.</p>
+            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🎓</div>
+            <h3 className="persona-card-title">Learner</h3>
+            <p className="persona-card-desc">Master critical thinking, conquer logical fallacies, and gain real-time vocal feedback.</p>
           </div>
 
           <div className="persona-card">
-            <h3 className="persona-card-title">COACH</h3>
-            <p className="persona-card-desc">Mentor students with structured analytics.</p>
+            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🏆</div>
+            <h3 className="persona-card-title">Debate Coach</h3>
+            <p className="persona-card-desc">Mentor students with structured analytics, drill rubrics, and automated logic audits.</p>
           </div>
 
           <div className="persona-card">
-            <h3 className="persona-card-title">EDUCATOR</h3>
-            <p className="persona-card-desc">Monitor student progress and gaps.</p>
+            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🏛️</div>
+            <h3 className="persona-card-title">Educator</h3>
+            <p className="persona-card-desc">Monitor classroom progress, assign standardized debate topics, and track mastery.</p>
           </div>
 
-          <Link href="/simulation" className="btn btn-dark" style={{ height: '100%', fontSize: '1.1rem', justifyContent: 'center' }}>
-            GET STARTED
+          <Link href="/simulation" className="btn btn-red" style={{ height: '100%', fontSize: '1.05rem', justifyContent: 'center', borderRadius: '20px' }}>
+            Get Started Now →
           </Link>
         </div>
       </section>

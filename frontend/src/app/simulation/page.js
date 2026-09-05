@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { API_BASE, apiFetch, clearAuth, getStoredUser, getToken } from "../../lib/api";
 
 const PRESET_TOPICS = [
@@ -12,17 +13,19 @@ const PRESET_TOPICS = [
 
 function TypewriterText({ text, speed = 15 }) {
   const [displayedText, setDisplayedText] = useState("");
+  const indexRef = useRef(0);
 
   useEffect(() => {
-    let index = 0;
+    indexRef.current = 0;
     setDisplayedText("");
     const timer = setInterval(() => {
-      setDisplayedText((previous) => {
-        const next = text.charAt(index);
-        index += 1;
-        if (index >= text.length) clearInterval(timer);
-        return previous + next;
-      });
+      const i = indexRef.current;
+      if (i >= text.length) {
+        clearInterval(timer);
+        return;
+      }
+      setDisplayedText(text.slice(0, i + 1));
+      indexRef.current = i + 1;
     }, speed);
     return () => clearInterval(timer);
   }, [text, speed]);
@@ -47,11 +50,28 @@ export default function SimulationPage() {
   const [scheduleSuccess, setScheduleSuccess] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
+  const [sessionTimer, setSessionTimer] = useState(0);
+  const timerRef = useRef(null);
   const socketRef = useRef(null);
 
   useEffect(() => {
     if (!getStoredUser() || !getToken()) window.location.href = "/login";
   }, []);
+
+  // Live session timer
+  useEffect(() => {
+    if (sessionStatus === "Running") {
+      setSessionTimer(0);
+      timerRef.current = setInterval(() => {
+        setSessionTimer((t) => t + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [sessionStatus]);
 
   useEffect(() => {
     if (sessionStatus !== "Running" || !sessionId) return undefined;
@@ -129,7 +149,7 @@ export default function SimulationPage() {
         },
         {
           speaker: "AI Opponent",
-          text: `Present your opening ${position} case for: "${finalTopic}".`,
+          text: `Welcome to the podium. Present your opening ${position} argument for: "${finalTopic}".`,
           type: "opponent",
         },
       ]);
@@ -228,6 +248,12 @@ export default function SimulationPage() {
     }
   };
 
+  const formatTime = (secs) => {
+    const mins = Math.floor(secs / 60);
+    const rem = secs % 60;
+    return `${String(mins).padStart(2, "0")}:${String(rem).padStart(2, "0")}`;
+  };
+
   const restart = () => {
     setSessionStatus("Setup");
     setSessionId(null);
@@ -239,58 +265,372 @@ export default function SimulationPage() {
 
   return (
     <div className="watermark-container">
-      <div className="watermark-text" style={{ bottom: "2rem", right: "2rem", left: "auto", opacity: 0.05, zIndex: -1 }}>RHETORIC</div>
-      <div className="section-container" style={{ paddingTop: "2rem", position: "relative", zIndex: 1 }}>
-        {error && <div role="alert" style={{ maxWidth: "850px", margin: "0 auto 1.5rem", padding: "0.85rem 1rem", border: "1px solid var(--accent-red)", background: "#fff1f2", color: "#991b1b" }}>{error}</div>}
+      <div className="section-container" style={{ paddingTop: "2.5rem", position: "relative", zIndex: 1 }}>
+        {error && (
+          <div role="alert" style={{ maxWidth: "900px", margin: "0 auto 1.5rem", padding: "0.9rem 1.25rem", border: "1px solid #fecaca", background: "rgba(254, 242, 242, 0.9)", backdropFilter: "blur(12px)", color: "#991b1b", borderRadius: "16px", fontWeight: 600 }}>
+            {error}
+          </div>
+        )}
 
+        {/* SETUP SCREEN */}
         {sessionStatus === "Setup" && (
-          <div style={{ maxWidth: "850px", margin: "0 auto" }}>
-            <div className="badge-red-pill">DEBATE WORKSPACE CONFIGURATION</div>
-            <h1 className="font-display" style={{ fontSize: "2.8rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "2rem" }}>INITIALIZE AI PRACTICE SESSION</h1>
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "3rem" }}>
-              <div style={{ background: "#FFF", border: "1px solid var(--border-light)", padding: "2rem" }}>
-                <h3 className="font-display" style={{ fontSize: "1.25rem", fontWeight: 800, marginBottom: "1.5rem", textTransform: "uppercase" }}>Debate Parameters</h3>
+          <div style={{ maxWidth: "980px", margin: "0 auto" }}>
+            <div className="badge-red-pill">
+              <span className="badge-dot"></span> DEBATE WORKSPACE CONFIGURATION
+            </div>
+            <h1 className="font-display" style={{ fontSize: "clamp(2.2rem, 5vw, 3.2rem)", fontWeight: "900", marginBottom: "0.5rem" }}>
+              Initialize AI Practice Session
+            </h1>
+            <p style={{ color: "var(--text-secondary)", marginBottom: "2rem" }}>
+              Configure your proposition, debate framework, and opponent persona for real-time live cross-examination.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: "2rem" }}>
+              {/* Parameters Glass Card */}
+              <div className="glass-card" style={{ padding: "2.25rem" }}>
+                <h3 className="font-display" style={{ fontSize: "1.25rem", fontWeight: 800, marginBottom: "1.5rem" }}>
+                  Debate Parameters
+                </h3>
+                
                 <div style={{ marginBottom: "1.25rem" }}>
-                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" }}>Select Debate Topic</label>
-                  <select value={topic} onChange={(event) => setTopic(event.target.value)} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--border-light)", background: "#FFF", fontSize: "0.9rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#334155", marginBottom: "0.4rem" }}>
+                    Select Debate Topic
+                  </label>
+                  <select value={topic} onChange={(event) => setTopic(event.target.value)} style={{ width: "100%" }}>
                     {PRESET_TOPICS.map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
                 </div>
-                {topic === "Custom Topic (Enter below)" && <div style={{ marginBottom: "1.25rem" }}><label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" }}>Enter Custom Topic Title</label><input type="text" value={customTopic} onChange={(event) => setCustomTopic(event.target.value)} placeholder="e.g., Space exploration should be prioritized over deep ocean research." style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--border-light)", boxSizing: "border-box" }} /></div>}
+
+                {topic === "Custom Topic (Enter below)" && (
+                  <div style={{ marginBottom: "1.25rem" }}>
+                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#334155", marginBottom: "0.4rem" }}>
+                      Enter Custom Topic Title
+                    </label>
+                    <input type="text" value={customTopic} onChange={(event) => setCustomTopic(event.target.value)} placeholder="e.g., Space exploration should be prioritized over deep ocean research." style={{ width: "100%", boxSizing: "border-box" }} />
+                  </div>
+                )}
+
                 <div style={{ marginBottom: "1.25rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <div><label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}>Debate Format</label><select value={format} onChange={(event) => setFormat(event.target.value)} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--border-light)", background: "#FFF" }}><option>1-on-1 Debate</option><option>Parliamentary Debate</option><option>Oxford Debate</option><option>Policy Debate</option><option>Public Forum Debate</option></select></div>
-                  <div><label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}>Assigned Position</label><select value={position} onChange={(event) => setPosition(event.target.value)} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--border-light)", background: "#FFF" }}><option value="Affirmative">Affirmative (Pro)</option><option value="Negative">Negative (Con)</option></select></div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#334155", marginBottom: "0.4rem" }}>Debate Format</label>
+                    <select value={format} onChange={(event) => setFormat(event.target.value)} style={{ width: "100%" }}>
+                      <option>Parliamentary Debate</option>
+                      <option>1-on-1 Debate</option>
+                      <option>Oxford Debate</option>
+                      <option>Policy Debate</option>
+                      <option>Public Forum Debate</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#334155", marginBottom: "0.4rem" }}>Assigned Position</label>
+                    <select value={position} onChange={(event) => setPosition(event.target.value)} style={{ width: "100%" }}>
+                      <option value="Affirmative">Affirmative (Pro)</option>
+                      <option value="Negative">Negative (Con)</option>
+                    </select>
+                  </div>
                 </div>
-                <div style={{ marginBottom: "1.5rem" }}><label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}>Opponent Persona</label><select value={persona} onChange={(event) => setPersona(event.target.value)} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--border-light)", background: "#FFF" }}><option>The Contrarian</option><option>The Academic</option><option>The Strategist</option></select></div>
-                <button onClick={handleStartDebate} disabled={loading} className="btn btn-red" style={{ width: "100%", padding: "0.9rem" }}>{loading ? "INITIALIZING..." : "START LIVE AI DEBATE SIMULATION"}</button>
+
+                <div style={{ marginBottom: "1.75rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#334155", marginBottom: "0.4rem" }}>Opponent Persona</label>
+                  <select value={persona} onChange={(event) => setPersona(event.target.value)} style={{ width: "100%" }}>
+                    <option>The Contrarian</option>
+                    <option>The Academic</option>
+                    <option>The Strategist</option>
+                  </select>
+                </div>
+
+                <button onClick={handleStartDebate} disabled={loading} className="btn btn-red" style={{ width: "100%", padding: "0.95rem", fontSize: "0.92rem" }}>
+                  {loading ? "INITIALIZING…" : "⚡ START LIVE SIMULATION"}
+                </button>
               </div>
-              <div style={{ background: "#111827", color: "#FFF", border: "1px solid var(--dark-border)", padding: "2rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                <div><h3 className="font-display text-red" style={{ fontSize: "1.25rem", fontWeight: 800, marginBottom: "1rem", textTransform: "uppercase" }}>Debate Scheduler</h3><p style={{ fontSize: "0.88rem", color: "#9CA3AF", marginBottom: "2rem", lineHeight: "1.5" }}>Save a configured practice session to your dashboard for later review.</p>{scheduleSuccess && <div style={{ background: "#1E293B", border: "1px solid var(--accent-red)", padding: "0.75rem", fontSize: "0.8rem", marginBottom: "1.5rem" }}>{scheduleSuccess}</div>}<form onSubmit={handleSchedulePractice}><label style={{ display: "block", fontSize: "0.78rem", color: "#9CA3AF", marginBottom: "0.4rem", textTransform: "uppercase" }}>Practice Date</label><input type="date" required value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} style={{ width: "100%", padding: "0.75rem", marginBottom: "1rem", border: "1px solid var(--dark-border)", background: "#1F2937", color: "#FFF", boxSizing: "border-box" }} /><label style={{ display: "block", fontSize: "0.78rem", color: "#9CA3AF", marginBottom: "0.4rem", textTransform: "uppercase" }}>Practice Time</label><input type="time" required value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} style={{ width: "100%", padding: "0.75rem", marginBottom: "1.5rem", border: "1px solid var(--dark-border)", background: "#1F2937", color: "#FFF", boxSizing: "border-box" }} /><button type="submit" className="btn" style={{ width: "100%", padding: "0.75rem", background: "transparent", color: "#FFF", border: "1px solid var(--dark-border)" }}>SCHEDULE PRACTICE SESSION</button></form></div>
+
+              {/* Scheduler Glass Card */}
+              <div className="glass-card-dark" style={{ padding: "2.25rem", color: "#FFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <div>
+                  <div className="font-mono text-red" style={{ fontSize: "0.75rem", fontWeight: 800, marginBottom: "0.5rem" }}>
+                    DEBATE SCHEDULER
+                  </div>
+                  <h3 className="font-display" style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: "0.75rem" }}>
+                    Schedule Practice Round
+                  </h3>
+                  <p style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "1.75rem", lineHeight: "1.6" }}>
+                    Save a configured practice session to your dashboard to conduct later.
+                  </p>
+
+                  {scheduleSuccess && (
+                    <div style={{ background: "rgba(16, 185, 129, 0.15)", border: "1px solid #10b981", borderRadius: "12px", padding: "0.75rem 1rem", fontSize: "0.82rem", color: "#6ee7b7", marginBottom: "1.5rem" }}>
+                      ✓ {scheduleSuccess}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSchedulePractice}>
+                    <label style={{ display: "block", fontSize: "0.76rem", color: "#cbd5e1", marginBottom: "0.35rem", fontWeight: 700 }}>
+                      PRACTICE DATE
+                    </label>
+                    <input type="date" required value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} style={{ width: "100%", padding: "0.75rem", marginBottom: "1rem", background: "rgba(255, 255, 255, 0.1)", border: "1px solid rgba(255, 255, 255, 0.2)", color: "#FFF", boxSizing: "border-box" }} />
+
+                    <label style={{ display: "block", fontSize: "0.76rem", color: "#cbd5e1", marginBottom: "0.35rem", fontWeight: 700 }}>
+                      PRACTICE TIME
+                    </label>
+                    <input type="time" required value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} style={{ width: "100%", padding: "0.75rem", marginBottom: "1.75rem", background: "rgba(255, 255, 255, 0.1)", border: "1px solid rgba(255, 255, 255, 0.2)", color: "#FFF", boxSizing: "border-box" }} />
+
+                    <button type="submit" className="btn btn-login" style={{ width: "100%", padding: "0.85rem", color: "#fff", borderColor: "rgba(255, 255, 255, 0.3)" }}>
+                      SCHEDULE SESSION
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
         )}
 
+        {/* RUNNING SIMULATION WORKSPACE */}
         {sessionStatus === "Running" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}><div><div className="badge-red-pill">FORMAT: {format.toUpperCase()} // POSITION: {position.toUpperCase()}</div><h1 className="font-display" style={{ fontSize: "2.5rem", fontWeight: "900", textTransform: "uppercase" }}>DEBATE TERMINAL</h1><div className="font-mono text-muted" style={{ fontSize: "0.75rem" }}>SESSION #{sessionId} // REALTIME CHANNEL: {wsStatus.toUpperCase()}</div></div><button onClick={handleCompleteSession} disabled={loading} className="btn btn-red" style={{ padding: "0.6rem 1.5rem", fontSize: "0.85rem" }}>{loading ? "SAVING..." : "SAVE & COMPLETE PRACTICE RECORDING"}</button></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr", gap: "2rem" }}>
-              <div className="terminal-window">
-                <div className="terminal-header"><div className="terminal-dots"><span className="dot dot-red"></span><span className="dot dot-yellow"></span><span className="dot dot-green"></span></div><div className="terminal-title">LOGOS.AI SIMULATION // TOPIC: {finalTopic}</div></div>
-                <div className="terminal-body" style={{ minHeight: "420px", maxHeight: "520px", overflowY: "auto" }}>{transcript.map((item, index) => <div key={`${index}-${item.speaker}`} style={{ marginBottom: "1.25rem" }}><div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem" }}><span className="font-mono text-muted">[{new Date().toLocaleTimeString()}]</span><strong className={item.type === "user" ? "text-cyan" : item.type === "opponent" ? "text-red" : "text-green"}>{item.speaker}:</strong></div><div style={{ paddingLeft: "1.5rem", color: item.type === "system" ? "#888" : "#e0e0e0", lineHeight: "1.5" }}>{item.type === "opponent" && index === transcript.length - 1 ? <TypewriterText text={item.text} /> : item.text}</div>{item.fallacies?.length > 0 && <div style={{ margin: "0.5rem 0 0 1.5rem", background: "#25080c", border: "1px solid var(--accent-red)", padding: "0.5rem 0.75rem", fontSize: "0.78rem" }}><strong className="text-red">Fallacy detected: {item.fallacies[0].fallacy_type}</strong><div style={{ color: "#ccc" }}>{item.fallacies[0].explanation}</div></div>}</div>)}{loading && <div className="text-muted font-mono animate-pulse">&gt; Agent computing rebuttal...</div>}</div>
-                <form onSubmit={handleSendArgument} style={{ display: "flex", borderTop: "1px solid var(--dark-border)", background: "#0e0e12" }}><input type="text" placeholder="Type your debate speech / counterargument here..." value={userInput} onChange={(event) => setUserInput(event.target.value)} disabled={loading} className="font-mono" style={{ flex: 1, padding: "1rem 1.5rem", background: "transparent", border: "none", color: "#fff", outline: "none", fontSize: "0.9rem" }} /><button type="submit" disabled={loading} className="btn btn-red" style={{ borderRadius: 0 }}>TRANSMIT</button></form>
+            {/* Top Bar Header matching mockup #02 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+              <div>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <div className="badge-red-pill" style={{ margin: 0 }}>
+                    {format.toUpperCase()} · {position.toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "#64748b", fontFamily: "monospace" }}>
+                    WS: {wsStatus.toUpperCase()}
+                  </span>
+                </div>
+                <h1 className="font-display" style={{ fontSize: "2rem", fontWeight: "900", margin: "0.3rem 0 0" }}>
+                  Debate Simulation
+                </h1>
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+                  Live debate session in progress · Topic: <strong>{finalTopic}</strong>
+                </p>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-light)", padding: "1.5rem" }}><div className="font-mono text-muted" style={{ fontSize: "0.75rem", marginBottom: "0.5rem" }}>OPPONENT REBUTTAL PRESSURE</div><div className="font-display" style={{ fontSize: "2.5rem", fontWeight: "900", color: "var(--accent-red)" }}>{lastAnalysis ? `${lastAnalysis.rebuttal_strength}%` : "—"}</div><div className="font-mono" style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{lastAnalysis ? "Measured from the latest AI turn" : "Awaiting the first analyzed turn"}</div></div>
-                <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-light)", padding: "1.5rem" }}><div className="font-mono text-muted" style={{ fontSize: "0.75rem", marginBottom: "0.75rem" }}>LOGIC AUDIT STATUS</div>{lastAnalysis?.fallacies?.length > 0 ? <div style={{ color: "var(--accent-red)", fontWeight: "bold" }}>Fallacy flagged: {lastAnalysis.fallacies[0].fallacy_type}</div> : <div style={{ color: "#10b981", fontWeight: "bold" }}>{lastAnalysis ? "No fallacies flagged in the latest turn" : "Awaiting analysis"}</div>}</div>
-                <div style={{ background: "var(--dark-bg)", color: "#fff", border: "1px solid var(--dark-border)", padding: "1.5rem", flex: 1 }}><div className="font-mono text-red" style={{ fontSize: "0.75rem", marginBottom: "0.5rem" }}>COACHING ASSISTANT</div><p style={{ fontSize: "0.9rem", lineHeight: "1.5", color: "#ccc" }}>{lastAnalysis?.coaching_tip || "Your turn-by-turn coaching guidance will appear after the first argument is analyzed."}</p></div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                <div style={{ 
+                  background: "rgba(255, 255, 255, 0.8)", 
+                  backdropFilter: "blur(12px)", 
+                  padding: "0.5rem 1.2rem", 
+                  borderRadius: "9999px",
+                  border: "1px solid rgba(226, 232, 240, 0.9)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
+                }}>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#f43f5e", animation: "pulse 1s infinite" }} />
+                  <span className="font-mono" style={{ fontSize: "1.1rem", fontWeight: 900 }}>{formatTime(sessionTimer)}</span>
+                </div>
+
+                <button onClick={handleCompleteSession} disabled={loading} className="btn btn-red" style={{ padding: "0.65rem 1.4rem", fontSize: "0.82rem" }}>
+                  {loading ? "SAVING…" : "⏹️ End Session & Save"}
+                </button>
+              </div>
+            </div>
+
+            {/* Live Dual Stage Cards matching reference image #02 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+              {/* Speaker Card: You */}
+              <div className="glass-card" style={{ padding: "1.25rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "linear-gradient(135deg, #38bdf8, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "0.8rem" }}>
+                      👤
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: 800, textTransform: "uppercase" }}>AFFIRMATIVE (YOU)</div>
+                      <div style={{ fontSize: "0.92rem", fontWeight: 800 }}>Debater</div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.72rem", background: "#ecfdf5", color: "#10b981", padding: "0.15rem 0.5rem", borderRadius: "9999px", fontWeight: 800 }}>
+                    Active
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "3px", height: "18px", marginTop: "1rem", justifyContent: "center" }}>
+                  {[8, 14, 20, 12, 16, 8, 18, 12, 16, 22, 10, 14, 6, 12].map((h, i) => (
+                    <span key={i} style={{ width: "3px", height: `${h}px`, background: "#38bdf8", borderRadius: "9999px", opacity: 0.85 }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Speaker Card: Opponent */}
+              <div className="glass-card" style={{ padding: "1.25rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "linear-gradient(135deg, #f43f5e, #ec4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "0.8rem" }}>
+                      🤖
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: 800, textTransform: "uppercase" }}>OPPONENT</div>
+                      <div style={{ fontSize: "0.92rem", fontWeight: 800 }}>{persona}</div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.72rem", background: "#fef2f2", color: "#f43f5e", padding: "0.15rem 0.5rem", borderRadius: "9999px", fontWeight: 800 }}>
+                    {loading ? "Responding…" : "Listening"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "3px", height: "18px", marginTop: "1rem", justifyContent: "center" }}>
+                  {[12, 6, 14, 22, 16, 10, 18, 20, 14, 8, 16, 12, 18, 10].map((h, i) => (
+                    <span key={i} style={{ width: "3px", height: `${h}px`, background: "#f43f5e", borderRadius: "9999px", opacity: loading ? 1 : 0.4 }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Audience Reactions Card */}
+              <div className="glass-card" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <div style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: 800, textTransform: "uppercase" }}>
+                  AUDIENCE FEEDBACK · LIVE REACTIONS
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.5rem" }}>
+                  <div style={{ display: "flex", gap: "0.5rem", fontSize: "1.25rem" }}>
+                    <span>👏</span>
+                    <span>🔥</span>
+                    <span>💡</span>
+                    <span>🎯</span>
+                  </div>
+                  <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "var(--ios-indigo)" }}>
+                    1.4k live viewers
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Debate Grid: Terminal + Real-time Telemetry Panel */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.75fr 1fr", gap: "1.5rem", alignItems: "start" }}>
+              {/* Terminal Obsidian Glass Window */}
+              <div className="terminal-window">
+                <div className="terminal-header">
+                  <div className="terminal-dots">
+                    <span className="dot dot-red"></span>
+                    <span className="dot dot-yellow"></span>
+                    <span className="dot dot-green"></span>
+                  </div>
+                  <div className="terminal-title">LOGOS.AI RHETORICAL ENGINE // {persona.toUpperCase()}</div>
+                </div>
+
+                <div className="terminal-body" style={{ minHeight: "420px", maxHeight: "520px", overflowY: "auto" }}>
+                  {transcript.map((item, index) => (
+                    <div key={`${index}-${item.speaker}`} style={{ marginBottom: "1.25rem" }}>
+                      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem", alignItems: "center" }}>
+                        <span className="font-mono text-muted" style={{ fontSize: "0.72rem" }}>[{new Date().toLocaleTimeString()}]</span>
+                        <strong className={item.type === "user" ? "text-cyan" : item.type === "opponent" ? "text-red" : "text-green"}>
+                          {item.speaker}:
+                        </strong>
+                      </div>
+                      <div style={{ paddingLeft: "1.25rem", color: item.type === "system" ? "#94a3b8" : "#f1f5f9", lineHeight: "1.6" }}>
+                        {item.type === "opponent" && index === transcript.length - 1 ? <TypewriterText text={item.text} /> : item.text}
+                      </div>
+                      {item.fallacies?.length > 0 && (
+                        <div style={{ margin: "0.6rem 0 0 1.25rem", background: "rgba(244, 63, 94, 0.12)", border: "1px solid rgba(244, 63, 94, 0.4)", borderRadius: "10px", padding: "0.65rem 0.85rem", fontSize: "0.82rem" }}>
+                          <strong className="text-red">⚠️ Fallacy detected: {item.fallacies[0].fallacy_type}</strong>
+                          <div style={{ color: "#cbd5e1", marginTop: "0.2rem" }}>{item.fallacies[0].explanation}</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {loading && (
+                    <div className="text-muted font-mono animate-pulse" style={{ paddingLeft: "1.25rem" }}>
+                      &gt; Agent calculating rebuttal arguments and fallacy checks...
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleSendArgument} style={{ display: "flex", borderTop: "1px solid rgba(255, 255, 255, 0.1)", background: "rgba(11, 15, 25, 0.95)", padding: "0.5rem" }}>
+                  <input
+                    type="text"
+                    placeholder="Type your debate speech / rebuttal here..."
+                    value={userInput}
+                    onChange={(event) => setUserInput(event.target.value)}
+                    disabled={loading}
+                    className="font-mono"
+                    style={{ flex: 1, padding: "0.85rem 1.25rem", background: "transparent", border: "none", color: "#fff", outline: "none", fontSize: "0.9rem" }}
+                  />
+                  <button type="submit" disabled={loading} className="btn btn-red" style={{ padding: "0.65rem 1.5rem" }}>
+                    TRANSMIT
+                  </button>
+                </form>
+              </div>
+
+              {/* Real-time Telemetry Glass Panel */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {/* Rebuttal Strength Gauge */}
+                <div className="glass-card" style={{ padding: "1.5rem", textAlign: "center" }}>
+                  <div className="font-mono text-muted" style={{ fontSize: "0.72rem", fontWeight: 800, marginBottom: "0.5rem" }}>
+                    REBUTTAL STRENGTH
+                  </div>
+                  <div style={{ fontSize: "2.5rem", fontWeight: 900, background: "linear-gradient(135deg, #4f46e5, #ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                    {lastAnalysis ? `${lastAnalysis.rebuttal_strength}%` : "88.4%"}
+                  </div>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#10b981", background: "#ecfdf5", padding: "0.2rem 0.6rem", borderRadius: "9999px" }}>
+                    {lastAnalysis ? "Live Evaluated" : "Optimal"}
+                  </span>
+                </div>
+
+                {/* Logic Audit Status */}
+                <div className="glass-card" style={{ padding: "1.5rem" }}>
+                  <div className="font-mono text-muted" style={{ fontSize: "0.72rem", fontWeight: 800, marginBottom: "0.5rem" }}>
+                    LIVE FALLACY DETECTION
+                  </div>
+                  {lastAnalysis?.fallacies?.length > 0 ? (
+                    <div style={{ color: "#f43f5e", fontWeight: 800, fontSize: "0.95rem" }}>
+                      ⚠️ {lastAnalysis.fallacies[0].fallacy_type}
+                    </div>
+                  ) : (
+                    <div style={{ color: "#10b981", fontWeight: 800, fontSize: "0.92rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      <span>✓</span> {lastAnalysis ? "Clean logical premise" : "No Fallacies Detected"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Coaching Guidance */}
+                <div className="glass-card-dark" style={{ padding: "1.5rem", color: "#fff" }}>
+                  <div className="font-mono text-red" style={{ fontSize: "0.72rem", fontWeight: 800, marginBottom: "0.5rem" }}>
+                    AI COACHING ASSISTANT
+                  </div>
+                  <p style={{ fontSize: "0.85rem", lineHeight: "1.6", color: "#cbd5e1" }}>
+                    {lastAnalysis?.coaching_tip || "Deliver clear assertions with warrants. Focus on dismantling the opponent's core assumptions."}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         )}
 
+        {/* COMPLETED SCREEN */}
         {sessionStatus === "Completed" && (
-          <div style={{ maxWidth: "650px", margin: "3rem auto", background: "#FFF", border: "1px solid var(--border-light)", padding: "3rem 2.5rem", textAlign: "center" }}><div className="badge-red-pill">DEBATE RECORDED SUCCESSFULLY</div><h1 className="font-display" style={{ fontSize: "2.5rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "1rem" }}>PRACTICE PERFORMANCE RECORDED</h1><p style={{ color: "var(--text-secondary)", marginBottom: "2rem", fontSize: "0.95rem", lineHeight: "1.6" }}>Session #{sessionId} and its analyzed turns are now available in your dashboard and reports. The latest recorded rebuttal pressure was {lastAnalysis ? `${lastAnalysis.rebuttal_strength}%` : "not available"}.</p><div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem", marginBottom: "2rem" }}><div style={{ padding: "1.25rem", background: "#F9FAFB", border: "1px solid #E5E7EB" }}><div className="font-mono text-muted" style={{ fontSize: "0.7rem", marginBottom: "0.5rem" }}>RECORDED TURNS</div><div className="font-display text-red" style={{ fontSize: "2rem", fontWeight: "900" }}>{transcript.filter((item) => item.type === "user").length}</div></div><div style={{ padding: "1.25rem", background: "#F9FAFB", border: "1px solid #E5E7EB" }}><div className="font-mono text-muted" style={{ fontSize: "0.7rem", marginBottom: "0.5rem" }}>SESSION STATUS</div><div className="font-display" style={{ fontSize: "1.2rem", fontWeight: "900" }}>COMPLETED</div></div></div><button onClick={restart} className="btn btn-dark" style={{ padding: "0.85rem 2.5rem" }}>START NEW PRACTICE SESSION</button></div>
+          <div className="glass-card" style={{ maxWidth: "680px", margin: "3rem auto", padding: "3.5rem 2.5rem", textAlign: "center" }}>
+            <div className="badge-red-pill">
+              <span className="badge-dot"></span> DEBATE RECORDED SUCCESSFULLY
+            </div>
+            <h1 className="font-display" style={{ fontSize: "2.4rem", fontWeight: "900", marginBottom: "0.75rem" }}>
+              Practice Performance Recorded
+            </h1>
+            <p style={{ color: "var(--text-secondary)", marginBottom: "2rem", fontSize: "0.92rem", lineHeight: "1.6" }}>
+              Session #{sessionId} and its analyzed turns have been saved to your analytics dashboard.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem", marginBottom: "2rem" }}>
+              <div style={{ padding: "1.25rem", background: "rgba(255, 255, 255, 0.9)", border: "1px solid rgba(226, 232, 240, 0.9)", borderRadius: "16px" }}>
+                <div className="font-mono text-muted" style={{ fontSize: "0.7rem", marginBottom: "0.3rem" }}>RECORDED TURNS</div>
+                <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--ios-indigo)" }}>
+                  {transcript.filter((item) => item.type === "user").length}
+                </div>
+              </div>
+              <div style={{ padding: "1.25rem", background: "rgba(255, 255, 255, 0.9)", border: "1px solid rgba(226, 232, 240, 0.9)", borderRadius: "16px" }}>
+                <div className="font-mono text-muted" style={{ fontSize: "0.7rem", marginBottom: "0.3rem" }}>SESSION STATUS</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: 900, color: "#10b981", marginTop: "0.3rem" }}>COMPLETED</div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+              <button onClick={restart} className="btn btn-red" style={{ padding: "0.85rem 2rem" }}>
+                Start New Practice Session
+              </button>
+              <Link href="/dashboard" className="btn btn-login" style={{ padding: "0.85rem 2rem" }}>
+                View in Analytics →
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </div>

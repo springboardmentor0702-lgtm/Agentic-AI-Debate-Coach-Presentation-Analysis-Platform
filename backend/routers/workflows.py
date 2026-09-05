@@ -83,6 +83,22 @@ def get_progress(current_user: models.User = Depends(get_current_user), db: Sess
     return db.query(models.LearningProgress).filter(models.LearningProgress.user_id == current_user.id).order_by(models.LearningProgress.updated_at.desc()).all()
 
 
+@router.get("/progress/{learner_id}", response_model=List[schemas.LearningProgressResponse])
+def get_learner_progress(learner_id: int, current_user: models.User = Depends(require_role(["Debate Coach", "Educator", "Administrator"])), db: Session = Depends(get_db)):
+    learner = db.query(models.User).filter(models.User.id == learner_id, models.User.role == "Learner", models.User.is_active.is_(True)).first()
+    if not learner:
+        raise HTTPException(status_code=404, detail="Active learner was not found.")
+    if current_user.role == "Debate Coach":
+        assigned = db.query(models.CoachAssignment).filter(
+            models.CoachAssignment.coach_id == current_user.id,
+            models.CoachAssignment.learner_id == learner_id,
+            models.CoachAssignment.status == "Active",
+        ).first()
+        if not assigned:
+            raise HTTPException(status_code=403, detail="You do not manage this learner.")
+    return db.query(models.LearningProgress).filter(models.LearningProgress.user_id == learner_id).order_by(models.LearningProgress.updated_at.desc()).all()
+
+
 @router.get("/admin/audit", response_model=List[schemas.AuditEventResponse])
 def list_audit_events(limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0), current_user: models.User = Depends(require_role(["Administrator"])), db: Session = Depends(get_db)):
     return db.query(models.AuditEvent).order_by(models.AuditEvent.created_at.desc(), models.AuditEvent.id.desc()).offset(offset).limit(limit).all()

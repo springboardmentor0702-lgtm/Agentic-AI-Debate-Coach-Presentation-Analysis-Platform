@@ -16,6 +16,9 @@ def _csv_env(name: str, default: str) -> list[str]:
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
 
 
+IS_VERCEL: bool = os.getenv("VERCEL", "").lower() in {"1", "true", "yes"}
+
+
 class Settings:
     PROJECT_NAME: str = os.getenv("PROJECT_NAME", "LOGOS.AI - Agentic Debate Coach & Presentation Analysis Platform")
     VERSION: str = os.getenv("APP_VERSION", "4.3.0")
@@ -37,15 +40,19 @@ class Settings:
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "logos_ai_db")
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}",
-    )
-    SQLITE_FALLBACK_URL: str = os.getenv("SQLITE_FALLBACK_URL", "sqlite:///./logos_ai.db")
+    # SQLite is the safe zero-configuration default. Production deployments must
+    # provide DATABASE_URL explicitly; Vercel's ephemeral /tmp database is only a
+    # fallback for a demonstrable serverless prototype.
+    _DEFAULT_DATABASE_URL: str = "sqlite:////tmp/logos_ai.db"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", _DEFAULT_DATABASE_URL)
+    SQLITE_FALLBACK_URL: str = os.getenv("SQLITE_FALLBACK_URL", "sqlite:////tmp/logos_ai.db" if IS_VERCEL else "sqlite:///./logos_ai.db")
 
     MONGO_URI: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     MONGO_DB: str = os.getenv("MONGO_DB", "logos_ai_transcripts")
-    CORS_ORIGINS: list[str] = _csv_env("CORS_ORIGINS", "http://localhost:3000")
+    CORS_ORIGINS: list[str] = _csv_env(
+        "CORS_ORIGINS",
+        "https://logos-ai-tau.vercel.app,https://logos-ai-sriramkunamsettys-projects.vercel.app,https://logos-ai-git-main-sriramkunamsettys-projects.vercel.app,https://logos-ai.vercel.app,http://localhost:3000,http://127.0.0.1:3000",
+    )
 
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "heuristic").lower()
     AI_MODEL: str = os.getenv("AI_MODEL", "gpt-5-mini")
@@ -54,8 +61,8 @@ class Settings:
     TRANSCRIPTION_MODEL: str = os.getenv("TRANSCRIPTION_MODEL", "whisper-1")
     OPENAI_API_BASE: str = os.getenv("OPENAI_API_BASE", "")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    FAISS_INDEX_PATH: str = os.getenv("FAISS_INDEX_PATH", "./data/argument_memory.index")
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "./uploads")
+    FAISS_INDEX_PATH: str = os.getenv("FAISS_INDEX_PATH", "/tmp/argument_memory.index" if IS_VERCEL else "./data/argument_memory.index")
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "/tmp/logos_ai_uploads" if IS_VERCEL else "./uploads")
     MAX_AUDIO_FILE_MB: int = min(int(os.getenv("MAX_AUDIO_FILE_MB", "25")), 100)
     ARTIFACT_RETENTION_DAYS: int = int(os.getenv("ARTIFACT_RETENTION_DAYS", "30"))
     ALLOW_SELF_ASSIGN_ROLES: bool = os.getenv("ALLOW_SELF_ASSIGN_ROLES", "false").lower() in {"1", "true", "yes"}

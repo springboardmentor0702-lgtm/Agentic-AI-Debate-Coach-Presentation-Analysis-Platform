@@ -15,7 +15,6 @@ export default function SignUpPage() {
   const [goal, setGoal] = useState('');
   const [topics, setTopics] = useState('');
 
-  // Custom Dropdown States
   const [role, setRole] = useState('Learner');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -60,7 +59,7 @@ export default function SignUpPage() {
       
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1200);
+      }, 1000);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -69,128 +68,127 @@ export default function SignUpPage() {
   };
 
   return (
-    <div style={{ minHeight: '90vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', position: 'relative' }}>
       
+      {/* Aurora Ambient Glow */}
+      <div style={{
+        position: 'absolute',
+        top: '15%',
+        right: '15%',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(60px)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }} />
+
       {message && (
-        <div style={{ maxWidth: '460px', width: '100%', marginBottom: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: 0, fontSize: '0.875rem', fontWeight: 500, background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: message.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`, textAlign: 'center' }}>
+        <div style={{ maxWidth: '480px', width: '100%', marginBottom: '1.5rem', padding: '0.9rem 1.25rem', borderRadius: '16px', fontSize: '0.875rem', fontWeight: 600, background: message.type === 'error' ? 'rgba(254, 242, 242, 0.9)' : 'rgba(236, 253, 245, 0.9)', backdropFilter: 'blur(12px)', color: message.type === 'error' ? '#dc2626' : '#059669', border: `1px solid ${message.type === 'error' ? '#fca5a5' : '#6ee7b7'}`, textAlign: 'center', zIndex: 1 }}>
           {message.text}
         </div>
       )}
 
-      <div style={{ width: '100%', maxWidth: '460px', background: '#FFFFFF', borderRadius: 0, padding: '2.5rem 2rem', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.07)', border: '1px solid #E5E7EB', position: 'relative' }}>
-        <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center', color: '#111827' }}>
-          Sign Up
-        </h2>
+      {/* iOS Glass Signup Card */}
+      <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem', position: 'relative', zIndex: 1 }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+            <img 
+              src="/logo.png" 
+              alt="LOGOS.AI" 
+              style={{ 
+                width: '64px', 
+                height: '64px', 
+                borderRadius: '18px', 
+                boxShadow: '0 8px 24px rgba(99, 102, 241, 0.45)',
+                border: '1.5px solid rgba(255, 255, 255, 0.5)'
+              }} 
+            />
+          </div>
+          <div className="badge-red-pill" style={{ marginBottom: '0.75rem' }}>
+            <span className="badge-dot"></span> NEW DEBATER REGISTRATION
+          </div>
+          <h2 className="font-display" style={{ fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#0f172a' }}>
+            Create Your <span className="text-gradient">Account</span>
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+            Join the agentic debate and presentation platform.
+          </p>
+        </div>
 
         <form onSubmit={handleSignUp}>
           {/* Full Name */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Full Name</label>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+              Full Name
+            </label>
             <input
               type="text"
               required
-              placeholder="Enter your full name"
+              placeholder="e.g. Alex Rivera"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </div>
 
           {/* Email Address */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Email Address</label>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+              Email Address
+            </label>
             <input
               type="email"
               required
-              placeholder="Enter your email address"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </div>
 
-          {/* Password & Confirm */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Password</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Confirm Password</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
-              />
-            </div>
-          </div>
-
-          {/* Custom Select Role Dropdown Component */}
-          <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Select Role</label>
-            
+          {/* Role Dropdown */}
+          <div style={{ marginBottom: '1rem', position: 'relative' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+              Select Role
+            </label>
             <div
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               style={{
                 width: '100%',
-                padding: '0.85rem 3rem 0.85rem 1.25rem',
-                borderRadius: 0,
-                border: '1px solid #E5E7EB',
-                background: '#FFFFFF',
-                fontSize: '0.9rem',
-                color: '#111827',
-                cursor: 'pointer',
+                padding: '0.75rem 1rem',
+                borderRadius: '14px',
+                border: '1px solid rgba(203, 213, 225, 0.8)',
+                background: '#ffffff',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                color: '#0f172a',
                 boxSizing: 'border-box',
-                userSelect: 'none',
-                position: 'relative'
               }}
             >
               <span>{role}</span>
-              
-              {/* Down Arrow with spacious padding on the right */}
-              <span 
-                style={{ 
-                  position: 'absolute',
-                  right: '1.5rem',
-                  fontSize: '0.75rem',
-                  color: '#6B7280',
-                  transition: 'transform 0.2s', 
-                  transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' 
-                }}
-              >
-                ▼
-              </span>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>▼</span>
             </div>
 
             {isDropdownOpen && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  background: '#FFFFFF',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: 0,
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-                  marginTop: '0.5rem',
-                  zIndex: 100,
-                  padding: '4px',
-                  boxSizing: 'border-box'
-                }}
-              >
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(226, 232, 240, 0.9)',
+                borderRadius: '14px',
+                boxShadow: '0 12px 28px -6px rgba(0, 0, 0, 0.12)',
+                zIndex: 20,
+                overflow: 'hidden',
+              }}>
                 {rolesList.map((r) => (
                   <div
                     key={r}
@@ -199,26 +197,12 @@ export default function SignUpPage() {
                       setIsDropdownOpen(false);
                     }}
                     style={{
-                      padding: '0.75rem 1.25rem',
-                      borderRadius: 0,
-                      fontSize: '0.9rem',
-                      color: role === r ? 'var(--accent-red)' : '#374151',
-                      background: role === r ? '#FEF2F2' : 'transparent',
+                      padding: '0.75rem 1rem',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      fontWeight: role === r ? 600 : 400
-                    }}
-                    onMouseEnter={(e) => {
-                      if (role !== r) {
-                        e.target.style.background = '#F3F4F6';
-                        e.target.style.color = '#111827';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (role !== r) {
-                        e.target.style.background = 'transparent';
-                        e.target.style.color = '#374151';
-                      }
+                      fontSize: '0.88rem',
+                      fontWeight: role === r ? 700 : 500,
+                      color: role === r ? 'var(--ios-indigo)' : '#334155',
+                      background: role === r ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
                     }}
                   >
                     {r}
@@ -228,43 +212,66 @@ export default function SignUpPage() {
             )}
           </div>
 
-          {/* Optional Learning Goals */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Learning Goals (optional)</label>
-            <input
-              type="text"
-              placeholder="Reduce filler words, Master counterarguments"
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
-            />
+          {/* Password & Confirm Password */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                Confirm
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box' }}
+              />
+            </div>
           </div>
 
-          {/* Optional Preferred Debate Topics */}
+          {/* Preferred Topics */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Preferred Debate Topics (optional)</label>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+              Preferred Debate Domains (Optional)
+            </label>
             <input
               type="text"
-              placeholder="Technology, AI, Politics, Ethics"
+              placeholder="e.g. Technology, Ethics, Economics"
               value={topics}
               onChange={(e) => setTopics(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+              style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </div>
 
-          {/* Create Account Button */}
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: 0, background: '#18181B', color: '#FFFFFF', border: 'none', fontWeight: 600, cursor: 'pointer', marginBottom: '1rem', fontSize: '0.95rem' }}>
-            {loading ? 'Creating Account...' : 'Create Account'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-red"
+            style={{ width: '100%', padding: '0.9rem', fontSize: '0.92rem' }}
+          >
+            {loading ? 'CREATING ACCOUNT…' : 'Create Account'}
           </button>
-
-          {/* Link back to Login */}
-          <div style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6B7280' }}>
-            Already have an account?{' '}
-            <Link href="/login" style={{ color: '#111827', fontWeight: 600, textDecoration: 'underline' }}>
-              Login
-            </Link>
-          </div>
         </form>
+
+        <div style={{ marginTop: '1.75rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
+          Already have an account?{' '}
+          <Link href="/login" style={{ color: 'var(--ios-indigo)', fontWeight: 700 }}>
+            Log In
+          </Link>
+        </div>
       </div>
     </div>
   );

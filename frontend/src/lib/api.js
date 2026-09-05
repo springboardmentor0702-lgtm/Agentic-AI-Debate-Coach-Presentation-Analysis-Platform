@@ -1,4 +1,4 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://logos-ai-api.vercel.app/api/v1';
 
 export function getToken() {
   if (typeof window === 'undefined') return null;

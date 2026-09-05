@@ -14,7 +14,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
 LOGGER = logging.getLogger(__name__)
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 
 def _ensure_version_table(engine: Engine) -> None:
@@ -102,11 +102,26 @@ def _migration_2_security_and_workflow_schema(engine: Engine) -> None:
     )
 
 
+def _migration_3_ai_feedback_schema(engine: Engine) -> None:
+    """Add ai_feedback column to presentation_metrics."""
+    _add_missing_columns(
+        engine,
+        "presentation_metrics",
+        {
+            "ai_feedback": "TEXT",
+        },
+    )
+
+
 def run_migrations(engine: Engine) -> int:
     """Apply pending migrations and return the resulting schema version."""
     _ensure_version_table(engine)
     applied = _applied_versions(engine)
-    migrations = {1: _migration_1_audio_and_workflow_schema, 2: _migration_2_security_and_workflow_schema}
+    migrations = {
+        1: _migration_1_audio_and_workflow_schema,
+        2: _migration_2_security_and_workflow_schema,
+        3: _migration_3_ai_feedback_schema,
+    }
     for version in range(1, CURRENT_SCHEMA_VERSION + 1):
         if version in applied:
             continue
