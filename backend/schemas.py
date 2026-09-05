@@ -96,13 +96,13 @@ class ArgumentAnalysisResponse(BaseModel):
 
 
 class SpeechAnalysisSubmit(BaseModel):
-    session_id: int = Field(gt=0)
+    session_id: Optional[int] = Field(default=None)
     speech_text: str = Field(min_length=1, max_length=50000)
     audio_duration_seconds: Optional[float] = Field(default=60.0, gt=0, le=86400)
 
 
 class PresentationMetricResponse(BaseModel):
-    session_id: int
+    session_id: Optional[int] = None
     speech_pace_wpm: float
     filler_words_count: int
     filler_words_list: str

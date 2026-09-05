@@ -1,6 +1,7 @@
-"""
+﻿"""
 Argument Analysis Agent (Module 4 from the project doc)
 Role: judges how strong an argument is - claim, evidence, clarity, relevance, logical consistency.
+Guarantees all output values and notes are returned strictly in clear, natural ENGLISH.
 """
 from app.agents.base_agent import BaseAgent
 from app.llm_client import call_llm_json
@@ -8,22 +9,23 @@ from app.llm_client import call_llm_json
 MIN_WORDS = 4
 
 SYSTEM_PROMPT = """You are an expert debate judge and argument analyst.
-Given an argument, break it down and evaluate it honestly and critically.
+CRITICAL RULE: You MUST evaluate and write all JSON fields strictly in fluent ENGLISH, regardless of the input language.
+Given an argument, break it down and evaluate it honestly, critically, and objectively in English.
 Always respond with ONLY a JSON object in this exact shape, no extra text:
 
 {
-  "claim": "the main point being argued",
-  "evidence": ["list of evidence/reasons the speaker gave"],
+  "claim": "the main point being argued (in English)",
+  "evidence": ["list of evidence/reasons the speaker gave (in English)"],
   "strength_label": "weak" | "moderate" | "strong",
   "strength_score": <integer 0-100>,
   "clarity_score": <integer 0-100>,
   "relevance_score": <integer 0-100>,
   "logical_consistency_score": <integer 0-100>,
-  "notes": "1-2 sentence explanation of the scoring"
+  "notes": "1-2 sentence explanation of the scoring in English"
 }
 
 If the text is too vague or short to evaluate meaningfully, still return this shape,
-but set all scores to 0 and explain why in "notes".
+but set all scores to 0 and explain why in English in "notes".
 """
 
 DEFAULT_RESULT = {
@@ -40,7 +42,7 @@ DEFAULT_RESULT = {
 
 class ArgumentAnalysisAgent(BaseAgent):
     name = "ArgumentAnalysisAgent"
-    role = "Judges the strength, clarity, relevance, and logical consistency of an argument."
+    role = "Judges the strength, clarity, relevance, and logical consistency of an argument in English."
 
     def _validate_and_fill(self, result: dict) -> dict:
         safe_result = DEFAULT_RESULT.copy()
@@ -63,7 +65,7 @@ class ArgumentAnalysisAgent(BaseAgent):
                 "notes": f"Text is too short ({word_count} word(s)) to evaluate as a full argument.",
             }
 
-        user_prompt = f"Analyze this argument:\n\n\"{argument_text}\""
+        user_prompt = f"Analyze this argument and reply in English:\n\n\"{argument_text}\""
         raw_result = call_llm_json(SYSTEM_PROMPT, user_prompt)
 
         if "error" in raw_result:
@@ -72,7 +74,4 @@ class ArgumentAnalysisAgent(BaseAgent):
         return self._validate_and_fill(raw_result)
 
 
-# Module-level singleton so other files can just do:
-#   from app.agents.argument_analysis_agent import argument_analysis_agent
-#   result = argument_analysis_agent.run(text)
 argument_analysis_agent = ArgumentAnalysisAgent()

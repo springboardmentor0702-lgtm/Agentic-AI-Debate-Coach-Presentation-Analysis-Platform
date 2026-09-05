@@ -1,33 +1,34 @@
-"""Deterministic local AI/ML services for argument analysis and debate simulation.
+﻿"""Deterministic & LLM-Powered AI services for argument analysis and debate simulation.
 
-The service is intentionally provider-neutral: it can run without an external LLM,
-while exposing structured outputs that can later be enriched by an LLM adapter.
-FAISS is used when available and a deterministic NumPy fallback keeps local setup
-simple.
+Guarantees high-level English rhetoric, persona-driven counterarguments, 
+dynamic logical fallacy audits, and seamless Groq/Gemini/Local fallback.
 """
 
 from __future__ import annotations
 
 import hashlib
-import re
-from typing import Any, Dict, List, Optional
-import sys
+import json
 import os
+import re
+import sys
+from typing import Any, Dict, List, Optional
 
 # Set up python path to include the workspace root so we can import from ai-ml folder
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ai-ml")))
 try:
     from app.agents.argument_analysis_agent import argument_analysis_agent
     from app.agents.fallacy_detection_agent import fallacy_detection_agent
+    from app.llm_client import call_llm_json
     AI_ML_AGENTS_AVAILABLE = True
 except ImportError:
     AI_ML_AGENTS_AVAILABLE = False
+    call_llm_json = None
 
 import numpy as np
 
-try:  # FAISS is optional at runtime, but included in the backend requirements.
+try:
     import faiss
-except ImportError:  # pragma: no cover - exercised only in minimal deployments.
+except ImportError:
     faiss = None
 
 
@@ -40,8 +41,8 @@ FALLACY_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"\b(?:idiot|fool|corrupt|liar|ignorant|stupid|incompetent)\b",
             r"\byou\s+(?:don't|do not)\s+know\b",
         ],
-        "explanation": "Attacking the opponent's character or personal traits rather than engaging with their argument.",
-        "correction": "Focus directly on the evidence and logical premises of the claim rather than personal attributes.",
+        "explanation": "Attacking the opponent's character or personal traits rather than engaging with the argument's premises.",
+        "correction": "Focus directly on the empirical evidence and logical structure of the claim rather than personal attributes.",
     },
     "Straw Man": {
         "patterns": [
@@ -50,7 +51,7 @@ FALLACY_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"\bclaim(?:s|ing)?\s+that\s+all\b",
         ],
         "explanation": "Misrepresenting or exaggerating an opponent's argument to make it easier to attack.",
-        "correction": "State the opponent's true position accurately before refuting it.",
+        "correction": "State the opponent's true proposition accurately before offering counter-arguments.",
     },
     "False Dilemma": {
         "patterns": [
@@ -58,8 +59,8 @@ FALLACY_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"\bonly\s+two\s+choices\b",
             r"\bwith\s+us\s+or\s+against\s+us\b",
         ],
-        "explanation": "Presenting two alternatives as the only possibilities when additional options exist.",
-        "correction": "Acknowledge nuanced middle-ground positions and alternative solutions.",
+        "explanation": "Presenting two extreme alternatives as the only possibilities when viable middle grounds exist.",
+        "correction": "Acknowledge nuanced intermediate positions, hybrid frameworks, and multi-variable solutions.",
     },
     "Slippery Slope": {
         "patterns": [
@@ -68,8 +69,8 @@ FALLACY_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"\bslippery\s+slope\b",
             r"\bcatastrophe\b",
         ],
-        "explanation": "Asserting that a first step will inevitably cause a chain of negative events without proving each causal link.",
-        "correction": "Provide evidence for each causal step instead of assuming an inevitable chain reaction.",
+        "explanation": "Asserting that a first step will inevitably trigger a disastrous chain reaction without proving each causal link.",
+        "correction": "Demonstrate each sequential causal link with verifiable evidence rather than assuming inevitability.",
     },
     "Appeal to Authority": {
         "patterns": [
@@ -78,8 +79,8 @@ FALLACY_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"\bcelebrity\s+agrees\b",
             r"\bunnamed\s+experts?\s+claim\b",
         ],
-        "explanation": "Treating a claim as true solely because an authority stated it without sufficient corroboration.",
-        "correction": "Cite verifiable primary evidence and explain why the source is relevant to this claim.",
+        "explanation": "Accepting a claim as definitively true solely because a figure of authority stated it without corroboration.",
+        "correction": "Cite primary empirical sources and explain the methodology supporting the conclusion.",
     },
     "Circular Reasoning": {
         "patterns": [
@@ -87,8 +88,8 @@ FALLACY_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"\bself[- ]evident\s+that\b",
             r"\btrue\s+because\s+it\s+is\s+true\b",
         ],
-        "explanation": "Using the conclusion as a premise instead of providing independent support.",
-        "correction": "Provide evidence that does not assume the conclusion being defended.",
+        "explanation": "Using the conclusion itself as a foundational premise instead of providing external justification.",
+        "correction": "Provide independent, observable evidence that does not presuppose the thesis being defended.",
     },
     "Hasty Generalization": {
         "patterns": [
@@ -97,8 +98,8 @@ FALLACY_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"\b(?:always|never)\b",
             r"\bbased\s+on\s+my\s+one\s+(?:friend|experience)\b",
         ],
-        "explanation": "Making a broad claim from an insufficient or unrepresentative sample.",
-        "correction": "Qualify the claim and support it with representative data or an appropriately bounded sample.",
+        "explanation": "Drawing a sweeping universal conclusion from an insufficient or statistically unrepresentative sample.",
+        "correction": "Bound your claim with qualifying criteria and reference representative, aggregated datasets.",
     },
     "Red Herring": {
         "patterns": [
@@ -107,8 +108,8 @@ FALLACY_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"\b(?:irrelevant|distraction)\s+topic\b",
             r"\binstead\s+of\s+talking\s+about\b",
         ],
-        "explanation": "Introducing an irrelevant issue to divert attention from the proposition under discussion.",
-        "correction": "Return to the original claim and explain how each piece of evidence bears on it.",
+        "explanation": "Introducing an extraneous or sensational topic to distract from the core debate motion.",
+        "correction": "Maintain focus on the primary motion and address the opposing team's core contentions directly.",
     },
 }
 
@@ -116,7 +117,7 @@ EVIDENCE_PATTERNS = (
     r"\b\d+(?:\.\d+)?%\b",
     r"\b\d+(?:\.\d+)?\b",
     r"\b(?:study|studies|research|survey|data|dataset|evidence|source|report|according to)\b",
-    r"\b(?:citation|peer[- ]reviewed|experiment|sample|trial)\b",
+    r"\b(?:citation|peer[- ]reviewed|experiment|sample|trial|statistics|empirically)\b",
 )
 
 
@@ -129,7 +130,7 @@ def _sentences(text: str) -> List[str]:
 
 
 class AIEngine:
-    """Local analysis engine with deterministic scores and semantic memory."""
+    """Intelligent analysis engine with LLM integration, deterministic fallback, and semantic memory."""
 
     def __init__(self) -> None:
         self.argument_memory: List[Dict[str, Any]] = []
@@ -138,7 +139,6 @@ class AIEngine:
             self._faiss_index = faiss.IndexFlatIP(EMBEDDING_DIMENSION)
 
     def _get_embedding(self, text: str) -> np.ndarray:
-        """Create a deterministic normalized hashing embedding for local semantic search."""
         vector = np.zeros(EMBEDDING_DIMENSION, dtype="float32")
         tokens = re.findall(r"[a-z0-9']+", text.lower())
         for token in tokens:
@@ -155,28 +155,6 @@ class AIEngine:
         self.argument_memory.append({"text": text, "vector": vector})
         if self._faiss_index is not None:
             self._faiss_index.add(vector.reshape(1, -1))
-
-    def search_similar_arguments(self, query: str, top_k: int = 2) -> List[Dict[str, Any]]:
-        if not self.argument_memory or top_k <= 0:
-            return []
-        top_k = min(top_k, len(self.argument_memory))
-        query_vector = self._get_embedding(query)
-        if self._faiss_index is not None:
-            similarities, indices = self._faiss_index.search(query_vector.reshape(1, -1), top_k)
-            return [
-                {
-                    "text": self.argument_memory[int(index)]["text"],
-                    "similarity": round(float(similarity), 4),
-                }
-                for similarity, index in zip(similarities[0], indices[0])
-                if int(index) >= 0
-            ]
-
-        ranked = sorted(
-            ((float(np.dot(query_vector, item["vector"])), item["text"]) for item in self.argument_memory),
-            reverse=True,
-        )
-        return [{"text": text, "similarity": round(score, 4)} for score, text in ranked[:top_k]]
 
     def _detect_fallacies(self, text: str) -> List[Dict[str, str]]:
         detected: List[Dict[str, str]] = []
@@ -202,7 +180,7 @@ class AIEngine:
         word_count = len(re.findall(r"\b\w+\b", text))
         fallacies = self._detect_fallacies(text)
         evidence_matches = sum(len(re.findall(pattern, text, flags=re.IGNORECASE)) for pattern in EVIDENCE_PATTERNS)
-        evidence_strength = _clamp(42.0 + min(24.0, word_count * 0.65) + min(34.0, evidence_matches * 8.0))
+        evidence_strength = _clamp(45.0 + min(24.0, word_count * 0.65) + min(34.0, evidence_matches * 8.0))
         clarity_score = _clamp(96.0 - max(0, len(sentences) - 3) * 4.0 - max(0, word_count - 100) * 0.12)
         relevance_score = _clamp(78.0 + min(15.0, len(sentences) * 2.0) - (8.0 if word_count < 8 else 0.0))
         logical_consistency = _clamp(100.0 - len(fallacies) * 15.0)
@@ -213,7 +191,6 @@ class AIEngine:
         has_api_keys = bool(os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY"))
         if AI_ML_AGENTS_AVAILABLE and has_api_keys:
             try:
-                # Run the fallacy detection agent
                 fallacies_res = fallacy_detection_agent.run(text)
                 if "error" not in fallacies_res and "fallacies_found" in fallacies_res:
                     agent_fallacies = []
@@ -223,9 +200,9 @@ class AIEngine:
                             "explanation": f.get("explanation", "Logical flaw detected."),
                             "correction_suggestion": f.get("correction_suggestion", "Rephrase to eliminate flaws.")
                         })
-                    fallacies = agent_fallacies
+                    if agent_fallacies:
+                        fallacies = agent_fallacies
 
-                # Run the argument analysis agent
                 analysis_res = argument_analysis_agent.run(text)
                 if "error" not in analysis_res:
                     claim = analysis_res.get("claim", claim)
@@ -236,40 +213,41 @@ class AIEngine:
                     reasoning_quality = float(analysis_res.get("strength_score", reasoning_quality))
                     persuasiveness_score = _clamp(reasoning_quality * 0.7 + relevance_score * 0.3)
             except Exception as e:
-                print(f"[AI ML Agents] Error running agent analysis: {e}. Falling back to heuristics.")
+                print(f"[AI ML Agents] Fallback to local heuristic: {e}")
 
         counterarguments = [
             {
                 "rebuttal_type": "Logical",
-                "rebuttal_text": f"Your proposition, '{claim[:120]}', may rely on an unstated assumption. Test whether the conclusion still follows if that assumption is weakened.",
-                "challenge_question": "Which premise is necessary for your conclusion, and what would falsify it?",
-                "strategy_tip": "Identify and challenge the argument's strongest hidden assumption.",
+                "rebuttal_text": f"Your premise '{claim[:90]}' assumes a causal link that remains unproven. If external variables account for this outcome, the conclusion collapses.",
+                "challenge_question": "What independent evidence proves your stated cause is necessary and sufficient?",
+                "strategy_tip": "Identify and substantiate the unstated assumption in your core premise.",
             },
             {
                 "rebuttal_type": "Evidence-Based",
-                "rebuttal_text": "The claim would be stronger with representative, verifiable evidence rather than an isolated example or unsupported assertion.",
-                "challenge_question": "What primary source or measured result supports the central factual claim?",
-                "strategy_tip": "Ask for source quality, sample size, and whether the evidence directly measures the proposition.",
+                "rebuttal_text": "While plausible in theory, this assertion lacks empirical backing from peer-reviewed studies or measurable field data.",
+                "challenge_question": "What concrete statistical sample or controlled trial corroborates this claim?",
+                "strategy_tip": "Bolster your point with quantified metrics and verifiable citations.",
             },
             {
                 "rebuttal_type": "Ethical",
-                "rebuttal_text": "Consider whether the proposed outcome distributes costs and benefits fairly across the people affected by the decision.",
-                "challenge_question": "Which groups bear the risk, and what safeguards protect them?",
-                "strategy_tip": "Make the affected stakeholders and competing values explicit.",
+                "rebuttal_text": "Implementing this policy poses severe moral dilemmas and disproportionately shifts burdens onto vulnerable stakeholders.",
+                "challenge_question": "How do you reconcile this outcome with fundamental principles of fairness and equity?",
+                "strategy_tip": "Acknowledge conflicting ethical values and define clear safeguarding mechanisms.",
             },
             {
                 "rebuttal_type": "Practical",
-                "rebuttal_text": "Even a sound principle can fail during implementation if its timeline, resources, incentives, and operational constraints are not addressed.",
-                "challenge_question": "What is the implementation plan, budget, and measurable success criterion?",
-                "strategy_tip": "Move from abstract agreement to feasibility and execution details.",
+                "rebuttal_text": "Operational realities such as capital allocation, compliance overhead, and enforcement constraints undermine feasibility.",
+                "challenge_question": "How will your model overcome implementation friction and unintended enforcement costs?",
+                "strategy_tip": "Present a phased execution roadmap with risk-mitigation buffers.",
             },
             {
                 "rebuttal_type": "Policy",
-                "rebuttal_text": "A lower-risk alternative may achieve the same objective while preserving flexibility and reducing unintended consequences.",
-                "challenge_question": "Why is this proposal preferable to a reversible or incremental alternative?",
-                "strategy_tip": "Compare alternatives against the same outcome, cost, and risk criteria.",
+                "rebuttal_text": "Market-driven or adaptive regulatory frameworks achieve the same social objectives without incurring regulatory lock-in.",
+                "challenge_question": "Why choose an inflexible mandate over adaptive, reversible policy alternatives?",
+                "strategy_tip": "Demonstrate why your solution is superior to existing incremental alternatives.",
             },
         ]
+
         return {
             "claim_identified": f"Main Proposition: {claim}",
             "evidence_strength": round(evidence_strength, 1),
@@ -283,25 +261,93 @@ class AIEngine:
         }
 
     def generate_simulation_response(self, text: str, persona: str) -> Dict[str, Any]:
-        analysis = self.analyze_argument(text)
         persona = persona if persona in SUPPORTED_PERSONAS else "The Contrarian"
-        styles = {
-            "The Contrarian": "Challenge the premise directly, but keep the response tied to evidence.",
-            "The Academic": "Use a Socratic style and request precise definitions, sources, and methodology.",
-            "The Strategist": "Focus on implementation, incentives, trade-offs, and unintended consequences.",
+        
+        # 1. Try LLM (Groq / Gemini) with full English debate prompt
+        has_api_keys = bool(os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY"))
+        if AI_ML_AGENTS_AVAILABLE and call_llm_json is not None and has_api_keys:
+            try:
+                system_prompt = (
+                    "You are a championship-level AI debate opponent and master rhetoric coach in an Oxford/Parliamentary debate competition. "
+                    "All your outputs MUST be in fluent, eloquent, natural ENGLISH.\n\n"
+                    f"Your assigned persona is: '{persona}'.\n"
+                    "- The Contrarian: Skeptical, relentless, attacks foundational premises, uses sharp logical counter-examples.\n"
+                    "- The Academic: Socratic, rigorous, demands precise definitions, empirical methodology, and epistemological clarity.\n"
+                    "- The Strategist: Pragmatic, focuses on economic incentives, trade-offs, secondary effects, and implementation feasibility.\n\n"
+                    "RULES:\n"
+                    "1. Respond directly to the user's specific argument in high-level English.\n"
+                    "2. Output ONLY a valid JSON object matching this exact schema:\n"
+                    "{\n"
+                    '  "opponent_rebuttal": "2-4 sentences of persuasive, high-impact English counter-argument dismantling the user.",\n'
+                    '  "fallacies_detected": [\n'
+                    '    {"fallacy_type": "Fallacy Name", "explanation": "Why this is a fallacy in English", "correction_suggestion": "How to fix it in English"}\n'
+                    "  ],\n"
+                    '  "rebuttal_strength_percent": 88.5,\n'
+                    '  "coaching_tip": "A concise, strategic coaching tip in English on how the user can counter this or strengthen their speech."\n'
+                    "}"
+                )
+                user_prompt = f"User's Debate Argument:\n\"\"\"{text}\"\"\""
+                llm_output = call_llm_json(system_prompt, user_prompt)
+                
+                if "opponent_rebuttal" in llm_output and isinstance(llm_output["opponent_rebuttal"], str):
+                    rebuttal = llm_output["opponent_rebuttal"].strip()
+                    fallacies = llm_output.get("fallacies_detected", [])
+                    strength = float(llm_output.get("rebuttal_strength_percent", 88.0))
+                    coaching = llm_output.get("coaching_tip", "Address the opponent's core premise before presenting new points.")
+                    return {
+                        "opponent_rebuttal": rebuttal,
+                        "fallacies_detected": fallacies,
+                        "rebuttal_strength_percent": round(_clamp(strength, 40.0, 99.0), 1),
+                        "coaching_tip": coaching,
+                    }
+            except Exception as e:
+                print(f"[AI Simulation] LLM call exception ({e}). Utilizing high-tier English fallback engine.")
+
+        # 2. High-Tier English Native Heuristic Generation
+        analysis = self.analyze_argument(text)
+        sentences = _sentences(text)
+        claim_snippet = sentences[0] if sentences else text
+        if len(claim_snippet) > 80:
+            claim_snippet = claim_snippet[:77] + "..."
+
+        persona_rebuttals = {
+            "The Contrarian": [
+                f"I strongly challenge your premise regarding \"{claim_snippet}\". Your position assumes a causal certainty that completely ignores competing empirical factors.",
+                f"Your argument that \"{claim_snippet}\" oversimplifies a multifaceted dilemma. In reality, alternative mechanisms yield superior outcomes without your proposed liabilities.",
+                f"You assert that \"{claim_snippet}\", but this fails under rigorous scrutiny. How do you reconcile this claim with the undeniable economic and structural counter-evidence?"
+            ],
+            "The Academic": [
+                f"From an epistemological standpoint, your claim regarding \"{claim_snippet}\" lacks rigorous methodological substantiation. Correlation does not imply the causation you assume.",
+                f"The literature on this subject directly contradicts your premise on \"{claim_snippet}\". Without controlled empirical baseline data, this remains an unverified hypothesis.",
+                f"To defend \"{claim_snippet}\", you must first establish clear definitions and quantify the scope of your parameters. What peer-reviewed framework supports your assertion?"
+            ],
+            "The Strategist": [
+                f"From an implementation and incentive perspective, your proposal on \"{claim_snippet}\" introduces severe moral hazard and unsustainable operational friction.",
+                f"While \"{claim_snippet}\" sounds appealing in principle, the secondary consequences and capital misallocations render it unviable in practice.",
+                f"Your strategy for \"{claim_snippet}\" fails to account for stakeholder pushback and enforcement bottlenecks. What is your risk-mitigation model?"
+            ]
         }
-        prefixes = {
-            "The Contrarian": "I challenge your core premise.",
-            "The Academic": "Your argument needs clearer methodological support.",
-            "The Strategist": "From an implementation perspective, your thesis needs a stronger plan.",
+
+        persona_tips = {
+            "The Contrarian": "The Contrarian thrives on exposing unstated assumptions. Preemptively acknowledge counter-arguments and provide direct empirical proof.",
+            "The Academic": "The Academic demands definitions and evidence. Strengthen your delivery by citing specific studies, metrics, and conceptual frameworks.",
+            "The Strategist": "The Strategist attacks execution feasibility. Clarify your implementation roadmap, timeline, and trade-off mitigations."
         }
+
+        # Pick dynamic variant based on text hash
+        variants = persona_rebuttals.get(persona, persona_rebuttals["The Contrarian"])
+        variant_idx = int(hashlib.md5(text.encode()).hexdigest(), 16) % len(variants)
+        selected_rebuttal = variants[variant_idx]
+
         primary_counter = analysis["counterarguments"][0]
-        strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
+        full_rebuttal = f"{selected_rebuttal} {primary_counter['challenge_question']}"
+        strength = _clamp(60.0 + analysis["logical_consistency"] * 0.2 + analysis["reasoning_quality"] * 0.2)
+
         return {
-            "opponent_rebuttal": f"{prefixes[persona]} {primary_counter['rebuttal_text']} {primary_counter['challenge_question']}",
+            "opponent_rebuttal": full_rebuttal,
             "fallacies_detected": analysis["fallacies"],
             "rebuttal_strength_percent": round(strength, 1),
-            "coaching_tip": f"Persona style: {styles[persona]} Address the challenge directly before introducing a new point.",
+            "coaching_tip": persona_tips.get(persona, "Address the opponent's core challenge directly before introducing new arguments."),
         }
 
     def calculate_weighted_score(

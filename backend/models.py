@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+﻿from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -19,7 +19,8 @@ class User(Base):
     coaching_preferences = Column(String, default="Real-time alerts, Detailed post-session audits")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    sessions = relationship("DebateSession", back_populates="user")
+    sessions = relationship("DebateSession", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 
 class DebateSession(Base):
@@ -29,7 +30,7 @@ class DebateSession(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String, nullable=False)
     topic = Column(Text, nullable=False)
-    format = Column(String, default="AI Simulation")
+    format = Column(String, default="AI Simulation")  # "Debate", "Speech Analysis", "Vocal Matrix", "Agent Simulation", "Oxford Style", "Parliamentary"
     assigned_position = Column(String, default="Affirmative")
     status = Column(String, default="Active")
     scheduled_at = Column(DateTime, default=datetime.utcnow)
@@ -153,3 +154,17 @@ class CoachingPlan(Base):
     learning_path_steps = Column(Text)
     progress_status = Column(String, default="In Progress")
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    category = Column(String, default="System")  # "Debate", "Speech Analysis", "Vocal Matrix", "Agent Simulation", "Milestone Alert", "Platform Announcement"
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="notifications")

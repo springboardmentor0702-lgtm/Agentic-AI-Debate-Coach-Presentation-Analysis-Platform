@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@600;700;800;900&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@600;700;800;900&display=swap');
 
 :root {
   --bg-primary: #ffffff;
@@ -36,6 +36,10 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+input, select, textarea, button {
+  border-radius: 8px;
 }
 
 /* Typography Utilities */
@@ -103,7 +107,7 @@ a {
   font-size: 0.85rem;
   font-weight: 700;
   padding: 0.75rem 1.5rem;
-  border-radius: 0;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
@@ -118,6 +122,7 @@ a {
   background: transparent;
   color: var(--text-primary);
   border: 1px solid var(--border-light);
+  border-radius: 8px;
 }
 
 .btn-login:hover {
@@ -127,6 +132,7 @@ a {
 .btn-red {
   background: var(--accent-red);
   color: #ffffff;
+  border-radius: 8px;
 }
 
 .btn-red:hover {
@@ -136,6 +142,7 @@ a {
 .btn-dark {
   background: var(--text-primary);
   color: #ffffff;
+  border-radius: 8px;
 }
 
 .btn-dark:hover {
@@ -153,7 +160,7 @@ a {
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.35rem 0.85rem;
-  border-radius: 0;
+  border-radius: 9999px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 1.5rem;
@@ -162,7 +169,7 @@ a {
 .badge-dot {
   width: 6px;
   height: 6px;
-  border-radius: 0;
+  border-radius: 50%;
   background-color: var(--accent-red);
 }
 
@@ -231,7 +238,7 @@ a {
 .terminal-window {
   background: var(--dark-bg);
   border: 1px solid var(--dark-border);
-  border-radius: 0;
+  border-radius: 14px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   position: relative;
@@ -239,7 +246,7 @@ a {
 
 .terminal-header {
   background: #111116;
-  padding: 0.6rem 1rem;
+  padding: 0.75rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -254,7 +261,7 @@ a {
 .dot {
   width: 10px;
   height: 10px;
-  border-radius: 0;
+  border-radius: 50%;
 }
 .dot-red { background: #ff5f56; }
 .dot-yellow { background: #ffbd2e; }
@@ -320,20 +327,23 @@ a {
 .modules-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border: 1px solid var(--border-light);
+  gap: 1.25rem;
+  border: none;
 }
 
 .module-card {
   padding: 2rem;
-  border-right: 1px solid var(--border-light);
-  border-bottom: 1px solid var(--border-light);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
   background: var(--bg-primary);
-  transition: background-color 0.25s ease-in-out;
+  transition: all 0.25s ease-in-out;
   position: relative;
 }
 
 .module-card:hover {
   background: var(--dark-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -10px rgba(0,0,0,0.15);
 }
 
 .module-num {
@@ -378,6 +388,7 @@ a {
 .module-line {
   width: 24px;
   height: 3px;
+  border-radius: 9999px;
   background-color: var(--accent-red);
 }
 
@@ -385,9 +396,10 @@ a {
 .scoring-bar {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  padding: 3rem;
-  border-top: 1px solid var(--border-light);
-  border-bottom: 1px solid var(--border-light);
+  padding: 2.5rem;
+  margin: 3rem;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
   background: var(--bg-secondary);
 }
 
@@ -428,12 +440,15 @@ a {
 .persona-card {
   padding: 2rem;
   border: 1px solid var(--border-light);
+  border-radius: 14px;
   background: var(--bg-primary);
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .persona-card:hover {
   border-color: var(--text-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -8px rgba(0,0,0,0.1);
 }
 
 .persona-card-title {
@@ -465,6 +480,17 @@ a {
 @media (max-width: 1024px) {
   .hero-section { grid-template-columns: 1fr; }
   .modules-grid { grid-template-columns: repeat(2, 1fr); }
-  .scoring-bar { grid-template-columns: repeat(2, 1fr); }
+  .scoring-bar { grid-template-columns: repeat(2, 1fr); margin: 1.5rem; }
   .persona-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

@@ -1,0 +1,29 @@
+﻿apiVersion: app/v1
+kind: ContainerApp
+metadata:
+  name: logos-ai-platform
+  location: eastus
+spec:
+  environmentId: /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-logos-ai-prod/providers/Microsoft.App/managedEnvironments/env-logos-ai
+  configuration:
+    ingress:
+      external: true
+      targetPort: 3000
+    secrets:
+      - name: db-conn-string
+        value: "postgresql://postgres:pass@azure-postgres.postgres.database.azure.com:5432/logos_ai_db"
+  template:
+    containers:
+      - name: frontend
+        image: acrlogosai.azurecr.io/logos-frontend:latest
+        resources:
+          cpu: 0.5
+          memory: 1.0Gi
+      - name: backend
+        image: acrlogosai.azurecr.io/logos-backend:latest
+        resources:
+          cpu: 0.5
+          memory: 1.0Gi
+        env:
+          - name: DATABASE_URL
+            secretRef: db-conn-string

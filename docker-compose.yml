@@ -1,24 +1,103 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
+  # =========================================================================
+  # 1. Primary Relational Database: PostgreSQL 16
+  # =========================================================================
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: logos_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword2026
+      POSTGRES_DB: logos_ai_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - logos_network
+
+  # =========================================================================
+  # 2. Document Store Database: MongoDB 7.0
+  # =========================================================================
+  mongo_db:
+    image: mongo:7.0-jammy
+    container_name: logos_mongo_db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - logos_network
+
+  # =========================================================================
+  # 3. Backend Core Service: FastAPI + SQLAlchemy + Uvicorn
+  # =========================================================================
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    container_name: logos_ai_backend
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./logos_ai.db
+      - DATABASE_URL=postgresql://postgres:postgrespassword2026@postgres_db:5432/logos_ai_db
+      - MONGO_URI=mongodb://mongo_db:27017
+      - MONGO_DB=logos_ai_transcripts
+      - SECRET_KEY=logos-ai-super-secret-key-2026-rhetoric-intelligence
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_MODEL=llama-3.3-70b-versatile
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LLM_MODEL=gemini-2.0-flash
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      mongo_db:
+        condition: service_healthy
     volumes:
-      - ./backend:/app
+      - ./backend:/app/backend
+      - ./ai-ml:/app/ai-ml
+    networks:
+      - logos_network
 
+  # =========================================================================
+  # 4. Frontend Application: Next.js 14 Responsive UI
+  # =========================================================================
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    container_name: logos_ai_frontend
+    restart: unless-stopped
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
+    networks:
+      - logos_network
+
+networks:
+  logos_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  mongo_data:
+    driver: local

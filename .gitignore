@@ -1,4 +1,4 @@
-# Dependency directories
+﻿# Dependency directories
 node_modules/
 jspm_packages/
 web_modules/
@@ -38,9 +38,10 @@ venv/
 env/
 ENV/
 
-# Databases & local databases
+# Databases & local binaries
 *.db
 *.sqlite3
+databases/
 
 # OS metadata
 .DS_Store
