@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import Navbar from "@/components/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Agentic AI Debate Coach & Presentation Analysis Platform",
-  description: "Comprehensive platform for argument analysis, fallacy detection, debate simulations, and presentation intelligence.",
+  title: "Veritas AI • Agentic Debate & Speech Intelligence Platform",
+  description: "Enterprise debate simulations, argument mining, fallacy diagnostics, live speech analytics, and personalized coaching roadmaps.",
 };
 
 export default function RootLayout({
@@ -19,60 +19,47 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen flex flex-col transition-colors duration-200`}>
-        <header className="sticky top-0 z-50 bg-indigo-950 text-white shadow-md border-b border-indigo-900/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-3">
-                <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white text-lg shadow-sm">
-                  ⚡
-                </div>
-                <Link href="/dashboard" className="font-bold text-lg tracking-tight hover:text-indigo-200 transition-colors">
-                  AI Debate Coach
-                </Link>
-              </div>
-
-              <nav className="hidden md:flex space-x-1 lg:space-x-2 text-sm font-medium">
-                <Link href="/dashboard" className="hover:bg-indigo-900/80 px-3 py-2 rounded-md transition-colors">
-                  Dashboard
-                </Link>
-                <Link href="/analyze" className="hover:bg-indigo-900/80 px-3 py-2 rounded-md transition-colors">
-                  Argument Analysis
-                </Link>
-                <Link href="/simulation" className="hover:bg-indigo-900/80 px-3 py-2 rounded-md transition-colors">
-                  AI Debate Sim
-                </Link>
-                <Link href="/presentation" className="hover:bg-indigo-900/80 px-3 py-2 rounded-md transition-colors">
-                  Presentation Analytics
-                </Link>
-                <Link href="/coaching" className="hover:bg-indigo-900/80 px-3 py-2 rounded-md transition-colors">
-                  Coaching & Skills
-                </Link>
-                <Link href="/reports" className="hover:bg-indigo-900/80 px-3 py-2 rounded-md transition-colors">
-                  Reports
-                </Link>
-              </nav>
-
-              <div className="flex items-center space-x-2.5 sm:space-x-3 text-sm">
-                <ThemeToggle />
-                <Link
-                  href="/login"
-                  className="bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-sm"
-                >
-                  Sign In / Out
-                </Link>
-              </div>
-            </div>
-          </div>
-        </header>
+        <Navbar />
 
         <main className="flex-1">
           {children}
         </main>
 
-        <footer className="border-t py-6 text-center text-xs">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-            <span>Agentic AI Debate Coach & Presentation Analysis Platform</span>
-            <span>Intelligent Argument Mining & Speech Analytics</span>
+        <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm py-8 text-xs text-slate-500 dark:text-slate-400">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-black">
+                ⚡
+              </div>
+              <span className="font-bold text-slate-800 dark:text-slate-200">
+                Veritas AI Platform
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="text-[11px] font-mono">v2.4.0 (Enterprise)</span>
+            </div>
+
+            <div className="flex items-center gap-6 text-[11px]">
+              <Link href="/dashboard" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                Command Center
+              </Link>
+              <Link href="/simulation" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                Debate Arena
+              </Link>
+              <Link href="/presentation" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                Speech Studio
+              </Link>
+              <Link href="/analyze" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                Fallacy Diagnostic
+              </Link>
+              <Link href="/reports" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                Export Audit Logs
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>All 14 Modules Operational</span>
+            </div>
           </div>
         </footer>
       </body>

@@ -1,215 +1,195 @@
 "use client";
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import axios from "axios";
+import ThemeToggle from "@/components/ThemeToggle";
+import NotificationDrawer from "@/components/NotificationDrawer";
+import CommandPalette from "@/components/CommandPalette";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef(null);
+  const [user, setUser] = useState(null);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const checkLoginStatus = () => {
-      const token = localStorage.getItem('logos_ai_jwt');
-      setIsLoggedIn(!!token);
-      if (token) {
-        fetchNotifications();
-      }
-    };
-
-    checkLoginStatus();
-    
-    // Set interval to poll notifications periodically
-    const interval = setInterval(checkLoginStatus, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
+    const token = Cookies.get("token");
+    if (token) {
+      axios
+        .get(`${API_BASE}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then((res) => setUser(res.data))
+        .catch(() => {
+          setUser(null);
+        });
+    } else {
+      setUser(null);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [pathname]);
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data);
-      }
-    } catch (err) {
-      // Offline fallback values
-      setNotifications([
-        {
-          id: 1,
-          category: "Session Reminder",
-          title: "Upcoming Debate Match",
-          message: "Your debate session on 'AI Governance' is scheduled in 30 minutes.",
-          timestamp: "Just now",
-          read: false
-        },
-        {
-          id: 2,
-          category: "Feedback Alert",
-          title: "Analysis Ready",
-          message: "Coach Sofia Vance left detailed feedback on your last debate rebuttal.",
-          timestamp: "2 hours ago",
-          read: false
-        }
-      ]);
-    }
+  const handleSignOut = () => {
+    Cookies.remove("token");
+    setUser(null);
+    router.push("/login");
   };
 
-  const handleMarkAsRead = async (id) => {
-    try {
-      await fetch(`http://localhost:8000/api/v1/notifications/read/${id}`, {
-        method: "POST"
-      });
-    } catch (err) {}
-    
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('logos_ai_jwt');
-    setIsLoggedIn(false);
-    setShowDropdown(false);
-    router.push('/login');
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const navLinks = [
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/simulation", label: "Debate Arena" },
+    { href: "/presentation", label: "Speech Lab" },
+    { href: "/analyze", label: "Argument Analysis" },
+    { href: "/coaching", label: "Coaching Roadmap" },
+    { href: "/reports", label: "Reports" },
+  ];
 
   return (
-    <nav className="navbar">
-      <Link href="/" className="brand-logo">
-        <span style={{ color: 'var(--accent-red)' }}>LOGOS</span>.AI
-      </Link>
+    <>
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-4">
+            
+            {/* BRAND LOGO */}
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard" className="flex items-center gap-2.5 group">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+                  <span className="text-base font-black">⚡</span>
+                </div>
+                <div>
+                  <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+                    Veritas <span className="text-indigo-600 dark:text-indigo-400">AI</span>
+                  </span>
+                  <span className="hidden sm:block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider -mt-1">
+                    Agentic Debate Platform
+                  </span>
+                </div>
+              </Link>
 
-      {/* Nav Links */}
-      <div className="nav-links" style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-        <Link href="/#engines" className="nav-link">
-          ENGINES
-        </Link>
-        <Link href="/simulation" className={`nav-link ${pathname === '/simulation' ? 'active' : ''}`}>
-          SIMULATION
-        </Link>
-        <Link href="/presentation" className={`nav-link ${pathname === '/presentation' ? 'active' : ''}`}>
-          VOCAL_METRICS
-        </Link>
-        <Link href="/dashboard" className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}>
-          ANALYTICS
-        </Link>
-        <Link href="/reports" className={`nav-link ${pathname === '/reports' ? 'active' : ''}`}>
-          REPORTS
-        </Link>
-        
-        <Link href="/simulation" className="btn btn-red" style={{ padding: '0.45rem 1rem', fontSize: '0.75rem', borderRadius: '4px' }}>
-          DEPLOY_AGENT
-        </Link>
-      </div>
+              {/* LIVE ENGINE STATUS PILL */}
+              <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/50 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Engines Live</span>
+              </div>
+            </div>
 
-      {/* Actions / Notifications */}
-      <div className="nav-actions" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-        
-        {/* Interactive Notification Bell */}
-        {isLoggedIn && (
-          <div ref={dropdownRef} style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setShowDropdown(!showDropdown)}
-              style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', position: 'relative', padding: '0.25rem' }}
-            >
-              🔔
-              {unreadCount > 0 && (
-                <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--accent-red)', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '0.15rem 0.35rem', borderRadius: '50%' }}>
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Notification Dropdown Drawer */}
-            {showDropdown && (
-              <div className="glass" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '320px', border: '1px solid var(--border-light)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
-                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>NOTIFICATIONS ({unreadCount})</strong>
-                  <button 
-                    onClick={() => {
-                      notifications.forEach(n => handleMarkAsRead(n.id));
-                    }}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-red)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+            {/* DESKTOP NAVIGATION LINKS */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      isActive
+                        ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-slate-800/60"
+                    }`}
                   >
-                    Clear All
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* COMMAND BAR & ACTIONS */}
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              
+              {/* QUICK SEARCH / COMMAND PALETTE TRIGGER */}
+              <button
+                onClick={() => setIsCommandOpen(true)}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800/80 text-xs text-slate-500 dark:text-slate-400 transition-colors shadow-2xs"
+                title="Search or Jump (Ctrl+K)"
+              >
+                <span>🔍</span>
+                <span className="text-slate-400 dark:text-slate-500">Search tools...</span>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-400 dark:text-slate-500">
+                  Ctrl K
+                </kbd>
+              </button>
+
+              {/* NOTIFICATION DRAWER */}
+              <NotificationDrawer />
+
+              {/* THEME TOGGLE */}
+              <ThemeToggle />
+
+              {/* USER PROFILE & LOGOUT */}
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <div className="hidden xl:flex flex-col text-right">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
+                      {user.name}
+                    </span>
+                    <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                      {user.role}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                    title="Sign Out"
+                  >
+                    <span className="sm:hidden">🚪</span>
+                    <span className="hidden sm:inline">Sign Out</span>
                   </button>
                 </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg transition-colors shadow-sm"
+                >
+                  Sign In
+                </Link>
+              )}
 
-                {notifications.length === 0 ? (
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280', textAlign: 'center', padding: '1.5rem 0' }}>
-                    No active notifications.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {notifications.map((notif) => (
-                      <div 
-                        key={notif.id} 
-                        onClick={() => handleMarkAsRead(notif.id)}
-                        style={{ 
-                          padding: '0.6rem 0.75rem', 
-                          background: notif.read ? 'transparent' : 'rgba(255, 51, 102, 0.05)', 
-                          borderLeft: `3px solid ${notif.read ? 'var(--border-light)' : 'var(--accent-red)'}`,
-                          cursor: 'pointer',
-                          transition: 'background 0.2s',
-                          borderRadius: '0 4px 4px 0'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--accent-red)', fontWeight: 800, textTransform: 'uppercase' }}>
-                            {notif.category}
-                          </span>
-                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{notif.timestamp}</span>
-                        </div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: notif.read ? 500 : 700, color: 'var(--text-primary)', marginBottom: '0.1rem' }}>
-                          {notif.title}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.3' }}>
-                          {notif.message}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+              {/* MOBILE MENU TOGGLE */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                {mobileMenuOpen ? "✕" : "☰"}
+              </button>
+            </div>
           </div>
-        )}
 
-        {isLoggedIn ? (
-          <button 
-            onClick={handleLogout}
-            className="btn btn-login" 
-          >
-            Logout
-          </button>
-        ) : (
-          <>
-            <Link href="/login" className="btn btn-login">
-              Login
-            </Link>
-            <Link href="/signup" className="btn btn-dark">
-              Sign Up
-            </Link>
-          </>
-        )}
-      </div>
-    </nav>
+          {/* MOBILE DROPDOWN NAVIGATION */}
+          {mobileMenuOpen && (
+            <div className="md:hidden py-3 border-t border-slate-100 dark:border-slate-800 space-y-1">
+              <button
+                onClick={() => { setMobileMenuOpen(false); setIsCommandOpen(true); }}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2"
+              >
+                <span>🔍 Search or jump to tool...</span>
+                <kbd className="px-1 py-0.5 text-[9px] bg-white dark:bg-slate-700 border rounded">Ctrl K</kbd>
+              </button>
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-lg text-xs font-semibold ${
+                    pathname === link.href
+                      ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* COMMAND PALETTE OVERLAY */}
+      <CommandPalette isOpen={isCommandOpen} onClose={setIsCommandOpen} />
+    </>
   );
 }
