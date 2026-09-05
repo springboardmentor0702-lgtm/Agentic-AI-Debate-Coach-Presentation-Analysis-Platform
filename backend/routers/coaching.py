@@ -15,6 +15,11 @@ class CoachFeedbackRequest(BaseModel):
     feedback: str
 
 
+@router.get("/plan/me", response_model=schemas.CoachingPlanResponse)
+def get_my_coaching_plan(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return get_coaching_plan(current_user.id, current_user, db)
+
+
 @router.get("/plan/{user_id}", response_model=schemas.CoachingPlanResponse)
 def get_coaching_plan(user_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user_id != current_user.id and current_user.role not in ["Debate Coach", "Educator", "Administrator"]:

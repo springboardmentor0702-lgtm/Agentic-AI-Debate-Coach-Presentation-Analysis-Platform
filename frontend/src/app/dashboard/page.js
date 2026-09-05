@@ -7,7 +7,7 @@ import AuthModal from '../../components/AuthModal';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('overview'); // overview, skills, debates, presentations, settings
+  const [activeTab, setActiveTab] = useState('overview'); // overview, debates, presentations, settings
   const [userRole, setUserRole] = useState('Learner');
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -31,7 +31,7 @@ export default function DashboardPage() {
   const [pathSteps, setPathSteps] = useState([]);
   const [progressStatus, setProgressStatus] = useState('');
 
-  // Persistent Datasets fetched directly from PostgreSQL
+  // Persistent Datasets fetched directly from Backend
   const [debateHistory, setDebateHistory] = useState([]);
   const [presentationHistory, setPresentationHistory] = useState([]);
 
@@ -48,8 +48,12 @@ export default function DashboardPage() {
   const [coachFeedbackInput, setCoachFeedbackInput] = useState('');
   const [coachSuccessMsg, setCoachSuccessMsg] = useState('');
 
+  const getToken = () => {
+    return typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
+  };
+
   useEffect(() => {
-    const savedToken = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
+    const savedToken = getToken();
     if (!savedToken) {
       setIsAuthModalOpen(true);
       setUserName('Guest User');
@@ -60,14 +64,12 @@ export default function DashboardPage() {
 
     try {
       const payload = JSON.parse(atob(savedToken.split('.')[1]));
-      setUserRole(payload.role || 'Learner');
-      setUserEmail(payload.sub);
+      const role = payload.role || 'Learner';
+      setUserRole(role);
+      setUserEmail(payload.sub || '');
+      setUserName(payload.sub ? payload.sub.split('@')[0] : 'User');
       
-      fetchProfile(savedToken);
-      fetchCoachingPlan();
-      fetchDebateHistory(savedToken);
-      fetchPresentationHistory(savedToken);
-      fetchCoachData(savedToken);
+      fetchAllData(savedToken);
     } catch (e) {
       localStorage.removeItem('logos_ai_jwt');
       setIsAuthModalOpen(true);
@@ -75,10 +77,26 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchAllData = async (token) => {
+    try {
+      await Promise.allSettled([
+        fetchProfile(token),
+        fetchCoachingPlan(token),
+        fetchDebateHistory(token),
+        fetchPresentationHistory(token),
+        fetchCoachData(token)
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchProfile = async (token) => {
+    const t = token || getToken();
+    if (!t) return;
     try {
       const res = await fetch("http://localhost:8000/api/v1/auth/profile/me", {
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { "Authorization": `Bearer ${t}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -90,21 +108,24 @@ export default function DashboardPage() {
         setGoals(data.learning_goals || 'Reduce filler words, Master counterarguments');
         setCoaching(data.coaching_preferences || 'Real-time alerts');
       }
-      setLoading(false);
     } catch (err) {
-      setLoading(false);
+      console.error("Profile fetch error:", err);
     }
   };
 
-  const fetchCoachingPlan = async () => {
+  const fetchCoachingPlan = async (token) => {
+    const t = token || getToken();
+    if (!t) return;
     try {
-      const res = await fetch("http://localhost:8000/api/v1/coaching/plan/1");
+      const res = await fetch("http://localhost:8000/api/v1/coaching/plan/me", {
+        headers: { "Authorization": `Bearer ${t}` }
+      });
       if (res.ok) {
         const data = await res.json();
-        setSkillGapSummary(data.skill_gap_summary);
-        setRecommendations(data.targeted_recommendations);
-        setPathSteps(data.learning_path_steps);
-        setProgressStatus(data.progress_status);
+        setSkillGapSummary(data.skill_gap_summary || '');
+        setRecommendations(Array.isArray(data.targeted_recommendations) ? data.targeted_recommendations : []);
+        setPathSteps(Array.isArray(data.learning_path_steps) ? data.learning_path_steps : []);
+        setProgressStatus(data.progress_status || 'Level 2 - Competent Debater');
       }
     } catch (err) {
       setSkillGapSummary("Your metrics indicate solid progress. Focus on reducing filler words and logical fallacies.");
@@ -115,9 +136,11 @@ export default function DashboardPage() {
   };
 
   const fetchDebateHistory = async (token) => {
+    const t = token || getToken();
+    if (!t) return;
     try {
       const res = await fetch("http://localhost:8000/api/v1/sessions/history", {
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { "Authorization": `Bearer ${t}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -131,9 +154,11 @@ export default function DashboardPage() {
   };
 
   const fetchPresentationHistory = async (token) => {
+    const t = token || getToken();
+    if (!t) return;
     try {
       const res = await fetch("http://localhost:8000/api/v1/presentation-analysis/history", {
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { "Authorization": `Bearer ${t}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -147,13 +172,15 @@ export default function DashboardPage() {
   };
 
   const fetchCoachData = async (token) => {
+    const t = token || getToken();
+    if (!t) return;
     try {
       const [overviewRes, studentsRes] = await Promise.all([
         fetch("http://localhost:8000/api/v1/coaching/coach/overview", {
-          headers: { "Authorization": `Bearer ${token}` }
+          headers: { "Authorization": `Bearer ${t}` }
         }),
         fetch("http://localhost:8000/api/v1/coaching/coach/students", {
-          headers: { "Authorization": `Bearer ${token}` }
+          headers: { "Authorization": `Bearer ${t}` }
         })
       ]);
       if (overviewRes.ok) {
@@ -165,7 +192,7 @@ export default function DashboardPage() {
         if (Array.isArray(stData)) {
           setCoachStudents(stData);
           if (stData.length > 0) {
-            setSelectedStudentId((prev) => prev || stData[0].id);
+            setSelectedStudentId((prev) => prev || String(stData[0].id));
           }
         }
       }
@@ -223,7 +250,7 @@ export default function DashboardPage() {
     e.preventDefault();
     setUpdating(true);
     setProfileMsg(null);
-    const token = localStorage.getItem('logos_ai_jwt');
+    const token = getToken();
     
     try {
       const res = await fetch(`http://localhost:8000/api/v1/auth/profile/me?full_name=${encodeURIComponent(fullName)}&experience_level=${encodeURIComponent(experience)}&preferred_topics=${encodeURIComponent(topics)}&presentation_domains=${encodeURIComponent(domains)}&learning_goals=${encodeURIComponent(goals)}&coaching_preferences=${encodeURIComponent(coaching)}`, {
@@ -236,8 +263,8 @@ export default function DashboardPage() {
       
       if (res.ok) {
         setUserName(fullName);
-        setProfileMsg({ type: 'success', text: 'User profile metrics successfully updated in PostgreSQL database.' });
-        fetchCoachingPlan(); // Refresh coaching recommendations based on updated profile
+        setProfileMsg({ type: 'success', text: 'User profile metrics successfully updated in database.' });
+        fetchCoachingPlan(token);
       } else {
         setProfileMsg({ type: 'error', text: 'Error updating profile. Please verify authorization.' });
       }
@@ -251,7 +278,7 @@ export default function DashboardPage() {
   const handleSendCoachFeedback = async (e) => {
     e.preventDefault();
     if (!coachFeedbackInput.trim() || !selectedStudentId) return;
-    const token = localStorage.getItem('logos_ai_jwt');
+    const token = getToken();
     try {
       const res = await fetch("http://localhost:8000/api/v1/coaching/coach/feedback", {
         method: "POST",
@@ -283,6 +310,13 @@ export default function DashboardPage() {
     router.push('/login');
   };
 
+  // Role Normalization
+  const roleStr = (userRole || 'Learner').trim().toLowerCase();
+  const isCoach = roleStr.includes('coach');
+  const isEducator = roleStr.includes('educator') || roleStr.includes('teacher');
+  const isAdmin = roleStr.includes('admin');
+  const isLearner = !isCoach && !isEducator && !isAdmin;
+
   if (loading) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
@@ -302,7 +336,7 @@ export default function DashboardPage() {
           <div style={{ display: 'inline-block', background: '#FEE2E2', color: '#D90429', fontSize: '0.75rem', fontWeight: 700, padding: '0.3rem 0.75rem', borderRadius: 0, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem' }}>
             ROUTER SESSION ACTIVE // ROLE: {userRole.toUpperCase()}
           </div>
-          <h1 className="font-display" style={{ fontSize: '3rem', fontWeight: '900', textTransform: 'uppercase', lineHeight: '1.1' }}>
+          <h1 className="font-display" style={{ fontSize: '3rem', fontWeight: 900, textTransform: 'uppercase', lineHeight: '1.1' }}>
             Welcome, {userName || 'User'}
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>Account email: {userEmail}</p>
@@ -312,61 +346,59 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Tab Select Bar for Learner role, or general view */}
-      {userRole === 'Learner' && (
-        <div style={{ display: 'flex', gap: '0.5rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0, padding: '6px', marginBottom: '2.5rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
-          {[
-            { id: 'overview', label: 'OVERVIEW & SUMMARY' },
-            { id: 'debates', label: `DEBATE HISTORY (${totalDebates})` },
-            { id: 'presentations', label: `VOCAL MATRIX ARCHIVE (${totalVocalSessions})` },
-            { id: 'settings', label: 'PROFILE SETTINGS' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                background: activeTab === tab.id ? '#111827' : 'transparent',
-                color: activeTab === tab.id ? '#FFF' : '#4B5563',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                borderRadius: 0,
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Unified Tab Select Bar for All Roles */}
+      <div style={{ display: 'flex', gap: '0.5rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0, padding: '6px', marginBottom: '2.5rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        {[
+          { id: 'overview', label: 'OVERVIEW & SUMMARY' },
+          { id: 'debates', label: `DEBATE HISTORY (${totalDebates})` },
+          { id: 'presentations', label: `VOCAL MATRIX ARCHIVE (${totalVocalSessions})` },
+          { id: 'settings', label: 'PROFILE SETTINGS' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: '0.75rem 1.5rem',
+              border: 'none',
+              background: activeTab === tab.id ? '#111827' : 'transparent',
+              color: activeTab === tab.id ? '#FFF' : '#4B5563',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              borderRadius: 0,
+              transition: 'all 0.2s ease-in-out'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* ========================================================================= */}
-      {/* 1. LEARNER DASHBOARD VIEW */}
+      {/* 1. OVERVIEW TAB: ROLE-SPECIFIC DASHBOARD OVERVIEW */}
       {/* ========================================================================= */}
-      {userRole === 'Learner' && (
+      {activeTab === 'overview' && (
         <div>
-          {/* Tab 1: Overview */}
-          {activeTab === 'overview' && (
+          {/* A. LEARNER OVERVIEW */}
+          {isLearner && (
             <div>
               {/* Quick statistics cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>DEBATES COMPLETED</div>
-                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{totalDebates}</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: 900 }}>{totalDebates}</div>
                 </div>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>VOCAL MATRIX SESSIONS</div>
-                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{totalVocalSessions}</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: 900 }}>{totalVocalSessions}</div>
                 </div>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>AVG OVERALL SCORE</div>
-                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{avgScore}%</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: 900 }}>{avgScore}%</div>
                 </div>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>LATEST SPEAKING PACE</div>
-                  <div className="font-display" style={{ fontSize: '2rem', fontWeight: '900' }}>{currentPace}</div>
+                  <div className="font-display" style={{ fontSize: '2rem', fontWeight: 900 }}>{currentPace}</div>
                 </div>
               </div>
 
@@ -473,7 +505,7 @@ export default function DashboardPage() {
                     <p style={{ fontSize: '0.88rem', color: '#ccc', lineHeight: '1.5', marginBottom: '1.5rem' }}>{skillGapSummary}</p>
                     
                     <div className="font-mono text-red" style={{ fontSize: '0.72rem', marginBottom: '0.5rem' }}>ACTIVE LEARNING STEP</div>
-                    <div style={{ fontSize: '0.9rem', color: '#FFF', fontWeight: 600 }}>{pathSteps[0]}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#FFF', fontWeight: 600 }}>{pathSteps[0] || 'Module: Speech Cadence (Active)'}</div>
                   </div>
 
                   {/* Recommendations Exercise list */}
@@ -489,564 +521,565 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-          {/* Tab 2: Debate History */}
-          {activeTab === 'debates' && (
-            <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div>
-                  <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>
-                    Complete Debate History & Practice Log
-                  </h3>
-                  <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0' }}>
-                    All completed parliamentary, Oxford, and AI agent simulation debate sessions stored in PostgreSQL.
-                  </p>
+
+          {/* B. DEBATE COACH OVERVIEW */}
+          {isCoach && (
+            <div>
+              {/* Quick Metrics */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ASSIGNED STUDENTS</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: 900 }}>{coachOverview.assigned_students}</div>
                 </div>
-                <Link href="/simulation" className="btn btn-red" style={{ padding: '0.6rem 1.25rem', fontSize: '0.825rem' }}>
-                  + START NEW DEBATE
-                </Link>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>CLASS PERFORMANCE AVERAGE</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: 900 }}>{coachOverview.class_performance_average}%</div>
+                </div>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>PENDING EVALUATIONS</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: 900 }}>{coachOverview.pending_evaluations}</div>
+                </div>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>STATUS SYSTEM</div>
+                  <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: 900, color: '#10B981' }}>{coachOverview.system_status}</div>
+                </div>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
-                      <th style={{ padding: '0.75rem 1rem' }}>Topic</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Format</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Position</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Performance Score</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Status</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Date Completed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {debateHistory.length > 0 ? (
-                      debateHistory.map((d) => (
-                        <tr key={d.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                          <td style={{ padding: '1rem', fontWeight: 600 }}>{d.topic || d.title}</td>
-                          <td style={{ padding: '1rem' }}>{d.format}</td>
-                          <td style={{ padding: '1rem' }}>{d.position}</td>
-                          <td style={{ padding: '1rem', color: 'var(--accent-red)', fontWeight: 700 }}>{d.score}%</td>
-                          <td style={{ padding: '1rem' }}>
-                            <span style={{ background: '#ECFDF5', color: '#059669', padding: '0.25rem 0.6rem', borderRadius: 0, fontSize: '0.75rem', fontWeight: 700 }}>
-                              {d.status}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1rem', color: '#6B7280' }}>{d.date}</td>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
+                {/* Student Progress Monitoring */}
+                <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>Student Progress Monitoring</h3>
+                    <span className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{coachStudents.length} ENROLLED</span>
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
+                          <th style={{ padding: '0.75rem' }}>Student Name</th>
+                          <th style={{ padding: '0.75rem' }}>Active Debate / Session Topic</th>
+                          <th style={{ padding: '0.75rem' }}>Sessions</th>
+                          <th style={{ padding: '0.75rem' }}>Grade</th>
+                          <th style={{ padding: '0.75rem' }}>Avg Score</th>
+                          <th style={{ padding: '0.75rem' }}>Top Logic Gap / Metric</th>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
-                          No debate sessions recorded yet. Launch the simulation to record your first debate!
-                        </td>
-                      </tr>
+                      </thead>
+                      <tbody>
+                        {coachStudents.length > 0 ? (
+                          coachStudents.map((student) => (
+                            <tr key={student.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                              <td style={{ padding: '0.85rem' }}>
+                                <div style={{ fontWeight: 600, color: '#111827' }}>{student.name}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{student.email}</div>
+                              </td>
+                              <td style={{ padding: '0.85rem', maxWidth: '200px' }}>
+                                <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
+                                  {student.topic}
+                                </div>
+                                <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>{student.format}</span>
+                              </td>
+                              <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.total_sessions}</td>
+                              <td style={{ padding: '0.85rem' }}>
+                                <span style={{
+                                  padding: '0.2rem 0.5rem',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  background: student.grade && student.grade.startsWith('A') ? '#ECFDF5' : student.grade && student.grade.startsWith('B') ? '#EFF6FF' : '#FEF2F2',
+                                  color: student.grade && student.grade.startsWith('A') ? '#059669' : student.grade && student.grade.startsWith('B') ? '#2563EB' : '#DC2626'
+                                }}>
+                                  {student.grade}
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.85rem', color: 'var(--accent-red)', fontWeight: 700 }}>
+                                {student.score > 0 ? `${student.score}%` : 'N/A'}
+                              </td>
+                              <td style={{ padding: '0.85rem' }}>
+                                <span style={{ background: '#FEE2E2', color: '#D90429', padding: '0.2rem 0.5rem', fontSize: '0.72rem', fontWeight: 700 }}>
+                                  {student.gap}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#9CA3AF' }}>
+                              No students registered in the database yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Sidebar Skill Gaps and Recommendations Panel */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
+                    <div className="font-mono text-red" style={{ fontSize: '0.72rem', marginBottom: '0.5rem' }}>ROSTER SKILL GAP ANALYSIS</div>
+                    <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Top Class Pain Points</h4>
+                    <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
+                      {coachOverview.top_class_pain_points && coachOverview.top_class_pain_points.length > 0 ? (
+                        coachOverview.top_class_pain_points.map((pt, idx) => (
+                          <li key={idx}>{pt}</li>
+                        ))
+                      ) : (
+                        <>
+                          <li>Logical consistency remains steady across recent debate transcripts.</li>
+                          <li>Encourage speech recordings in Vocal Matrix studio to evaluate speaking cadence.</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+
+                  {/* Coaching feedback form */}
+                  <div style={{ background: '#FFF', border: '1px solid #E5E7EB', padding: '2rem', borderRadius: 0 }}>
+                    <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Dispatch Coaching Recommendations</h4>
+                    {coachSuccessMsg && (
+                      <div style={{ background: '#ECFDF5', border: '1px solid #6EE7B7', color: '#059669', padding: '0.75rem', fontSize: '0.825rem', marginBottom: '1rem', fontWeight: 600 }}>
+                        {coachSuccessMsg}
+                      </div>
                     )}
-                  </tbody>
-                </table>
+                    <form onSubmit={handleSendCoachFeedback}>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '0.3rem' }}>Select Student</label>
+                        <select 
+                          value={selectedStudentId} 
+                          onChange={(e) => setSelectedStudentId(e.target.value)}
+                          style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E7EB', background: '#FFF', fontSize: '0.85rem' }}
+                        >
+                          {coachStudents.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '0.3rem' }}>Feedback / Recommendations</label>
+                        <textarea 
+                          rows={3} 
+                          value={coachFeedbackInput}
+                          onChange={(e) => setCoachFeedbackInput(e.target.value)}
+                          placeholder="e.g. Work on pausing to reduce filler words. Aim for 140 WPM during rebuttal." 
+                          style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <button type="submit" className="btn btn-red" style={{ width: '100%', padding: '0.7rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                        Send Recommendations
+                      </button>
+                    </form>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Tab 3: Presentation History */}
-          {activeTab === 'presentations' && (
-            <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div>
-                  <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>
-                    Complete Vocal Matrix & Speech Prosody Archive
-                  </h3>
-                  <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0' }}>
-                    Every recorded presentation, speaking pace metric, filler word count, and confidence rating preserved across sessions.
-                  </p>
+          {/* C. EDUCATOR OVERVIEW */}
+          {isEducator && (
+            <div>
+              {/* Roster classroom statistics cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE CLASSES</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: 900 }}>1</div>
                 </div>
-                <Link href="/presentation" className="btn btn-red" style={{ padding: '0.6rem 1.25rem', fontSize: '0.825rem' }}>
-                  + RECORD VOCAL MATRIX
-                </Link>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOTAL ENROLLED STUDENTS</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: 900 }}>{coachStudents.length}</div>
+                </div>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>CLASS DEBATE AVERAGE</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: 900 }}>{coachOverview.class_performance_average}%</div>
+                </div>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>PLATFORM STATUS</div>
+                  <div className="font-display text-red" style={{ fontSize: '1.6rem', fontWeight: 900 }}>100% ONLINE</div>
+                </div>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
-                      <th style={{ padding: '0.75rem 1rem' }}>Speech Title / Topic</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Speaking Pace</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Filler Words</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Confidence</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Vocal Clarity</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Overall Score</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Date Completed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {presentationHistory.length > 0 ? (
-                      presentationHistory.map((p) => (
-                        <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                          <td style={{ padding: '1rem', fontWeight: 600 }}>{p.topic || p.title}</td>
-                          <td style={{ padding: '1rem' }}>{p.wpm} WPM</td>
-                          <td style={{ padding: '1rem', color: p.filler_words_count > 2 ? '#D90429' : '#10B981', fontWeight: 600 }}>
-                            {p.filler_words_count} fillers
+              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
+                {/* Student Rankings */}
+                <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Student Leaderboard Rankings</h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
+                        <th style={{ padding: '0.75rem' }}>Rank</th>
+                        <th style={{ padding: '0.75rem' }}>Student Name</th>
+                        <th style={{ padding: '0.75rem' }}>Active Debate / Session</th>
+                        <th style={{ padding: '0.75rem' }}>Total Sessions</th>
+                        <th style={{ padding: '0.75rem' }}>Overall Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {coachStudents.length > 0 ? (
+                        [...coachStudents].sort((a, b) => (b.score || 0) - (a.score || 0)).map((student, i) => (
+                          <tr key={student.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                            <td style={{ padding: '0.85rem', fontWeight: 700 }}>#{i + 1}</td>
+                            <td style={{ padding: '0.85rem' }}>
+                              <div style={{ fontWeight: 600 }}>{student.name}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{student.email}</div>
+                            </td>
+                            <td style={{ padding: '0.85rem' }}>{student.topic}</td>
+                            <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.total_sessions}</td>
+                            <td style={{ padding: '0.85rem', color: 'var(--accent-red)', fontWeight: 700 }}>{student.score > 0 ? `${student.score}%` : 'N/A'}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#9CA3AF' }}>
+                            No enrolled student metrics found yet.
                           </td>
-                          <td style={{ padding: '1rem', color: '#059669', fontWeight: 700 }}>{p.confidence_score}%</td>
-                          <td style={{ padding: '1rem' }}>{p.clarity_score}%</td>
-                          <td style={{ padding: '1rem', color: 'var(--accent-red)', fontWeight: 700 }}>{p.overall_score || 85}%</td>
-                          <td style={{ padding: '1rem', color: '#6B7280' }}>{p.date}</td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
-                          No Vocal Matrix sessions recorded yet. Open the Vocal Metrics studio to evaluate your first speech!
-                        </td>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Reports Panel */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
+                    <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Active Debate Motion Topics</h4>
+                    <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
+                      <li>Autonomous AI systems legal liability standards</li>
+                      <li>Space Exploration vs. Deep Ocean Funding Priorities</li>
+                      <li>Universal Basic Income and Macroeconomic Stability</li>
+                    </ul>
+                  </div>
+
+                  {/* Assessment reports generator tool */}
+                  <div style={{ background: '#FFF', border: '1px solid #E5E7EB', padding: '2.2rem 2rem', borderRadius: 0 }}>
+                    <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Classroom Reports Engine</h4>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
+                      Export debate and presentation assessment audits as standardized CSV/PDF reports.
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <Link href="/reports" className="btn btn-dark" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', textAlign: 'center' }}>
+                        Open Assessment Reports Hub
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* D. ADMIN OVERVIEW */}
+          {isAdmin && (
+            <div>
+              {/* Admin Platform Stats cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOTAL PLATFORM USERS</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: 900 }}>1,420</div>
+                </div>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE AI OPPO AGENTS</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: 900 }}>8 Agents</div>
+                </div>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>LLM INFERENCE LATENCY</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: 900 }}>112ms</div>
+                </div>
+                <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>SYSTEM UPTIME</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: 900 }}>99.98%</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
+                {/* User Management Panel */}
+                <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                  <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>User Directory Access Control</h3>
+                  
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
+                        <th style={{ padding: '0.75rem' }}>User Email</th>
+                        <th style={{ padding: '0.75rem' }}>Role Level</th>
+                        <th style={{ padding: '0.75rem' }}>Platform Status</th>
+                        <th style={{ padding: '0.75rem' }}>Action</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Tab 4: Profile Settings Form */}
-          {activeTab === 'settings' && (
-            <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
-              <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Profile Settings & Experience Metrics</h3>
-              
-              {profileMsg && (
-                <div style={{ padding: '0.85rem 1.2rem', marginBottom: '1.5rem', borderRadius: 0, fontSize: '0.875rem', background: profileMsg.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: profileMsg.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${profileMsg.type === 'error' ? '#FCA5A5' : '#6EE7B7'}` }}>
-                  {profileMsg.text}
-                </div>
-              )}
-
-              <form onSubmit={handleUpdateProfile}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Full Name</label>
-                    <input 
-                      type="text" 
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Experience Level</label>
-                    <select
-                      value={experience}
-                      onChange={(e) => setExperience(e.target.value)}
-                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFF' }}
-                    >
-                      <option>Beginner</option>
-                      <option>Intermediate</option>
-                      <option>Advanced</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Preferred Debate Topics</label>
-                    <input 
-                      type="text" 
-                      value={topics}
-                      onChange={(e) => setTopics(e.target.value)}
-                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Presentation Domains</label>
-                    <input 
-                      type="text" 
-                      value={domains}
-                      onChange={(e) => setDomains(e.target.value)}
-                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Learning Goals</label>
-                    <textarea 
-                      rows={3}
-                      value={goals}
-                      onChange={(e) => setGoals(e.target.value)}
-                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Coaching Style Preference</label>
-                    <textarea 
-                      rows={3}
-                      value={coaching}
-                      onChange={(e) => setCoaching(e.target.value)}
-                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                  <button type="button" onClick={() => setActiveTab('overview')} style={{ padding: '0.75rem 1.5rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFF', fontWeight: 600, cursor: 'pointer' }}>
-                    Cancel
-                  </button>
-                  <button type="submit" disabled={updating} style={{ padding: '0.75rem 2rem', borderRadius: 0, border: 'none', background: '#111827', color: '#FFF', fontWeight: 600, cursor: 'pointer' }}>
-                    {updating ? 'Saving Metrics...' : 'Save Settings'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 2. DEBATE COACH DASHBOARD VIEW */}
-      {/* ========================================================================= */}
-      {userRole === 'Debate Coach' && (
-        <div>
-          {/* Quick Metrics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ASSIGNED STUDENTS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachOverview.assigned_students}</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>CLASS PERFORMANCE AVERAGE</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachOverview.class_performance_average}%</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>PENDING EVALUATIONS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachOverview.pending_evaluations}</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>STATUS SYSTEM</div>
-              <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '900', color: '#10B981' }}>{coachOverview.system_status}</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
-            {/* Student Progress Monitoring */}
-            <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>Student Progress Monitoring</h3>
-                <span className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{coachStudents.length} ENROLLED</span>
-              </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
-                      <th style={{ padding: '0.75rem' }}>Student Name</th>
-                      <th style={{ padding: '0.75rem' }}>Active Debate / Session Topic</th>
-                      <th style={{ padding: '0.75rem' }}>Sessions</th>
-                      <th style={{ padding: '0.75rem' }}>Grade</th>
-                      <th style={{ padding: '0.75rem' }}>Avg Score</th>
-                      <th style={{ padding: '0.75rem' }}>Top Logic Gap / Metric</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {coachStudents.length > 0 ? (
-                      coachStudents.map((student) => (
-                        <tr key={student.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                    </thead>
+                    <tbody>
+                      {[
+                        { email: 'mentor@logos.ai', role: 'Debate Coach', status: 'Active' },
+                        { email: 'admin@logos.ai', role: 'Administrator', status: 'Active' },
+                        { email: 'student1@logos.ai', role: 'Learner', status: 'Active' },
+                        { email: 'teacher@logos.ai', role: 'Educator', status: 'Suspended' }
+                      ].map((user, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                          <td style={{ padding: '0.85rem', fontWeight: 600 }}>{user.email}</td>
+                          <td style={{ padding: '0.85rem' }}>{user.role}</td>
                           <td style={{ padding: '0.85rem' }}>
-                            <div style={{ fontWeight: 600, color: '#111827' }}>{student.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{student.email}</div>
-                          </td>
-                          <td style={{ padding: '0.85rem', maxWidth: '200px' }}>
-                            <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
-                              {student.topic}
-                            </div>
-                            <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>{student.format}</span>
-                          </td>
-                          <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.total_sessions}</td>
-                          <td style={{ padding: '0.85rem' }}>
-                            <span style={{
-                              padding: '0.2rem 0.5rem',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              background: student.grade.startsWith('A') ? '#ECFDF5' : student.grade.startsWith('B') ? '#EFF6FF' : '#FEF2F2',
-                              color: student.grade.startsWith('A') ? '#059669' : student.grade.startsWith('B') ? '#2563EB' : '#DC2626'
+                            <span style={{ 
+                              background: user.status === 'Active' ? '#ECFDF5' : '#FEF2F2', 
+                              color: user.status === 'Active' ? '#059669' : '#DC2626', 
+                              padding: '0.2rem 0.5rem', 
+                              fontSize: '0.72rem', 
+                              fontWeight: 700 
                             }}>
-                              {student.grade}
+                              {user.status}
                             </span>
-                          </td>
-                          <td style={{ padding: '0.85rem', color: 'var(--accent-red)', fontWeight: 700 }}>
-                            {student.score > 0 ? `${student.score}%` : 'N/A'}
                           </td>
                           <td style={{ padding: '0.85rem' }}>
-                            <span style={{ background: '#FEE2E2', color: '#D90429', padding: '0.2rem 0.5rem', fontSize: '0.72rem', fontWeight: 700 }}>
-                              {student.gap}
-                            </span>
+                            <button onClick={() => alert(`Status change for ${user.email} triggered!`)} style={{ background: 'none', border: 'none', color: '#D90429', fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem', textDecoration: 'underline' }}>
+                              Toggle Status
+                            </button>
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#9CA3AF' }}>
-                          No students registered in the database yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Sidebar Skill Gaps and Recommendations Panel */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
-                <div className="font-mono text-red" style={{ fontSize: '0.72rem', marginBottom: '0.5rem' }}>ROSTER SKILL GAP ANALYSIS</div>
-                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Top Class Pain Points</h4>
-                <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
-                  {coachOverview.top_class_pain_points && coachOverview.top_class_pain_points.length > 0 ? (
-                    coachOverview.top_class_pain_points.map((pt, idx) => (
-                      <li key={idx}>{pt}</li>
-                    ))
-                  ) : (
-                    <>
-                      <li>Logical consistency remains steady across recent debate transcripts.</li>
-                      <li>Encourage speech recordings in Vocal Matrix studio to evaluate speaking cadence.</li>
-                    </>
-                  )}
-                </ul>
-              </div>
-
-              {/* Coaching feedback form */}
-              <div style={{ background: '#FFF', border: '1px solid #E5E7EB', padding: '2rem', borderRadius: 0 }}>
-                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Dispatch Coaching Recommendations</h4>
-                {coachSuccessMsg && (
-                  <div style={{ background: '#ECFDF5', border: '1px solid #6EE7B7', color: '#059669', padding: '0.75rem', fontSize: '0.825rem', marginBottom: '1rem', fontWeight: 600 }}>
-                    {coachSuccessMsg}
-                  </div>
-                )}
-                <form onSubmit={handleSendCoachFeedback}>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '0.3rem' }}>Select Student</label>
-                    <select 
-                      value={selectedStudentId} 
-                      onChange={(e) => setSelectedStudentId(e.target.value)}
-                      style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E7EB', background: '#FFF', fontSize: '0.85rem' }}
-                    >
-                      {coachStudents.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
                       ))}
-                    </select>
-                  </div>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '0.3rem' }}>Feedback / Recommendations</label>
-                    <textarea 
-                      rows={3} 
-                      value={coachFeedbackInput}
-                      onChange={(e) => setCoachFeedbackInput(e.target.value)}
-                      placeholder="e.g. Work on pausing to reduce filler words. Aim for 140 WPM during rebuttal." 
-                      style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E7EB', outline: 'none', boxSizing: 'border-box', fontSize: '0.85rem' }}
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-red" style={{ width: '100%', padding: '0.7rem', fontSize: '0.85rem', cursor: 'pointer' }}>
-                    Send Recommendations
+                    </tbody>
+                  </table>
+
+                  <button onClick={() => alert("Mock user creation template loaded.")} className="btn btn-dark" style={{ padding: '0.6rem 1.5rem', fontSize: '0.8rem' }}>
+                    Add New Platform User
                   </button>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                </div>
 
-      {/* ========================================================================= */}
-      {/* 3. EDUCATOR DASHBOARD VIEW */}
-      {/* ========================================================================= */}
-      {userRole === 'Educator' && (
-        <div>
-          {/* Roster classroom statistics cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE CLASSES</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>1</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOTAL ENROLLED STUDENTS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachStudents.length}</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>CLASS DEBATE AVERAGE</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{coachOverview.class_performance_average}%</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>PLATFORM STATUS</div>
-              <div className="font-display text-red" style={{ fontSize: '1.6rem', fontWeight: '900' }}>100% ONLINE</div>
-            </div>
-          </div>
+                {/* Platform Health and System Reports */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
+                    <div className="font-mono text-red" style={{ fontSize: '0.72rem', marginBottom: '0.5rem' }}>AI MODEL MONITORING</div>
+                    <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Embedding Index Health</h4>
+                    <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
+                      <li>Vector Database Size: <strong>3.42 GB (FAISS context indexes)</strong></li>
+                      <li>Retrieval Precision Rating: <strong>98.5% precision</strong></li>
+                      <li>GPU Latency Threshold: <strong>Under 12ms</strong></li>
+                    </ul>
+                  </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
-            {/* Student Rankings */}
-            <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Student Leaderboard Rankings</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
-                    <th style={{ padding: '0.75rem' }}>Rank</th>
-                    <th style={{ padding: '0.75rem' }}>Student Name</th>
-                    <th style={{ padding: '0.75rem' }}>Active Debate / Session</th>
-                    <th style={{ padding: '0.75rem' }}>Total Sessions</th>
-                    <th style={{ padding: '0.75rem' }}>Overall Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coachStudents.length > 0 ? (
-                    [...coachStudents].sort((a, b) => (b.score || 0) - (a.score || 0)).map((student, i) => (
-                      <tr key={student.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                        <td style={{ padding: '0.85rem', fontWeight: 700 }}>#{i + 1}</td>
-                        <td style={{ padding: '0.85rem' }}>
-                          <div style={{ fontWeight: 600 }}>{student.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{student.email}</div>
-                        </td>
-                        <td style={{ padding: '0.85rem' }}>{student.topic}</td>
-                        <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.total_sessions}</td>
-                        <td style={{ padding: '0.85rem', color: 'var(--accent-red)', fontWeight: 700 }}>{student.score > 0 ? `${student.score}%` : 'N/A'}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#9CA3AF' }}>
-                        No enrolled student metrics found yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  {/* Server control buttons */}
+                  <div style={{ background: '#FFF', border: '1px solid #E5E7EB', padding: '2.2rem 2rem', borderRadius: 0 }}>
+                    <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Platform Operations</h4>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
+                      Perform semantic indexing refactoring, clear logged database stacks, or extract system status configurations.
+                    </p>
 
-            {/* Reports Panel */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
-                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Active Debate Motion Topics</h4>
-                <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
-                  <li>Autonomous AI systems legal liability standards</li>
-                  <li>Space Exploration vs. Deep Ocean Funding Priorities</li>
-                  <li>Universal Basic Income and Macroeconomic Stability</li>
-                </ul>
-              </div>
-
-              {/* Assessment reports generator tool */}
-              <div style={{ background: '#FFF', border: '1px solid #E5E7EB', padding: '2.2rem 2rem', borderRadius: 0 }}>
-                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Classroom Reports Engine</h4>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
-                  Export debate and presentation assessment audits as standardized CSV/PDF reports.
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <Link href="/reports" className="btn btn-dark" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', textAlign: 'center' }}>
-                    Open Assessment Reports Hub
-                  </Link>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <button onClick={() => alert("Vector context memory index rebuilt successfully!")} className="btn btn-dark" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem' }}>
+                        Re-index Semantic Database
+                      </button>
+                      <button onClick={() => alert("Platform traffic status logs exported!")} className="btn btn-login" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', border: '1px solid #E5E7EB' }}>
+                        Download System Audit Report
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* 4. ADMIN DASHBOARD VIEW */}
+      {/* 2. DEBATE HISTORY TAB (Available for All Roles) */}
       {/* ========================================================================= */}
-      {userRole === 'Administrator' && (
-        <div>
-          {/* Admin Platform Stats cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOTAL PLATFORM USERS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>1,420</div>
+      {activeTab === 'debates' && (
+        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div>
+              <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>
+                Complete Debate History & Practice Log
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0' }}>
+                All completed parliamentary, Oxford, and AI agent simulation debate sessions stored in the database.
+              </p>
             </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE AI OPPO AGENTS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>8 Agents</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>LLM INFERENCE LATENCY</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>112ms</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>SYSTEM UPTIME</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>99.98%</div>
-            </div>
+            <Link href="/simulation" className="btn btn-red" style={{ padding: '0.6rem 1.25rem', fontSize: '0.825rem' }}>
+              + START NEW DEBATE
+            </Link>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
-            {/* User Management Panel */}
-            <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>User Directory Access Control</h3>
-              
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
-                    <th style={{ padding: '0.75rem' }}>User Email</th>
-                    <th style={{ padding: '0.75rem' }}>Role Level</th>
-                    <th style={{ padding: '0.75rem' }}>Platform Status</th>
-                    <th style={{ padding: '0.75rem' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { email: 'mentor@logos.ai', role: 'Debate Coach', status: 'Active' },
-                    { email: 'admin@logos.ai', role: 'Administrator', status: 'Active' },
-                    { email: 'student1@logos.ai', role: 'Learner', status: 'Active' },
-                    { email: 'teacher@logos.ai', role: 'Educator', status: 'Suspended' }
-                  ].map((user, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                      <td style={{ padding: '0.85rem', fontWeight: 600 }}>{user.email}</td>
-                      <td style={{ padding: '0.85rem' }}>{user.role}</td>
-                      <td style={{ padding: '0.85rem' }}>
-                        <span style={{ 
-                          background: user.status === 'Active' ? '#ECFDF5' : '#FEF2F2', 
-                          color: user.status === 'Active' ? '#059669' : '#DC2626', 
-                          padding: '0.2rem 0.5rem', 
-                          fontSize: '0.72rem', 
-                          fontWeight: 700 
-                        }}>
-                          {user.status}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>Topic</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Format</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Position</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Performance Score</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Date Completed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {debateHistory.length > 0 ? (
+                  debateHistory.map((d) => (
+                    <tr key={d.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '1rem', fontWeight: 600 }}>{d.topic || d.title}</td>
+                      <td style={{ padding: '1rem' }}>{d.format}</td>
+                      <td style={{ padding: '1rem' }}>{d.position}</td>
+                      <td style={{ padding: '1rem', color: 'var(--accent-red)', fontWeight: 700 }}>{d.score}%</td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ background: '#ECFDF5', color: '#059669', padding: '0.25rem 0.6rem', borderRadius: 0, fontSize: '0.75rem', fontWeight: 700 }}>
+                          {d.status}
                         </span>
                       </td>
-                      <td style={{ padding: '0.85rem' }}>
-                        <button onClick={() => alert(`Status change for ${user.email} triggered!`)} style={{ background: 'none', border: 'none', color: '#D90429', fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem', textDecoration: 'underline' }}>
-                          Toggle Status
-                        </button>
-                      </td>
+                      <td style={{ padding: '1rem', color: '#6B7280' }}>{d.date}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
+                      No debate sessions recorded yet. Launch the simulation to record your first debate!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-              <button onClick={() => alert("Mock user creation template loaded.")} className="btn btn-dark" style={{ padding: '0.6rem 1.5rem', fontSize: '0.8rem' }}>
-                Add New Platform User
+      {/* ========================================================================= */}
+      {/* 3. VOCAL MATRIX ARCHIVE TAB (Available for All Roles) */}
+      {/* ========================================================================= */}
+      {activeTab === 'presentations' && (
+        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div>
+              <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', margin: 0 }}>
+                Complete Vocal Matrix & Speech Prosody Archive
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0' }}>
+                Every recorded presentation, speaking pace metric, filler word count, and confidence rating preserved across sessions.
+              </p>
+            </div>
+            <Link href="/presentation" className="btn btn-red" style={{ padding: '0.6rem 1.25rem', fontSize: '0.825rem' }}>
+              + RECORD VOCAL MATRIX
+            </Link>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>Speech Title / Topic</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Speaking Pace</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Filler Words</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Confidence</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Vocal Clarity</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Overall Score</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Date Completed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {presentationHistory.length > 0 ? (
+                  presentationHistory.map((p) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '1rem', fontWeight: 600 }}>{p.topic || p.title}</td>
+                      <td style={{ padding: '1rem' }}>{p.wpm} WPM</td>
+                      <td style={{ padding: '1rem', color: p.filler_words_count > 2 ? '#D90429' : '#10B981', fontWeight: 600 }}>
+                        {p.filler_words_count} fillers
+                      </td>
+                      <td style={{ padding: '1rem', color: '#059669', fontWeight: 700 }}>{p.confidence_score}%</td>
+                      <td style={{ padding: '1rem' }}>{p.clarity_score}%</td>
+                      <td style={{ padding: '1rem', color: 'var(--accent-red)', fontWeight: 700 }}>{p.overall_score || 85}%</td>
+                      <td style={{ padding: '1rem', color: '#6B7280' }}>{p.date}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
+                      No Vocal Matrix sessions recorded yet. Open the Vocal Metrics studio to evaluate your first speech!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. PROFILE SETTINGS TAB (Available for All Roles) */}
+      {/* ========================================================================= */}
+      {activeTab === 'settings' && (
+        <div style={{ background: '#FFF', padding: '2.5rem 2rem', borderRadius: 0, border: '1px solid #E5E7EB' }}>
+          <h3 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Profile Settings & Experience Metrics</h3>
+          
+          {profileMsg && (
+            <div style={{ padding: '0.85rem 1.2rem', marginBottom: '1.5rem', borderRadius: 0, fontSize: '0.875rem', background: profileMsg.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: profileMsg.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${profileMsg.type === 'error' ? '#FCA5A5' : '#6EE7B7'}` }}>
+              {profileMsg.text}
+            </div>
+          )}
+
+          <form onSubmit={handleUpdateProfile}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Full Name</label>
+                <input 
+                  type="text" 
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Experience Level</label>
+                <select
+                  value={experience}
+                  onChange={(e) => setExperience(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFF' }}
+                >
+                  <option>Beginner</option>
+                  <option>Intermediate</option>
+                  <option>Advanced</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Preferred Debate Topics</label>
+                <input 
+                  type="text" 
+                  value={topics}
+                  onChange={(e) => setTopics(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Presentation Domains</label>
+                <input 
+                  type="text" 
+                  value={domains}
+                  onChange={(e) => setDomains(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Learning Goals</label>
+                <textarea 
+                  rows={3}
+                  value={goals}
+                  onChange={(e) => setGoals(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Coaching Style Preference</label>
+                <textarea 
+                  rows={3}
+                  value={coaching}
+                  onChange={(e) => setCoaching(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 0, border: '1px solid #E5E7EB', outline: 'none' }} 
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button type="button" onClick={() => setActiveTab('overview')} style={{ padding: '0.75rem 1.5rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFF', fontWeight: 600, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button type="submit" disabled={updating} style={{ padding: '0.75rem 2rem', borderRadius: 0, border: 'none', background: '#111827', color: '#FFF', fontWeight: 600, cursor: 'pointer' }}>
+                {updating ? 'Saving Metrics...' : 'Save Settings'}
               </button>
             </div>
-
-            {/* Platform Health and System Reports */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
-                <div className="font-mono text-red" style={{ fontSize: '0.72rem', marginBottom: '0.5rem' }}>AI MODEL MONITORING</div>
-                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Embedding Index Health</h4>
-                <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
-                  <li>Vector Database Size: <strong>3.42 GB (FAISS context indexes)</strong></li>
-                  <li>Retrieval Precision Rating: <strong>98.5% precision</strong></li>
-                  <li>GPU Latency Threshold: <strong>Under 12ms</strong></li>
-                </ul>
-              </div>
-
-              {/* Server control buttons */}
-              <div style={{ background: '#FFF', border: '1px solid #E5E7EB', padding: '2.2rem 2rem', borderRadius: 0 }}>
-                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Platform Operations</h4>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
-                  Perform semantic indexing refactoring, clear logged database stacks, or extract system status configurations.
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <button onClick={() => alert("Vector context memory index rebuilt successfully!")} className="btn btn-dark" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem' }}>
-                    Re-index Semantic Database
-                  </button>
-                  <button onClick={() => alert("Platform traffic status logs exported!")} className="btn btn-login" style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', border: '1px solid #E5E7EB' }}>
-                    Download System Audit Report
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          </form>
         </div>
       )}
 

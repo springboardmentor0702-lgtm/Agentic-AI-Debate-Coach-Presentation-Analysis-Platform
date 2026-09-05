@@ -17,7 +17,10 @@ try:
         logging.info("Connected to PostgreSQL Primary Database.")
 except Exception as e:
     logging.warning(f"PostgreSQL connection failed ({e}). Falling back to SQLite primary database.")
-    fallback_url = "sqlite:///./logos_ai.db"
+    import os
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(backend_dir, "logos_ai.db")
+    fallback_url = f"sqlite:///{db_path}"
     engine = create_engine(fallback_url, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
