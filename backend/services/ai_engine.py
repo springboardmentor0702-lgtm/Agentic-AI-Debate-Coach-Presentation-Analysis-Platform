@@ -242,7 +242,7 @@ class AIEngine:
             "counterarguments": counterarguments,
         }
 
-    def generate_simulation_response(self, text: str, persona: str) -> Dict[str, Any]:
+    def generate_simulation_response(self, text: str, persona: str, topic: str) -> Dict[str, Any]:
         analysis = self.analyze_argument(text)
         persona = persona if persona in SUPPORTED_PERSONAS else "The Contrarian"
         styles = {
@@ -256,25 +256,47 @@ class AIEngine:
             "The Strategist": "From an implementation perspective, your thesis needs a stronger plan.",
         }
         text_lower = text.lower()
+        topic_lower = topic.lower()
 
-        if "online education" in text_lower or "online learning" in text_lower:
+        if "legal" in topic_lower or "liable" in topic_lower or "liability" in topic_lower:
+            if "without direct human control" in text_lower or "decisions" in text_lower:
+                rebuttal_text = "Even if an AI system makes decisions autonomously, developers and operators may still be responsible for how the system was designed and deployed. How would you separate AI autonomy from human responsibility?"
+
+            elif "safer" in text_lower or "reliable" in text_lower:
+                rebuttal_text = "Legal liability may encourage safer AI development, but excessive liability could also discourage useful AI innovation. How would you balance safety requirements with continued innovation?"
+
+            elif "developers" in text_lower or "operators" in text_lower or "deploying" in text_lower:
+                rebuttal_text = "Developers and operators can be held responsible for negligence, but unintended AI behavior may sometimes occur despite reasonable precautions. What standard should determine when they are legally liable?"
+
+            else:
+                rebuttal_text = "Autonomous AI systems may cause unintended harm, but assigning legal liability directly to an AI system can be difficult because responsibility usually depends on the developers, owners, or operators. How would your proposal determine who should be legally responsible?"
+
             primary_counter = {
-                "rebuttal_text": "Online education provides flexibility, but it can reduce direct interaction with teachers and classmates. How would you address that limitation?"
+                "rebuttal_text": rebuttal_text
+            }
+        elif "online education" in topic_lower or "online learning" in topic_lower:
+            primary_counter = {
+                "rebuttal_text": "Online education provides flexibility and wider access, but it can reduce direct interaction with teachers and classmates. How would you address that limitation?"
             }
 
-        elif "social media" in text_lower:
+        elif "social media" in topic_lower:
             primary_counter = {
-                "rebuttal_text": "Social media can help students learn, but it can also expose them to distractions and misinformation. How can students avoid these problems?"
+                "rebuttal_text": "Social media can provide useful communication and information, but it can also increase distractions and misinformation. What safeguards would you use to reduce these risks?"
             }
 
-        elif "artificial intelligence" in text_lower or "ai " in text_lower:
+        elif "universal basic income" in topic_lower or "basic income" in topic_lower:
             primary_counter = {
-                "rebuttal_text": "AI can create new opportunities, but it may also replace some existing jobs. What makes you confident that the new jobs will benefit affected workers?"
+                "rebuttal_text": "Universal Basic Income could provide financial security, but its cost and long-term effect on employment need careful consideration. How would you fund it sustainably?"
+            }
+
+        elif "artificial intelligence" in topic_lower or "ai" in topic_lower:
+            primary_counter = {
+                "rebuttal_text": "Artificial intelligence can improve productivity and create new opportunities, but it can also introduce risks such as job displacement and misuse. How would your proposal address these risks?"
             }
 
         else:
             primary_counter = {
-                "rebuttal_text": "Your argument has a valid point, but there are possible disadvantages that should also be considered. How would you address the main opposing view?"
+                "rebuttal_text": f"Your argument addresses the topic, but the opposing side could question the assumptions behind it. What evidence supports your position on this topic?"
             }
         strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
         return {

@@ -30,7 +30,11 @@ def run_simulation_turn(
 
     persona = payload.opponent_persona if payload.opponent_persona in SUPPORTED_PERSONAS else "The Contrarian"
     try:
-        simulation_result = ai_engine_service.generate_simulation_response(payload.user_argument, persona)
+        simulation_result = ai_engine_service.generate_simulation_response(
+            payload.user_argument,
+            persona,
+            debate_session.topic,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
