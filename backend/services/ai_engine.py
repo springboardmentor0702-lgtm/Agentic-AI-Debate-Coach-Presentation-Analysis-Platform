@@ -255,9 +255,28 @@ class AIEngine:
             "The Academic": "Your argument needs clearer methodological support.",
             "The Strategist": "From an implementation perspective, your thesis needs a stronger plan.",
         }
-        counter_index = len(text.split()) % len(analysis["counterarguments"])
-        primary_counter = analysis["counterarguments"][counter_index]
-        strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
+        text_lower = text.lower()
+
+        if "online education" in text_lower or "online learning" in text_lower:
+            primary_counter = {
+                "rebuttal_text": "Online education provides flexibility, but it can reduce direct interaction with teachers and classmates. How would you address that limitation?"
+            }
+
+        elif "social media" in text_lower:
+            primary_counter = {
+                "rebuttal_text": "Social media can help students learn, but it can also expose them to distractions and misinformation. How can students avoid these problems?"
+            }
+
+        elif "artificial intelligence" in text_lower or "ai " in text_lower:
+            primary_counter = {
+                "rebuttal_text": "AI can create new opportunities, but it may also replace some existing jobs. What makes you confident that the new jobs will benefit affected workers?"
+            }
+
+        else:
+            primary_counter = {
+                "rebuttal_text": "Your argument has a valid point, but there are possible disadvantages that should also be considered. How would you address the main opposing view?"
+            }
+              strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
         return {
             "opponent_rebuttal": f"{prefixes[persona]} {primary_counter['rebuttal_text']} {primary_counter['challenge_question']}",
             "fallacies_detected": analysis["fallacies"],
