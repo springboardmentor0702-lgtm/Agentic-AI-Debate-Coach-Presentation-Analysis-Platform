@@ -21,9 +21,43 @@ from routers import (
 )
 
 # --------------------------------
-# DATABASE TABLES INIT
+# DATABASE TABLES INIT & SEEDING
 # --------------------------------
 Base.metadata.create_all(bind=engine)
+
+def seed_database():
+    from database import SessionLocal
+    from models import User
+    from security import hash_password
+
+    db = SessionLocal()
+    try:
+        demo_users = [
+            ("Alex Mercer (Learner)", "learner@example.com", "learner123", "learner", "intermediate"),
+            ("Dr. Sofia Vance (Coach)", "coach@example.com", "coach123", "coach", "advanced"),
+            ("Prof. David Sterling (Educator)", "educator@example.com", "educator123", "educator", "advanced"),
+            ("Administrator", "admin@example.com", "admin123", "admin", "advanced"),
+        ]
+        for name, email, pwd, role, exp in demo_users:
+            if not db.query(User).filter(User.email == email).first():
+                user = User(
+                    name=name,
+                    email=email,
+                    password_hash=hash_password(pwd),
+                    role=role,
+                    experience_level=exp,
+                    preferred_topics=["AI Governance", "Public Policy", "Ethics"],
+                    learning_goals=["Master Cross-Examination", "Eliminate Filler Words"]
+                )
+                db.add(user)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print("Seed warning:", e)
+    finally:
+        db.close()
+
+seed_database()
 
 # --------------------------------
 # APPLICATION SETUP
