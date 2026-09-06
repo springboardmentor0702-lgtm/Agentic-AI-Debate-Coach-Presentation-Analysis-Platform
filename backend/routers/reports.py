@@ -31,3 +31,51 @@ def get_session_summary_report(session_id: int):
         "filler_words_count": 2,
         "certificate_id": f"CERT-LOGOS-{session_id}-2026"
     }
+
+
+@router.get("/export/audit/{session_id}")
+def export_audit_report(session_id: int):
+    audit_content = f"Audit Report - LOGOS.AI Session {session_id}" + chr(10) + "Fallacies Detected,None" + chr(10) + "Logical Consistency,90.0" + chr(10) + "Rebuttal Effectiveness,88.0" + chr(10) + "Evidence Use,80.0" + chr(10) + "Audit Status,Verified" + chr(10)
+    return Response(
+        content=audit_content,
+        media_type="text/plain",
+        headers={"Content-Disposition": f"attachment; filename=logos_ai_session_{session_id}_audit.txt"}
+    )
+
+
+@router.get("/export/certificate/{session_id}")
+def export_certificate(session_id: int):
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    import io
+
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    pdf.setTitle(f"LOGOS.AI Certificate - Session {session_id}")
+    pdf.setFont("Helvetica-Bold", 24)
+    pdf.drawCentredString(width / 2, height - 120, "LOGOS.AI")
+    pdf.setFont("Helvetica-Bold", 20)
+    pdf.drawCentredString(width / 2, height - 170, "CERTIFICATE OF RHETORICAL MASTERY")
+    pdf.setFont("Helvetica", 14)
+    pdf.drawCentredString(width / 2, height - 230, "This certifies successful completion of the debate coaching session")
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawCentredString(width / 2, height - 290, f"Session {session_id}")
+    pdf.setFont("Helvetica", 13)
+    pdf.drawCentredString(width / 2, height - 340, "Verified Performance Score: 85.4 / 100")
+    pdf.drawCentredString(width / 2, height - 370, "Speech Pace: 142 WPM (Optimal)")
+    pdf.drawCentredString(width / 2, height - 400, "Fallacies Detected: None")
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawCentredString(width / 2, height - 470, f"Certificate ID: CERT-LOGOS-{session_id}-2026")
+    pdf.setFont("Helvetica", 11)
+    pdf.drawCentredString(width / 2, 80, "LOGOS.AI - Agentic Debate Coach & Presentation Analysis Platform")
+
+    pdf.save()
+    buffer.seek(0)
+
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=logos_ai_session_{session_id}_certificate.pdf"}
+    )

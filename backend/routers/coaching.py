@@ -7,9 +7,7 @@ import models, schemas
 router = APIRouter(prefix="/api/v1/coaching", tags=["Recommendation & Coaching Engine"])
 
 @router.get("/plan/{user_id}", response_model=schemas.CoachingPlanResponse)
-<<<<<<< HEAD
-def get_coaching_plan(user_id: int, db: Session = Depends(get_db)):
-=======
+
 def get_coaching_plan(user_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only access your own coaching plan.")
@@ -88,7 +86,7 @@ def get_coaching_plan(user_id: int, current_user: models.User = Depends(get_curr
             path_steps.append("Module: Advanced Parliamentary Refutation (Upcoming)")
             path_steps.append("Module: Socratic Cross-examination (Upcoming)")
             
->>>>>>> origin/main
+
     return {
         "user_id": user_id,
         "skill_gap_summary": "Strong core argument construction; needs targeted reduction in Ad Hominem reflexes and filler words during high-pressure cross-examination.",

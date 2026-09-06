@@ -255,7 +255,8 @@ class AIEngine:
             "The Academic": "Your argument needs clearer methodological support.",
             "The Strategist": "From an implementation perspective, your thesis needs a stronger plan.",
         }
-        primary_counter = analysis["counterarguments"][0]
+        counter_index = len(text.split()) % len(analysis["counterarguments"])
+        primary_counter = analysis["counterarguments"][counter_index]
         strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
         return {
             "opponent_rebuttal": f"{prefixes[persona]} {primary_counter['rebuttal_text']} {primary_counter['challenge_question']}",

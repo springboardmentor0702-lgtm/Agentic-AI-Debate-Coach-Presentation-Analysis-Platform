@@ -23,23 +23,22 @@ function TypewriterText({ text, speed = 15 }) {
   useEffect(() => {
     let index = 0;
     setDisplayedText("");
-    const timer = setInterval(() => {
-      setDisplayedText((prev) => {
-        const nextChar = text.charAt(index);
-        index++;
-        if (index >= text.length) {
-          clearInterval(timer);
-        }
-        return prev + nextChar;
-      });
-    }, speed);
 
+const timer = setInterval(() => {
+  const nextChar = text.charAt(index);
+  index++;
+
+  setDisplayedText((prev) => prev + nextChar);
+
+  if (index >= text.length) {
+    clearInterval(timer);
+  }
+}, speed);
     return () => clearInterval(timer);
   }, [text, speed]);
 
   return <span>{displayedText}</span>;
 }
-
 export default function SimulationPage() {
   const [topic, setTopic] = useState(PRESET_TOPICS[0]);
   const [customTopic, setCustomTopic] = useState("");
@@ -205,7 +204,7 @@ export default function SimulationPage() {
         ...prev,
         {
           speaker: `AI Opponent (${persona})`,
-          text: `I reject your proposition. Asserting that liability rests on autonomous units ignores manufacturer warranty and human operator oversight.`,
+          text: ``,
           type: "opponent",
           rebuttal_strength: 96.5,
           fallacies: []
