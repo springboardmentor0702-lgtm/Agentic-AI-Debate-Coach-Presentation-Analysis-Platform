@@ -57,7 +57,20 @@ export default function SimulationPage() {
 
   const [transcript, setTranscript] = useState([]);
   const [lastAnalysis, setLastAnalysis] = useState(null);
+  const speakAIResponse = (text) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
 
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+
+    window.speechSynthesis.speak(utterance);
+  };
   const handleStartDebate = async () => {
     setLoading(true);
     const finalTopic = topic === "Custom Topic (Enter below)" ? customTopic : topic;
@@ -192,7 +205,7 @@ export default function SimulationPage() {
           fallacies: data.fallacies_detected_in_user
         }
       ]);
-
+      speakAIResponse(data.opponent_rebuttal);
       setLastAnalysis({
         rebuttal_strength: data.rebuttal_strength_percent,
         fallacies: data.fallacies_detected_in_user,
