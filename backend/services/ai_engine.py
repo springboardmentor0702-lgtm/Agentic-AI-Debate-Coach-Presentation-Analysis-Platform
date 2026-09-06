@@ -276,7 +276,7 @@ class AIEngine:
             primary_counter = {
                 "rebuttal_text": "Your argument has a valid point, but there are possible disadvantages that should also be considered. How would you address the main opposing view?"
             }
-              strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
+        strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
         return {
             "opponent_rebuttal": f"{prefixes[persona]} {primary_counter['rebuttal_text']} {primary_counter['challenge_question']}",
             "fallacies_detected": analysis["fallacies"],
