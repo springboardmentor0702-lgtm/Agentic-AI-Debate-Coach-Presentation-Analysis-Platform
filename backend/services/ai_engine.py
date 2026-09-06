@@ -278,7 +278,7 @@ class AIEngine:
             }
         strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
         return {
-            "opponent_rebuttal": f"{prefixes[persona]} {primary_counter['rebuttal_text']} {primary_counter['challenge_question']}",
+            "opponent_rebuttal": f"{prefixes[persona]} {primary_counter['rebuttal_text']}",
             "fallacies_detected": analysis["fallacies"],
             "rebuttal_strength_percent": round(strength, 1),
             "coaching_tip": f"Persona style: {styles[persona]} Address the challenge directly before introducing a new point.",
