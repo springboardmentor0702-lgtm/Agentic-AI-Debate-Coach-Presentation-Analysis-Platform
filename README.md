@@ -58,7 +58,7 @@ An enterprise-grade, AI-powered **Debate Coaching & Presentation Intelligence Pl
 | **11** | **Multi-Role Dashboards & Analytics** | Dedicated dashboards for **Learner** (trend radar, history), **Coach** (student progress, fallacy distribution), **Educator** (class leaderboard, grade curves), and **Admin** (telemetry, role management). |
 | **12** | **Notification & Engagement System** | Real-time notifications for debate schedules, coach feedback, and skill milestones. |
 | **13** | **Reports & Export System** | Instant compilation and downloading of official **PDF Performance Dossiers**, **CSV Data Sheets**, and **Excel Workbooks**. |
-| **14** | **Integration, Testing & Deployment** | Automated Pytest suite covering all 9 test dimensions, Dockerfiles for frontend & backend, and docker-compose orchestration. |
+| **14** | **Integration, Testing & Deployment** | Automated test suite covering all 10 test dimensions (including Plain-English Glossary and Simulation turn validations), Dockerfiles for frontend & backend, and docker-compose orchestration. |
 
 ---
 
@@ -74,6 +74,38 @@ Where:
 - $L$ = **Logical Consistency** (20%)
 - $R$ = **Rebuttal Effectiveness** (15%)
 - $C$ = **Communication Skills** (15%)
+
+---
+
+## 📖 Difficult Words Made Simple & Plain-English Glossary
+
+Debate and formal logic can often feel alienating for learners. The platform features an integrated **Plain-English Glossary Service** (`backend/app/services/glossary.py`) that demystifies academic debate jargon:
+
+* **Warrant** $\rightarrow$ *The Proof / Connection (Why your claim is true)*
+* **Rebuttal** $\rightarrow$ *Counter-Response (Respectful, evidence-based answer)*
+* **Ad Hominem** $\rightarrow$ *Attacking the Person (Name-Calling)*
+* **Straw Man** $\rightarrow$ *Twisting the Other Person's Words*
+* **False Dilemma** $\rightarrow$ *Only Two Choices (Black-or-White Thinking)*
+* **Slippery Slope** $\rightarrow$ *Exaggerated Chain Reaction*
+* **Utilitarian** $\rightarrow$ *The Greatest Good for Most People*
+* **Deontological** $\rightarrow$ *Rule of Duty & Principles*
+* **Externalities** $\rightarrow$ *Side Effects on Others*
+* **Cadence** $\rightarrow$ *Speaking Speed & Rhythm (WPM)*
+
+### Interactive Features:
+1. **In-Debate Word Extractor**: Automatically scans live speeches and displays plain-English meaning badges with concrete everyday examples.
+2. **Searchable Dictionary Modal**: Built-in modal in both the **Live Debate Studio** and the **Argument Lab** allowing keyword search across all terms.
+3. **Plain-English Fallacy Labels**: Each detected fallacy displays its everyday name and a 💡 *In Plain English* explanation alongside the formal Latin nomenclature.
+
+---
+
+## 🌟 Structured AI Coach Live Feedback
+
+After every turn in the live sparring chamber, the AI Coach generates actionable guidance:
+* 🌟 **What You Did Well (Praise)**: Positive reinforcement of debater strengths (clear thesis, bold claim, empirical data).
+* 🎯 **How to Win the Next Point (Tip)**: Friendly, jargon-free advice for countering the opponent's strategy.
+* 📖 **Difficult Words Breakdown**: Instant explanations of complex words used during the round.
+* ⚡ **Suggested Next Reply**: Ready-to-use counter-speech snippet with a **1-click "Insert in Speech"** button.
 
 ---
 
@@ -123,6 +155,33 @@ Double-click `run_app.bat` to launch both backend and frontend servers simultane
 
 ---
 
+## 🧪 Automated Test Suite (10 / 10 Passing)
+
+Run the full end-to-end automated test suite:
+```bash
+python backend/tests/test_api.py
+```
+
+```text
+--- Running Test Suite for Agentic AI Debate Coach Platform ---
+[PASS] test_root_and_health
+[PASS] test_demo_logins_and_rbac
+[PASS] test_argument_analysis
+[PASS] test_fallacy_detection_all_types
+[PASS] test_counterargument_generation_5_types
+[PASS] test_speech_presentation_metrics
+[PASS] test_exact_weighted_scoring_model
+[PASS] test_ai_simulation_turn
+[PASS] test_glossary_and_plain_english_definitions
+[PASS] test_report_export_pdf_csv
+
+==========================================
+SUCCESS: ALL 10 AUTOMATED SUITES PASSED!
+==========================================
+```
+
+---
+
 ## Docker Deployment
 
 To launch the full platform in Docker containers:
@@ -131,3 +190,4 @@ docker-compose up --build
 ```
 - Frontend: `http://localhost:3000`
 - Backend API: `http://localhost:8000`
+
