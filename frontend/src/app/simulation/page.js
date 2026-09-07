@@ -30,7 +30,7 @@ const PERSONAS = [
     role: "Skeptical Analyst",
     badge: "Master / Empirical",
     desc: "Ruthlessly dissects unverified data points, correlational errors, and ungrounded claims.",
-    avatar: "🔬",
+    avatar: "EV",
     color: "from-blue-600 to-indigo-700"
   },
   {
@@ -39,7 +39,7 @@ const PERSONAS = [
     role: "Passionate Ideologue",
     badge: "Elite / High Rhetoric",
     desc: "Employs passionate moral appeals, rights-based principles, and high-impact emotional resonance.",
-    avatar: "🔥",
+    avatar: "SS",
     color: "from-rose-600 to-amber-600"
   },
   {
@@ -48,7 +48,7 @@ const PERSONAS = [
     role: "Socratic Inquirer",
     badge: "Master / Dialectical",
     desc: "Disarms opponent premises through pointed probing questions and boundary trade-off dilemmas.",
-    avatar: "🏛️",
+    avatar: "LL",
     color: "from-purple-600 to-violet-700"
   },
   {
@@ -57,7 +57,7 @@ const PERSONAS = [
     role: "Pragmatic Realist",
     badge: "Executive / Feasibility",
     desc: "Scrutinizes budget feasibility, operational hurdles, and unintended economic second-order effects.",
-    avatar: "💼",
+    avatar: "MS",
     color: "from-emerald-600 to-teal-700"
   }
 ];
@@ -242,7 +242,12 @@ export default function SimulationPage() {
                   : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500"
               }`}
             >
-              <span>{voiceEnabled ? "🔊 Voice On" : "🔇 Voice Muted"}</span>
+              {voiceEnabled ? (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+              )}
+              <span>{voiceEnabled ? "Voice Enabled" : "Voice Muted"}</span>
             </button>
             <button
               onClick={handleFinish}
@@ -259,7 +264,7 @@ export default function SimulationPage() {
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span>⚙️</span> Debate Motion & Chamber Settings
+              <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Debate Motion & Chamber Settings
             </h2>
 
             {/* TOPIC SELECTION */}
@@ -354,7 +359,9 @@ export default function SimulationPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl">{p.avatar}</span>
+                      <div className="h-8 w-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                        {p.avatar}
+                      </div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         {p.badge}
                       </span>
@@ -385,10 +392,7 @@ export default function SimulationPage() {
                   <span>Preparing Arena & Opponent Persona...</span>
                 </>
               ) : (
-                <>
-                  <span>⚔️</span>
-                  <span>Enter Debate Arena & Commence Round 1</span>
-                </>
+                <span>Enter Debate Arena & Commence Round 1</span>
               )}
             </button>
           </div>
@@ -451,7 +455,7 @@ export default function SimulationPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-5 bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/50 rounded-2xl space-y-2">
               <h3 className="font-bold text-sm text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
-                <span>✓</span> Key Strengths Demonstrated
+                <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg> Key Strengths Demonstrated
               </h3>
               <ul className="space-y-1.5 text-xs text-emerald-900 dark:text-emerald-300 list-disc pl-4">
                 {(summary.strengths || []).map((s, idx) => (
@@ -462,7 +466,7 @@ export default function SimulationPage() {
 
             <div className="p-5 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl space-y-2">
               <h3 className="font-bold text-sm text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
-                <span>⚡</span> Strategic Growth Areas
+                <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg> Strategic Growth Areas
               </h3>
               <ul className="space-y-1.5 text-xs text-amber-900 dark:text-amber-300 list-disc pl-4">
                 {(summary.improvements || []).map((imp, idx) => (
@@ -533,7 +537,7 @@ export default function SimulationPage() {
                       className="text-xs text-slate-400 hover:text-indigo-600 transition-colors"
                       title="Replay Voice"
                     >
-                      🔊
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
                     </button>
                   )}
                 </div>
@@ -551,7 +555,7 @@ export default function SimulationPage() {
                 {/* COACH NUDGE HUD */}
                 {msg.coach_feedback && (
                   <div className="mt-2.5 max-w-[85%] p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-2xl text-xs text-amber-900 dark:text-amber-200 shadow-sm flex items-start gap-2.5">
-                    <span className="text-base">💡</span>
+                    <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                     <div>
                       <strong className="block text-[11px] uppercase tracking-wider font-bold text-amber-800 dark:text-amber-300">
                         Live Coach Recommendation

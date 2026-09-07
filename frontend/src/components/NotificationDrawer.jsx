@@ -13,7 +13,7 @@ export default function NotificationDrawer() {
       time: "10m ago",
       read: false,
       link: "/coaching",
-      icon: "🎯"
+      category: "COACHING"
     },
     {
       id: 2,
@@ -22,7 +22,7 @@ export default function NotificationDrawer() {
       time: "1h ago",
       read: false,
       link: "/presentation",
-      icon: "🎙️"
+      category: "SPEECH"
     },
     {
       id: 3,
@@ -31,7 +31,7 @@ export default function NotificationDrawer() {
       time: "2h ago",
       read: true,
       link: "/dashboard",
-      icon: "⚡"
+      category: "SYSTEM"
     }
   ]);
 
@@ -56,12 +56,12 @@ export default function NotificationDrawer() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all"
+        className="relative px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 text-xs font-semibold transition-all flex items-center gap-1.5"
         title="Notifications"
       >
-        <span className="text-base">🔔</span>
+        <span>Alerts</span>
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-indigo-950">
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-xs">
             {unreadCount}
           </span>
         )}
@@ -100,8 +100,8 @@ export default function NotificationDrawer() {
                   !n.read ? "bg-indigo-50/30 dark:bg-indigo-950/20" : ""
                 }`}
               >
-                <div className="text-lg p-2 rounded-xl bg-slate-100 dark:bg-slate-800 h-max">
-                  {n.icon}
+                <div className="text-[10px] font-mono font-bold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 h-max self-start">
+                  {n.category}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">

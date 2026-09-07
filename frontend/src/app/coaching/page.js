@@ -82,7 +82,7 @@ export default function CoachingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="p-6 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/50 rounded-3xl space-y-2">
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                <span>🌟</span> Demonstrable Strength
+                <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Demonstrable Strength
               </span>
               <strong className="text-xl font-black text-emerald-950 dark:text-emerald-100 block mt-1">
                 {coachingData?.strongest_skill?.replace("_", " ").toUpperCase() || "CLARITY & RELEVANCE"}
@@ -94,7 +94,7 @@ export default function CoachingPage() {
 
             <div className="p-6 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-3xl space-y-2">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
-                <span>⚡</span> Primary Growth Area
+                <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> Primary Growth Area
               </span>
               <strong className="text-xl font-black text-amber-950 dark:text-amber-100 block mt-1">
                 {coachingData?.weakest_skill?.replace("_", " ").toUpperCase() || "EVIDENCE USAGE"}

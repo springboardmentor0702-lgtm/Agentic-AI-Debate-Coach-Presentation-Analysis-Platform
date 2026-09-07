@@ -11,20 +11,20 @@ export default function CommandPalette({ isOpen, onClose }) {
     {
       category: "Navigation",
       commands: [
-        { id: "nav-dash", title: "Go to Dashboard", subtitle: "Overview, metrics, and role views", path: "/dashboard", icon: "📊" },
-        { id: "nav-sim", title: "AI Debate Simulation Arena", subtitle: "Debate against 4 AI opponent personas", path: "/simulation", icon: "🤖" },
-        { id: "nav-pres", title: "Speech & Presentation Lab", subtitle: "Live microphone speaking & cadence metrics", path: "/presentation", icon: "🎙️" },
-        { id: "nav-ana", title: "Argument & Fallacy Lab", subtitle: "5-criteria scoring, 8 fallacies, 5 rebuttals", path: "/analyze", icon: "🔍" },
-        { id: "nav-coach", title: "5-Week Coaching Roadmap", subtitle: "Actionable drills & skills progression", path: "/coaching", icon: "📋" },
-        { id: "nav-rep", title: "Reports & Export Center", subtitle: "Download formal PDF & Excel audits", path: "/reports", icon: "📑" },
+        { id: "nav-dash", title: "Go to Dashboard", subtitle: "Overview, metrics, and role views", path: "/dashboard", tag: "DASH" },
+        { id: "nav-sim", title: "AI Debate Simulation Arena", subtitle: "Debate against 4 AI opponent personas", path: "/simulation", tag: "SIM" },
+        { id: "nav-pres", title: "Speech & Presentation Lab", subtitle: "Live microphone speaking & cadence metrics", path: "/presentation", tag: "VOCAL" },
+        { id: "nav-ana", title: "Argument & Fallacy Lab", subtitle: "5-criteria scoring, 8 fallacies, 5 rebuttals", path: "/analyze", tag: "ARG" },
+        { id: "nav-coach", title: "5-Week Coaching Roadmap", subtitle: "Actionable drills & skills progression", path: "/coaching", tag: "PLAN" },
+        { id: "nav-rep", title: "Reports & Export Center", subtitle: "Download formal PDF & Excel audits", path: "/reports", tag: "AUDIT" },
       ]
     },
     {
       category: "Quick Actions",
       commands: [
-        { id: "act-new-debate", title: "Start New AI Debate", subtitle: "Select topic, format, and opponent", path: "/simulation", icon: "⚡" },
-        { id: "act-test-mic", title: "Test Microphone & Pace", subtitle: "Open presentation studio", path: "/presentation", icon: "🎤" },
-        { id: "act-inspect-arg", title: "Check Argument for Fallacies", subtitle: "Scan text for 8 classical fallacies", path: "/analyze", icon: "🛡️" },
+        { id: "act-new-debate", title: "Start New AI Debate", subtitle: "Select topic, format, and opponent", path: "/simulation", tag: "NEW" },
+        { id: "act-test-mic", title: "Test Microphone & Pace", subtitle: "Open presentation studio", path: "/presentation", tag: "MIC" },
+        { id: "act-inspect-arg", title: "Check Argument for Fallacies", subtitle: "Scan text for 8 classical fallacies", path: "/analyze", tag: "SCAN" },
       ]
     }
   ];
@@ -68,7 +68,7 @@ export default function CommandPalette({ isOpen, onClose }) {
       >
         {/* SEARCH INPUT */}
         <div className="relative flex items-center px-4 border-b border-slate-100 dark:border-slate-800">
-          <span className="text-slate-400 text-lg mr-2.5">🔍</span>
+          <span className="text-slate-400 text-xs font-mono font-bold mr-2.5">SEARCH</span>
           <input
             type="text"
             value={query}
@@ -102,8 +102,8 @@ export default function CommandPalette({ isOpen, onClose }) {
                       className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition-colors group"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-lg p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/60 transition-colors">
-                          {cmd.icon}
+                        <span className="text-[10px] font-mono font-bold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/60 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          {cmd.tag}
                         </span>
                         <div>
                           <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
@@ -115,7 +115,7 @@ export default function CommandPalette({ isOpen, onClose }) {
                         </div>
                       </div>
                       <span className="text-xs text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        ↵ Jump
+                        Jump →
                       </span>
                     </button>
                   ))}

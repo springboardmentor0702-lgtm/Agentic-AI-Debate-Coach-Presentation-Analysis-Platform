@@ -54,7 +54,7 @@ export default function Signup() {
         {/* LOGO & TITLE */}
         <div className="text-center space-y-2">
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-violet-600 flex items-center justify-center text-white font-black text-xl mx-auto shadow-lg shadow-indigo-600/30">
-            ⚡
+            V
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Create Institutional Account

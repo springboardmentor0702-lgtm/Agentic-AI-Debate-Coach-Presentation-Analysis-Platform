@@ -201,7 +201,7 @@ export default function PresentationPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <span>🎙️</span> Live Microphone
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg> Live Microphone
           </button>
           <button
             onClick={() => { if (!isRecording) setActiveMode("text"); }}
@@ -211,7 +211,7 @@ export default function PresentationPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <span>✍️</span> Script Teleprompter
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg> Script Teleprompter
           </button>
         </div>
       </div>
@@ -256,7 +256,7 @@ export default function PresentationPage() {
                   disabled={loading}
                   className="group flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-black text-base px-10 py-5 rounded-2xl shadow-xl shadow-indigo-600/30 transition-all transform hover:-translate-y-0.5"
                 >
-                  <span className="text-2xl">🎙️</span>
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
                   <span>Start Speaking Now</span>
                 </button>
               ) : (
@@ -264,7 +264,7 @@ export default function PresentationPage() {
                   onClick={stopSpeakingAndAnalyze}
                   className="group flex items-center gap-3 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-black text-base px-10 py-5 rounded-2xl shadow-xl shadow-rose-600/30 transition-all transform hover:-translate-y-0.5 animate-pulse"
                 >
-                  <span className="text-2xl">⏹️</span>
+                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
                   <span>Stop Speaking & Compute Analytics</span>
                 </button>
               )}
@@ -463,7 +463,7 @@ export default function PresentationPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <span>📋</span> Speech Feedback Directives
+                <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> Speech Feedback Directives
               </h3>
               <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
                 {(analytics.feedback || []).map((fb, idx) => (
@@ -476,7 +476,7 @@ export default function PresentationPage() {
 
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <span>💡</span> Vocal Coaching Recommendations
+                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> Vocal Coaching Recommendations
               </h3>
               <div className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
                 <div className="p-3.5 bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/50 rounded-xl">

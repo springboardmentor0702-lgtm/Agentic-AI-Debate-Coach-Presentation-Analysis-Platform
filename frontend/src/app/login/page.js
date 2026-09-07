@@ -48,7 +48,7 @@ export default function Login() {
         {/* LOGO & TITLE */}
         <div className="text-center space-y-2">
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-violet-600 flex items-center justify-center text-white font-black text-xl mx-auto shadow-lg shadow-indigo-600/30">
-            ⚡
+            V
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Sign in to Veritas AI
@@ -115,7 +115,7 @@ export default function Login() {
                 onClick={() => fillDemo("learner@example.com", "learner123")}
                 className="p-2 bg-slate-50 dark:bg-slate-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl border border-slate-200 dark:border-slate-700 text-left text-xs transition-colors"
               >
-                <span className="font-bold block text-slate-800 dark:text-slate-200">🎓 Learner</span>
+                <span className="font-bold block text-slate-800 dark:text-slate-200">Learner</span>
                 <span className="text-[10px] text-slate-400">learner@example.com</span>
               </button>
               <button
@@ -123,7 +123,7 @@ export default function Login() {
                 onClick={() => fillDemo("coach@example.com", "coach123")}
                 className="p-2 bg-slate-50 dark:bg-slate-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl border border-slate-200 dark:border-slate-700 text-left text-xs transition-colors"
               >
-                <span className="font-bold block text-slate-800 dark:text-slate-200">🧑‍🏫 Coach</span>
+                <span className="font-bold block text-slate-800 dark:text-slate-200">Coach</span>
                 <span className="text-[10px] text-slate-400">coach@example.com</span>
               </button>
             </div>

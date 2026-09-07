@@ -74,10 +74,11 @@ export default function DashboardPage() {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wide flex items-center gap-1.5">
-                <span>⚡</span> Debater Command Center
+                <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Debater Command Center</span>
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
-                🔥 14-Day Practice Streak
+                14-Day Practice Streak
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 text-xs font-semibold">
                 Top 8% Cohort
@@ -98,21 +99,21 @@ export default function DashboardPage() {
               href="/simulation"
               className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all transform hover:-translate-y-0.5"
             >
-              <span>🤖</span>
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
               <span>New AI Debate</span>
             </Link>
             <Link
               href="/presentation"
               className="flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/15 transition-all transform hover:-translate-y-0.5"
             >
-              <span>🎙️</span>
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
               <span>Speech Studio</span>
             </Link>
             <Link
               href="/analyze"
               className="flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/15 transition-all transform hover:-translate-y-0.5"
             >
-              <span>🔍</span>
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               <span>Analyze Argument</span>
             </Link>
           </div>
@@ -122,10 +123,26 @@ export default function DashboardPage() {
       {/* ROLE ADAPTIVE SEGMENTED TABS */}
       <div className="flex bg-slate-200/80 dark:bg-slate-800/80 p-1.5 rounded-2xl w-full md:w-max border border-slate-300/80 dark:border-slate-700/80 shadow-2xs">
         {[
-          { id: "learner", label: "Learner View", icon: "🎓" },
-          { id: "coach", label: "Debate Coach", icon: "🧑‍🏫" },
-          { id: "educator", label: "Educator Cohort", icon: "🏫" },
-          { id: "admin", label: "Admin Console", icon: "🛡️" }
+          { 
+            id: "learner", 
+            label: "Learner View", 
+            icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5"/></svg> 
+          },
+          { 
+            id: "coach", 
+            label: "Debate Coach", 
+            icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg> 
+          },
+          { 
+            id: "educator", 
+            label: "Educator Cohort", 
+            icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg> 
+          },
+          { 
+            id: "admin", 
+            label: "Admin Console", 
+            icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> 
+          }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -136,7 +153,7 @@ export default function DashboardPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <span>{tab.icon}</span>
+            {tab.icon}
             <span>{tab.label}</span>
           </button>
         ))}
@@ -170,7 +187,7 @@ export default function DashboardPage() {
                       Weighted Performance
                     </span>
                     <span className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-xs">
-                      ⚖️
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
                     </span>
                   </div>
                   <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2">
@@ -189,7 +206,7 @@ export default function DashboardPage() {
                       Debates Completed
                     </span>
                     <span className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-xs">
-                      🏆
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
                     </span>
                   </div>
                   <div className="text-3xl font-black text-slate-900 dark:text-slate-100 mt-2">
@@ -207,7 +224,7 @@ export default function DashboardPage() {
                       Speech Studio
                     </span>
                     <span className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 text-xs">
-                      🎙️
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
                     </span>
                   </div>
                   <div className="text-3xl font-black text-slate-900 dark:text-slate-100 mt-2">
@@ -225,7 +242,7 @@ export default function DashboardPage() {
                       Fallacy Defense Rate
                     </span>
                     <span className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs">
-                      🛡️
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                     </span>
                   </div>
                   <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-2">
@@ -292,7 +309,8 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                       <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                        <span>💡</span> AI Coach Insights
+                        <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        <span>AI Coach Insights</span>
                       </h2>
                       <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full">
                         Live
@@ -469,7 +487,7 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     {(dashboardData?.coaching_recommendations || []).map((rec, idx) => (
                       <div key={idx} className="p-3.5 bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/50 rounded-xl text-xs text-indigo-950 dark:text-indigo-200">
-                        🎯 {rec}
+                        • {rec}
                       </div>
                     ))}
                   </div>
