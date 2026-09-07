@@ -50,3 +50,4 @@ Thumbs.db
 .ruff_cache/
 .mypy_cache/
 !.env.example
+__mount_canary.txt

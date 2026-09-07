@@ -1,8 +1,12 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from config import settings
 from database import engine, Base
 import models
+from services import agent_bridge
 
 from routers import (
     auth,
@@ -16,16 +20,29 @@ from routers import (
     coaching,
     dashboards,
     reports,
+    roster_management,
     notifications
 )
 
 # Initialize DB tables
 Base.metadata.create_all(bind=engine)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Warm up the agent bridge on startup.
+    # This prevents the first request from taking the import hit and ensures
+    # /health and the dashboard tell the truth about agent availability immediately.
+    print("[LOGOS.AI] Warming up agent layer...")
+    status = agent_bridge.warmup()
+    print(f"[LOGOS.AI] Agent layer active engine: {status.get('active_engine')}")
+    yield
+    print("[LOGOS.AI] Shutting down...")
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
 # Enable CORS for frontend integration
@@ -48,6 +65,7 @@ app.include_router(simulation.router)
 app.include_router(scoring.router)
 app.include_router(coaching.router)
 app.include_router(dashboards.router)
+app.include_router(roster_management.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)
 
@@ -63,7 +81,12 @@ def root():
 
 @app.get("/health", tags=["Operations"])
 def health_check():
-    return {"status": "healthy", "service": settings.PROJECT_NAME, "version": settings.VERSION}
+    return {
+        "status": "healthy",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "ai_engine": agent_bridge.status()
+    }
 
 if __name__ == "__main__":
     import uvicorn

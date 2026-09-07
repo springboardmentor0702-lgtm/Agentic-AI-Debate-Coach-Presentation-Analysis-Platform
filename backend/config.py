@@ -19,6 +19,11 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-me-in-production")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+    USE_LLM_AGENTS: bool = os.getenv("USE_LLM_AGENTS", "true").strip().lower() in {"1", "true", "yes", "on"}
+    AI_ML_PATH: str = os.getenv(
+        "AI_ML_PATH",
+        str(Path(__file__).resolve().parent.parent / "ai-ml"),
+    )
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")

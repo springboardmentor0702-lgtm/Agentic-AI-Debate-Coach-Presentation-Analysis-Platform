@@ -3,7 +3,8 @@ Fallacy Detection Agent (Module 5 from the project doc)
 Role: scans an argument for the 8 supported logical fallacies and explains each match.
 """
 from app.agents.base_agent import BaseAgent
-from app.llm_client import call_llm_json
+from app.language_guard import ENGLISH_ONLY_INSTRUCTION, enforce_english
+from app.llm_client import call_llm_json, safe_call_llm_json
 
 MIN_WORDS = 4
 
@@ -72,7 +73,7 @@ class FallacyDetectionAgent(BaseAgent):
             return _build_no_fallacy_response(argument_text)
 
         user_prompt = f"Check this argument for logical fallacies:\n\n\"{argument_text}\""
-        raw_result = call_llm_json(SYSTEM_PROMPT, user_prompt)
+        raw_result = safe_call_llm_json(SYSTEM_PROMPT, user_prompt)
 
         if "error" in raw_result or "fallacies_found" not in raw_result:
             return _build_no_fallacy_response(argument_text)

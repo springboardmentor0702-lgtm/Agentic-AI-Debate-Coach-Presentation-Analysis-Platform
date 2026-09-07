@@ -2,12 +2,21 @@
 
 import { useState, useRef, useEffect } from 'react';
 
+function readableError(error, fallback) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'string' && error) return error;
+  if (error && typeof error === 'object') {
+    return error.message || error.error || fallback;
+  }
+  return fallback;
+}
+
 /**
  * SpeechRecorder Component
  * Captures voice input using Web Speech API and converts to text
  * Supports real-time transcription and fallback for unsupported browsers
  */
-export default function SpeechRecorder({ onTranscript, onComplete, disabled = false }) {
+export default function SpeechRecorder({ onTranscript, onComplete, disabled = false, compact = false }) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isFinal, setIsFinal] = useState(false);
@@ -15,6 +24,15 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
   const [isSupported, setIsSupported] = useState(false);
   const recognitionRef = useRef(null);
   const interimTranscriptRef = useRef('');
+  const transcriptRef = useRef('');
+  const shouldCompleteRef = useRef(false);
+  const onTranscriptRef = useRef(onTranscript);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+    onCompleteRef.current = onComplete;
+  }, [onTranscript, onComplete]);
 
   useEffect(() => {
     // Check browser support
@@ -36,9 +54,11 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
 
     // Event: Speech recognition starts
     recognition.onstart = () => {
+      shouldCompleteRef.current = false;
       setIsListening(true);
       setError(null);
       interimTranscriptRef.current = '';
+      transcriptRef.current = '';
       setTranscript('');
       setIsFinal(false);
     };
@@ -51,7 +71,8 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
         if (event.results[i].isFinal) {
           // Capitalize first letter and add to final transcript
           const capitalizedPart = transcriptPart.charAt(0).toUpperCase() + transcriptPart.slice(1);
-          setTranscript(prev => prev + (prev ? ' ' : '') + capitalizedPart);
+          transcriptRef.current = transcriptRef.current + (transcriptRef.current ? ' ' : '') + capitalizedPart;
+          setTranscript(transcriptRef.current);
           setIsFinal(true);
         } else {
           interim += transcriptPart;
@@ -60,15 +81,16 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
       interimTranscriptRef.current = interim;
 
       // Callback with current transcript
-      if (onTranscript) {
-        onTranscript(transcript + interim);
+      if (onTranscriptRef.current) {
+        onTranscriptRef.current(transcriptRef.current + (interim ? ` ${interim}` : ''));
       }
     };
 
     // Event: Error handling
     recognition.onerror = (event) => {
-      let errorMessage = 'Speech recognition error: ' + event.error;
-      switch (event.error) {
+      const errorCode = typeof event?.error === 'string' ? event.error : 'unknown';
+      let errorMessage = `Speech recognition error: ${errorCode}`;
+      switch (errorCode) {
         case 'no-speech':
           errorMessage = 'No speech detected. Please try again.';
           break;
@@ -88,8 +110,8 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
     // Event: Recognition ends
     recognition.onend = () => {
       setIsListening(false);
-      if (onComplete) {
-        onComplete(transcript + interimTranscriptRef.current);
+      if (shouldCompleteRef.current && onCompleteRef.current) {
+        onCompleteRef.current(transcriptRef.current + (interimTranscriptRef.current ? ` ${interimTranscriptRef.current}` : ''));
       }
     };
 
@@ -102,28 +124,31 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
         }
       }
     };
-  }, [onTranscript, onComplete, transcript]);
+  }, []);
 
   const startListening = () => {
     if (!isSupported || !recognitionRef.current) return;
     setError(null);
+    shouldCompleteRef.current = false;
     try {
       recognitionRef.current.start();
     } catch (err) {
-      setError('Failed to start recording: ' + err.message);
+      setError(`Failed to start recording: ${readableError(err, 'Please try again.')}`);
     }
   };
 
   const stopListening = () => {
     if (!recognitionRef.current) return;
     try {
+      shouldCompleteRef.current = true;
       recognitionRef.current.stop();
     } catch (err) {
-      setError('Failed to stop recording: ' + err.message);
+      setError(`Failed to stop recording: ${readableError(err, 'Please try again.')}`);
     }
   };
 
   const clearTranscript = () => {
+    transcriptRef.current = '';
     setTranscript('');
     interimTranscriptRef.current = '';
     setError(null);
@@ -157,7 +182,7 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
   const currentText = transcript + interimTranscriptRef.current;
 
   return (
-    <div className="speech-recorder">
+    <div className={`speech-recorder${compact ? ' compact' : ''}`}>
       <div className="recorder-header">
         <div className="recorder-status">
           <span className={`status-indicator ${isListening ? 'listening' : ''}`}></span>
@@ -169,6 +194,7 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
 
       <div className="recorder-controls">
         <button
+        type="button"
           className={`recorder-btn ${isListening ? 'recording' : ''}`}
           onClick={isListening ? stopListening : startListening}
           disabled={disabled}
@@ -183,6 +209,7 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
         </button>
 
         <button
+          type="button"
           className="recorder-btn secondary"
           onClick={clearTranscript}
           disabled={disabled || !currentText}
@@ -193,6 +220,7 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
         </button>
 
         <button
+          type="button"
           className="recorder-btn secondary"
           onClick={copyToClipboard}
           disabled={disabled || !currentText}
@@ -237,6 +265,36 @@ export default function SpeechRecorder({ onTranscript, onComplete, disabled = fa
           border-radius: 4px;
           padding: 1rem;
           margin-bottom: 1rem;
+        }
+
+        .speech-recorder.compact {
+          padding: 0.35rem;
+          margin: 0;
+          border: 0;
+          background: transparent;
+        }
+
+        .speech-recorder.compact .recorder-header,
+        .speech-recorder.compact .recorder-transcript {
+          display: none;
+        }
+
+        .speech-recorder.compact .recorder-controls {
+          margin: 0;
+          gap: 0.35rem;
+          flex-wrap: nowrap;
+          width: max-content;
+        }
+
+        .speech-recorder.compact .recorder-btn {
+          padding: 0.55rem 0.6rem;
+          white-space: nowrap;
+          flex: 0 0 auto;
+          font-size: 0.75rem;
+        }
+
+        .speech-recorder.compact .btn-text {
+          display: inline;
         }
 
         .speech-recorder-unsupported {

@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 ENGINE_LLM = "llm_agent"
 ENGINE_DETERMINISTIC = "deterministic"
+ENGINES_VALID = frozenset({ENGINE_LLM, ENGINE_DETERMINISTIC})
 
 PERSONAS: Tuple[str, ...] = ("The Contrarian", "The Academic", "The Strategist")
 DEFAULT_PERSONA = PERSONAS[0]
@@ -334,11 +335,6 @@ def _load_agents() -> Optional[Dict[str, Any]]:
     # Must happen before the import: ai-ml/app/config.py reads os.environ into
     # module constants at import time, so late-setting a key has no effect.
     _resolve_agent_env()
-
-    if not (os.environ.get("GROQ_API_KEY") or os.environ.get("GEMINI_API_KEY")):
-        _load_error = "no LLM API key found in backend/.env or ai-ml/.env (GROQ_API_KEY / GEMINI_API_KEY)"
-        logger.warning("%s - using the deterministic engine.", _load_error)
-        return None
 
     if str(ai_ml_path) not in sys.path:
         sys.path.insert(0, str(ai_ml_path))
@@ -1055,6 +1051,7 @@ def analyze_speech(
     """
     clean_transcript = _text(transcript, 50000)
     agent = _agent("speech_analysis")
+    agent_message = ""
 
     if agent is not None:
         raw = agent.run(
@@ -1077,6 +1074,7 @@ def analyze_speech(
         # Keep whatever transcript Whisper managed to produce and let the local
         # engine measure it, rather than losing the work.
         clean_transcript = _text(raw.get("transcript"), 50000) or clean_transcript
+        agent_message = _text(raw.get("message"), 600)
         if not _num(duration_seconds):
             duration_seconds = _num(raw.get("metrics", {}).get("duration_seconds"), high=86400.0)
         logger.info("Speech agent did not complete; measuring locally instead.")
@@ -1091,7 +1089,7 @@ def analyze_speech(
             "transcription_status": "transcription_unavailable" if audio_path else "skipped",
             "status": "not_analyzed",
             "message": (
-                "Audio could not be transcribed and no text was supplied."
+                agent_message or "Audio could not be transcribed and no text was supplied."
                 if audio_path
                 else "No speech text was provided."
             ),

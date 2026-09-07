@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiFetch } from '../../lib/api';
+import SpeechRecorder from '../../components/SpeechRecorder';
 
 const PRESET_TOPICS = [
   "Autonomous AI Systems should be held legally liable for unintended damages.",
@@ -10,27 +11,27 @@ const PRESET_TOPICS = [
   "Custom Topic (Enter below)"
 ];
 
-function TypewriterText({ text, speed = 15 }) {
-  const [displayedText, setDisplayedText] = useState("");
+function TypewriterText({ text, speed = 12 }) {
+  const [charCount, setCharCount] = useState(0);
 
   useEffect(() => {
-    let index = 0;
-    setDisplayedText("");
-    const timer = setInterval(() => {
-      setDisplayedText((prev) => {
-        const nextChar = text.charAt(index);
-        index++;
-        if (index >= text.length) {
-          clearInterval(timer);
+    setCharCount(0);
+    if (!text) return;
+    const targetLength = text.length;
+    const interval = setInterval(() => {
+      setCharCount((prev) => {
+        if (prev >= targetLength) {
+          clearInterval(interval);
+          return targetLength;
         }
-        return prev + nextChar;
+        return prev + 1;
       });
     }, speed);
 
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, [text, speed]);
 
-  return <span>{displayedText}</span>;
+  return <span>{text.slice(0, charCount)}</span>;
 }
 
 export default function SimulationPage() {
@@ -43,7 +44,8 @@ export default function SimulationPage() {
   const [loading, setLoading] = useState(false);
   const [sessionStatus, setSessionStatus] = useState("Setup"); // Setup, Running, Completed
   const [sessionId, setSessionId] = useState(null);
-  
+  const [errorMessage, setErrorMessage] = useState("");
+
   // Scheduling States
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
@@ -51,10 +53,25 @@ export default function SimulationPage() {
 
   const [transcript, setTranscript] = useState([]);
   const [lastAnalysis, setLastAnalysis] = useState(null);
+  const [completedScores, setCompletedScores] = useState(null);
+  const terminalEndRef = useRef(null);
+
+  useEffect(() => {
+    if (sessionStatus === "Running") {
+      terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [transcript, loading, sessionStatus]);
 
   const handleStartDebate = async () => {
     setLoading(true);
+    setErrorMessage("");
     const finalTopic = topic === "Custom Topic (Enter below)" ? customTopic : topic;
+    if (!finalTopic.trim()) {
+      setErrorMessage("Please select or enter a valid debate topic.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await apiFetch("/sessions/create", {
         method: "POST",
@@ -70,6 +87,30 @@ export default function SimulationPage() {
       setSessionId(data.id);
       localStorage.setItem('logos_ai_session_id', String(data.id));
 
+      let openingRebuttal = `Greetings. I will argue the ${position === "Affirmative" ? "Negative" : "Affirmative"} perspective on "${finalTopic}". Present your opening case.`;
+      let initialTip = "State your central proposition clearly and establish the primary causal mechanism.";
+
+      try {
+        const openRes = await apiFetch("/simulation/opening", {
+          method: "POST",
+          body: JSON.stringify({
+            session_id: data.id,
+            opponent_persona: persona
+          })
+        });
+        if (openRes.ok) {
+          const openData = await openRes.json();
+          if (openData.opponent_rebuttal) {
+            openingRebuttal = openData.opponent_rebuttal;
+          }
+          if (openData.coaching_tip) {
+            initialTip = openData.coaching_tip;
+          }
+        }
+      } catch {
+        // Degrades gracefully to clean standard greeting
+      }
+
       setTranscript([
         {
           speaker: "System",
@@ -77,15 +118,19 @@ export default function SimulationPage() {
           type: "system"
         },
         {
-          speaker: "AI Opponent",
-          text: `Greetings. I will argue the Negative perspective. Present your opening ${position} case for: "${finalTopic}".`,
+          speaker: `AI Opponent (${persona})`,
+          text: openingRebuttal,
           type: "opponent"
         }
       ]);
-      setLastAnalysis(null);
+      setLastAnalysis({
+        rebuttal_strength: 0,
+        fallacies: [],
+        coaching_tip: initialTip
+      });
       setSessionStatus("Running");
     } catch (err) {
-      alert(err.message);
+      setErrorMessage(err.message || "Failed to initialize debate session.");
     } finally {
       setLoading(false);
     }
@@ -121,14 +166,27 @@ export default function SimulationPage() {
   };
 
   const handleCompleteSession = async () => {
+    if (!sessionId) return;
     setLoading(true);
+    setErrorMessage("");
     try {
-      const response = await apiFetch(`/sessions/${sessionId}/complete`, {
+      await apiFetch(`/sessions/${sessionId}/complete`, {
         method: "POST",
       });
+
+      try {
+        const sessionRes = await apiFetch(`/sessions/${sessionId}`);
+        if (sessionRes.ok) {
+          const detail = await sessionRes.json();
+          setCompletedScores(detail.performance_score || null);
+        }
+      } catch {
+        setCompletedScores(null);
+      }
+
       setSessionStatus("Completed");
     } catch (err) {
-      alert(err.message);
+      setErrorMessage(err.message || "Failed to complete debate session.");
     } finally {
       setLoading(false);
     }
@@ -136,10 +194,11 @@ export default function SimulationPage() {
 
   const handleSendArgument = async (e) => {
     e.preventDefault();
-    if (!userInput.trim()) return;
+    if (!userInput.trim() || loading || !sessionId) return;
 
-    const userMsg = userInput;
+    const userMsg = userInput.trim();
     setUserInput("");
+    setErrorMessage("");
 
     setTranscript(prev => [...prev, { speaker: "You", text: userMsg, type: "user" }]);
     setLoading(true);
@@ -163,27 +222,18 @@ export default function SimulationPage() {
           text: data.opponent_rebuttal,
           type: "opponent",
           rebuttal_strength: data.rebuttal_strength_percent,
-          fallacies: data.fallacies_detected_in_user
+          fallacies: data.fallacies_detected_in_user || []
         }
       ]);
 
       setLastAnalysis({
-        rebuttal_strength: data.rebuttal_strength_percent,
-        fallacies: data.fallacies_detected_in_user,
-        coaching_tip: data.coaching_tip
+        rebuttal_strength: data.rebuttal_strength_percent ?? 0,
+        fallacies: data.fallacies_detected_in_user || [],
+        coaching_tip: data.coaching_tip || "Defend your core premise and provide supporting empirical evidence."
       });
 
     } catch (err) {
-      setTranscript(prev => [
-        ...prev,
-        {
-          speaker: `AI Opponent (${persona})`,
-          text: `I reject your proposition. Asserting that liability rests on autonomous units ignores manufacturer warranty and human operator oversight.`,
-          type: "opponent",
-          rebuttal_strength: 96.5,
-          fallacies: []
-        }
-      ]);
+      setErrorMessage(err.message || "Network error communicating with the debate opponent.");
     } finally {
       setLoading(false);
     }
@@ -193,7 +243,13 @@ export default function SimulationPage() {
     <div className="watermark-container">
       <div className="watermark-text" style={{ bottom: '2rem', right: '2rem', left: 'auto', opacity: 0.05, zIndex: -1 }}>RHETORIC</div>
       <div className="section-container" style={{ paddingTop: '2rem', position: 'relative', zIndex: 1 }}>
-        
+
+        {errorMessage && (
+          <div style={{ maxWidth: '850px', margin: '0 auto 1.5rem', background: '#fef2f2', border: '1px solid var(--accent-red)', color: 'var(--accent-red)', padding: '0.85rem 1.25rem', fontSize: '0.88rem' }}>
+            {errorMessage}
+          </div>
+        )}
+
         {/* Setup Configuration Panel */}
         {sessionStatus === "Setup" && (
           <div style={{ maxWidth: '850px', margin: '0 auto' }}>
@@ -210,8 +266,8 @@ export default function SimulationPage() {
                 {/* Topic selection */}
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Select Debate Topic</label>
-                  <select 
-                    value={topic} 
+                  <select
+                    value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-light)', outline: 'none', background: '#FFF', fontSize: '0.9rem' }}
                   >
@@ -225,7 +281,7 @@ export default function SimulationPage() {
                 {topic === "Custom Topic (Enter below)" && (
                   <div style={{ marginBottom: '1.25rem' }}>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Enter Custom Topic Title</label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="e.g., Space exploration should be prioritized over deep ocean research."
                       value={customTopic}
@@ -239,8 +295,8 @@ export default function SimulationPage() {
                 <div style={{ marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Debate Format</label>
-                    <select 
-                      value={format} 
+                    <select
+                      value={format}
                       onChange={(e) => setFormat(e.target.value)}
                       style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-light)', outline: 'none', background: '#FFF', fontSize: '0.9rem' }}
                     >
@@ -255,8 +311,8 @@ export default function SimulationPage() {
                   {/* Position Assignment selection */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Assigned Position</label>
-                    <select 
-                      value={position} 
+                    <select
+                      value={position}
                       onChange={(e) => setPosition(e.target.value)}
                       style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-light)', outline: 'none', background: '#FFF', fontSize: '0.9rem' }}
                     >
@@ -269,8 +325,8 @@ export default function SimulationPage() {
                 {/* Persona selection */}
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Opponent Persona</label>
-                  <select 
-                    value={persona} 
+                  <select
+                    value={persona}
                     onChange={(e) => setPersona(e.target.value)}
                     style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-light)', outline: 'none', background: '#FFF', fontSize: '0.9rem' }}
                   >
@@ -281,17 +337,18 @@ export default function SimulationPage() {
                 </div>
 
                 {/* Launch Button */}
-                <button 
+                <button
                   onClick={handleStartDebate}
+                  disabled={loading}
                   className="btn btn-red"
                   style={{ width: '100%', padding: '0.9rem', fontSize: '0.9rem', letterSpacing: '0.5px' }}
                 >
-                  Start Live AI Debate Simulation
+                  {loading ? 'Initializing Simulation...' : 'Start Live AI Debate Simulation'}
                 </button>
               </div>
 
               {/* Right Side: Session Practice Scheduler */}
-              <div style={{ background: '#111827', color: '#FFF', border: '1px solid var(--dark-border)', padding: '2rem', borderRadius: 0, display: 'flex', flexDirection: 'column', justifycontent: 'space-between' }}>
+              <div style={{ background: '#111827', color: '#FFF', border: '1px solid var(--dark-border)', padding: '2rem', borderRadius: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <h3 className="font-display text-red" style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem', textTransform: 'uppercase' }}>Debate Scheduler</h3>
                   <p style={{ fontSize: '0.88rem', color: '#9CA3AF', marginBottom: '2rem', lineHeight: '1.5' }}>
@@ -307,7 +364,7 @@ export default function SimulationPage() {
                   <form onSubmit={handleSchedulePractice}>
                     <div style={{ marginBottom: '1rem' }}>
                       <label style={{ display: 'block', fontSize: '0.78rem', color: '#9CA3AF', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Practice Date</label>
-                      <input 
+                      <input
                         type="date"
                         required
                         value={scheduledDate}
@@ -318,7 +375,7 @@ export default function SimulationPage() {
 
                     <div style={{ marginBottom: '1.5rem' }}>
                       <label style={{ display: 'block', fontSize: '0.78rem', color: '#9CA3AF', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Practice Time</label>
-                      <input 
+                      <input
                         type="time"
                         required
                         value={scheduledTime}
@@ -327,7 +384,7 @@ export default function SimulationPage() {
                       />
                     </div>
 
-                    <button 
+                    <button
                       type="submit"
                       className="btn"
                       style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#FFF', border: '1px solid var(--dark-border)', transition: 'all 0.2s' }}
@@ -353,8 +410,9 @@ export default function SimulationPage() {
               </div>
 
               {/* Complete Debate & Record Score Button */}
-              <button 
+              <button
                 onClick={handleCompleteSession}
+                disabled={loading}
                 className="btn btn-red"
                 style={{ padding: '0.6rem 1.5rem', fontSize: '0.85rem' }}
               >
@@ -379,14 +437,14 @@ export default function SimulationPage() {
                   {transcript.map((t, idx) => (
                     <div key={idx} style={{ marginBottom: '1.25rem' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span className="font-mono text-muted">[{new Date().toLocaleTimeString()}]</span>
+                        <span className="font-mono text-muted">Turn {idx + 1}</span>
                         <strong className={t.type === 'user' ? 'text-cyan' : t.type === 'opponent' ? 'text-red' : 'text-green'}>
                           {t.speaker}:
                         </strong>
                       </div>
 
                       <div style={{ paddingLeft: '1.5rem', color: t.type === 'system' ? '#888' : '#e0e0e0', lineHeight: '1.5' }}>
-                        {t.type === 'opponent' && idx === transcript.length - 1 ? (
+                        {t.type === 'opponent' ? (
                           <TypewriterText text={t.text} />
                         ) : (
                           t.text
@@ -401,16 +459,29 @@ export default function SimulationPage() {
                       )}
                     </div>
                   ))}
-                  {loading && <div className="text-muted font-mono animate-pulse">&gt; Agent computing rebuttal...</div>}
+                  {loading && <div className="text-muted font-mono animate-pulse">&gt; Opponent formulating rebuttal in English...</div>}
+                  <div ref={terminalEndRef} />
                 </div>
 
                 {/* Form Input */}
                 <form onSubmit={handleSendArgument} style={{ display: 'flex', borderTop: '1px solid var(--dark-border)', background: '#0e0e12' }}>
+                  <div style={{ width: '350px', flexShrink: 0, overflow: 'visible' }}>
+                    <SpeechRecorder
+                      onComplete={(transcript) => {
+                        if (transcript.trim()) setUserInput((current) => (
+                          current.trim() ? `${current.trim()} ${transcript.trim()}` : transcript.trim()
+                        ));
+                      }}
+                      disabled={loading}
+                      compact
+                    />
+                  </div>
                   <input
                     type="text"
                     placeholder="Type your debate speech / counterargument here..."
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
+                    disabled={loading}
                     className="font-mono"
                     style={{
                       flex: 1,
@@ -419,10 +490,12 @@ export default function SimulationPage() {
                       border: 'none',
                       color: '#fff',
                       outline: 'none',
-                      fontSize: '0.9rem'
+                      fontSize: '0.9rem',
+                      minWidth: 0,
+                      textOverflow: 'ellipsis'
                     }}
                   />
-                  <button type="submit" className="btn btn-red" style={{ borderRadius: 0 }}>
+                  <button type="submit" disabled={loading || !userInput.trim()} className="btn btn-red" style={{ borderRadius: 0 }}>
                     TRANSMIT
                   </button>
                 </form>
@@ -431,12 +504,12 @@ export default function SimulationPage() {
               {/* Real-time Telemetry Sidebar */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-light)', padding: '1.5rem' }}>
-                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>OPPONENT REBUTTAL PRESSURE</div>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>ARGUMENT STRENGTH RATING</div>
                   <div className="font-display" style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--accent-red)' }}>
-                    {lastAnalysis ? `${lastAnalysis.rebuttal_strength}%` : '98.4%'}
+                    {lastAnalysis ? `${Math.round(lastAnalysis.rebuttal_strength)}%` : '0%'}
                   </div>
                   <div className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    Status: High Pressure Defense
+                    {lastAnalysis && lastAnalysis.rebuttal_strength > 0 ? 'Live Rhetorical Assessment' : 'Awaiting First Turn'}
                   </div>
                 </div>
 
@@ -448,7 +521,7 @@ export default function SimulationPage() {
                     </div>
                   ) : (
                     <div style={{ color: '#10b981', fontWeight: 'bold' }}>
-                      ✓ No Fallacies Flagged in Last Turn
+                      {transcript.length > 2 ? '✓ No Fallacies Flagged in Last Turn' : '✓ Audit Standby'}
                     </div>
                   )}
                 </div>
@@ -456,7 +529,7 @@ export default function SimulationPage() {
                 <div style={{ background: 'var(--dark-bg)', color: '#fff', border: '1px solid var(--dark-border)', padding: '1.5rem', flex: 1 }}>
                   <div className="font-mono text-red" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>COACHING ASSISTANT</div>
                   <p style={{ fontSize: '0.9rem', lineHeight: '1.5', color: '#ccc' }}>
-                    {lastAnalysis ? lastAnalysis.coaching_tip : "Pivot back to primary evidence. Emphasize regulatory precedent to counter the opponent's market-friction argument."}
+                    {lastAnalysis ? lastAnalysis.coaching_tip : "State your opening thesis clearly with verifiable premises."}
                   </p>
                 </div>
               </div>
@@ -472,27 +545,39 @@ export default function SimulationPage() {
               PRACTICE PERFORMANCE METRICS
             </h1>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '0.95rem', lineHeight: '1.6' }}>
-              Your session has been recorded. The rhetoric model has calculated your initial argument scores and committed the profile logs to your matrix records.
+              Your session has been recorded. The rhetoric model has calculated your argument scores and committed the logs to your performance records.
             </p>
 
             {/* Score Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
               <div style={{ padding: '1.5rem', background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
                 <div className="font-mono text-muted" style={{ fontSize: '0.7rem', marginBottom: '0.5rem' }}>OVERALL SCORE</div>
-                <div className="font-display text-red" style={{ fontSize: '2rem', fontWeight: '900' }}>84.2%</div>
+                <div className="font-display text-red" style={{ fontSize: '2rem', fontWeight: '900' }}>
+                  {completedScores ? `${Math.round(completedScores.overall_weighted_score)}%` : 'Recorded'}
+                </div>
               </div>
               <div style={{ padding: '1.5rem', background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-                <div className="font-mono text-muted" style={{ fontSize: '0.7rem', marginBottom: '0.5rem' }}>LOGICAL SCORE</div>
-                <div className="font-display" style={{ fontSize: '2rem', fontWeight: '900' }}>88.5%</div>
+                <div className="font-mono text-muted" style={{ fontSize: '0.7rem', marginBottom: '0.5rem' }}>ARGUMENT QUALITY</div>
+                <div className="font-display" style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--text-primary)' }}>
+                  {completedScores ? `${Math.round(completedScores.argument_quality)}%` : 'Recorded'}
+                </div>
               </div>
               <div style={{ padding: '1.5rem', background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-                <div className="font-mono text-muted" style={{ fontSize: '0.7rem', marginBottom: '0.5rem' }}>REBUTTAL EFF.</div>
-                <div className="font-display" style={{ fontSize: '2rem', fontWeight: '900' }}>82.0%</div>
+                <div className="font-mono text-muted" style={{ fontSize: '0.7rem', marginBottom: '0.5rem' }}>LOGICAL CONSISTENCY</div>
+                <div className="font-display" style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--text-primary)' }}>
+                  {completedScores ? `${Math.round(completedScores.logical_consistency)}%` : 'Recorded'}
+                </div>
               </div>
             </div>
 
-            <button 
-              onClick={() => setSessionStatus("Setup")}
+            <button
+              onClick={() => {
+                setSessionStatus("Setup");
+                setCompletedScores(null);
+                setTranscript([]);
+                setLastAnalysis(null);
+                setSessionId(null);
+              }}
               className="btn btn-dark"
               style={{ padding: '0.85rem 2.5rem' }}
             >

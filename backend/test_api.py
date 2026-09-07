@@ -15,11 +15,11 @@ class TestLogosAPI(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        email = f"integration-{uuid.uuid4().hex[:8]}@logos.ai"
+        email = f"api-test-{uuid.uuid4().hex[:8]}@logos.ai"
         cls._request("/api/v1/auth/register", "POST", {
             "email": email,
             "password": "integration-password-123",
-            "full_name": "Integration User",
+            "full_name": "API Test User",
         })
         login = cls._request("/api/v1/auth/login", "POST", {
             "email": email,

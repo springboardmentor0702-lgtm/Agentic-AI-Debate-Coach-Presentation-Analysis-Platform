@@ -1,4 +1,7 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const configuredBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = configuredBase.replace(/\/+$/, '').endsWith('/api/v1')
+  ? configuredBase.replace(/\/+$/, '')
+  : `${configuredBase.replace(/\/+$/, '')}/api/v1`;
 
 export function getToken() {
   return typeof window === 'undefined' ? null : localStorage.getItem('logos_ai_jwt');
@@ -13,15 +16,20 @@ export function authHeaders(json = false) {
 }
 
 export async function apiFetch(path, options = {}) {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: { ...authHeaders(Boolean(options.body)), ...(options.headers || {}) },
+    headers: { ...authHeaders(Boolean(options.body) && !isFormData), ...(options.headers || {}) },
   });
   if (!response.ok) {
     let detail = 'Request failed.';
     try {
       const body = await response.json();
-      detail = body.detail || detail;
+      if (typeof body.detail === 'string') {
+        detail = body.detail;
+      } else if (body.detail && typeof body.detail === 'object') {
+        detail = body.detail.message || body.detail.msg || JSON.stringify(body.detail);
+      }
     } catch {
       // Preserve the HTTP failure when the server does not return JSON.
     }

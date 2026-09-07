@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -153,3 +153,36 @@ class CoachingPlan(Base):
     learning_path_steps = Column(Text)
     progress_status = Column(String, default="In Progress")
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CoachRecommendation(Base):
+    __tablename__ = "coach_recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    coach_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    learner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    recommendation_text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CoachAssignment(Base):
+    """Links a Debate Coach to the learners they personally coach."""
+    __tablename__ = "coach_assignments"
+    __table_args__ = (UniqueConstraint("coach_id", "learner_id", name="uq_coach_learner"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    coach_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    learner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+
+
+class EducatorCohort(Base):
+    """Links an Educator to learners within a named class / cohort."""
+    __tablename__ = "educator_cohorts"
+    __table_args__ = (UniqueConstraint("educator_id", "learner_id", name="uq_educator_learner"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    educator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    cohort_name = Column(String, nullable=False, default="Default Cohort")
+    learner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    assigned_at = Column(DateTime, default=datetime.utcnow)

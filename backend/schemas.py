@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -59,6 +59,8 @@ class DebateSessionResponse(BaseModel):
     status: str
     scheduled_at: datetime
     created_at: datetime
+    performance_score: Optional["WeightedScoreResponse"] = None
+    presentation_metrics: List["PresentationMetricResponse"] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -121,6 +123,11 @@ class SimulationTurnSubmit(BaseModel):
     opponent_persona: Optional[str] = "The Contrarian"
 
 
+class SimulationOpeningSubmit(BaseModel):
+    session_id: int = Field(gt=0)
+    opponent_persona: Optional[str] = "The Contrarian"
+
+
 class SimulationTurnResponse(BaseModel):
     session_id: Optional[int] = None
     turn_index: int
@@ -130,6 +137,9 @@ class SimulationTurnResponse(BaseModel):
     fallacies_detected_in_user: List[FallacyDetail]
     rebuttal_strength_percent: float
     coaching_tip: str
+    challenge_question: Optional[str] = None
+    tactic_used: Optional[str] = None
+    engine: Optional[str] = None
 
 
 class WeightedScoreResponse(BaseModel):
@@ -151,9 +161,134 @@ class WeightedScoreSubmit(BaseModel):
     communication_skills: float = Field(ge=0, le=100)
 
 
+class CoachRecommendationResponse(BaseModel):
+    id: int
+    coach_id: int
+    learner_id: int
+    recommendation_text: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CoachRecommendationSubmit(BaseModel):
+    recommendation_text: str = Field(min_length=1, max_length=2000)
+
+
 class CoachingPlanResponse(BaseModel):
     user_id: int
     skill_gap_summary: str
     targeted_recommendations: List[str]
     learning_path_steps: List[str]
     progress_status: str
+    coach_recommendations: List[CoachRecommendationResponse] = []
+
+
+# ---------------------------------------------------------------------------
+# Real-time analytics envelope
+#
+# Every role (Learner, Debate Coach, Educator, Administrator) returns this same
+# shape. Only the contents differ, so the dashboard renders one generic layout
+# instead of a per-role branch.
+# ---------------------------------------------------------------------------
+class AnalyticsKpi(BaseModel):
+    key: str
+    label: str
+    value: Optional[float] = None
+    display: str
+    unit: str = ""
+    hint: str = ""
+    tone: str = "neutral"  # neutral | good | warn
+
+
+class AnalyticsPoint(BaseModel):
+    label: str
+    value: float
+
+
+class AnalyticsSeries(BaseModel):
+    key: str
+    label: str
+    kind: str = "bar"  # bar | line
+    unit: str = ""
+    points: List[AnalyticsPoint] = []
+
+
+class AnalyticsTable(BaseModel):
+    key: str
+    title: str
+    columns: List[str] = []
+    rows: List[List[str]] = []
+    empty_message: str = "No data yet."
+
+
+class AnalyticsOverviewResponse(BaseModel):
+    role: str
+    viewer_role: str
+    user_id: int
+    full_name: str
+    generated_at: datetime
+    refresh_seconds: int
+    query_latency_ms: float
+    active_engine: str
+    scope: str  # self | cohort | platform
+    kpis: List[AnalyticsKpi] = []
+    series: List[AnalyticsSeries] = []
+    tables: List[AnalyticsTable] = []
+    insights: List[str] = []
+    detail: Dict[str, Any] = {}
+
+
+class RosterEntry(BaseModel):
+    user_id: int
+    full_name: str
+    email: str
+    role: str
+    experience_level: str
+    sessions_total: int
+    sessions_completed: int
+    average_score: Optional[float] = None
+    grade: str
+    top_logic_gap: Optional[str] = None
+
+
+class RosterResponse(BaseModel):
+    generated_at: datetime
+    total: int
+    learners: List[RosterEntry] = []
+
+
+# ---------------------------------------------------------------------------
+# Coach / Educator assignment schemas
+# ---------------------------------------------------------------------------
+class CoachAssignmentCreate(BaseModel):
+    learner_id: int = Field(gt=0)
+
+
+class CoachAssignmentResponse(BaseModel):
+    id: int
+    coach_id: int
+    learner_id: int
+    learner_name: str
+    learner_email: str
+    assigned_at: datetime
+
+
+class EducatorCohortCreate(BaseModel):
+    learner_id: int = Field(gt=0)
+    cohort_name: str = Field(default="Default Cohort", min_length=1, max_length=120)
+
+
+class EducatorCohortResponse(BaseModel):
+    id: int
+    educator_id: int
+    cohort_name: str
+    learner_id: int
+    learner_name: str
+    learner_email: str
+    assigned_at: datetime
+
+
+class DrillAssignment(BaseModel):
+    drill_type: str = Field(min_length=1, max_length=200, description="e.g. 'Fallacy Shielding', 'Pacing Drill'")
+    description: str = Field(default="", max_length=2000)

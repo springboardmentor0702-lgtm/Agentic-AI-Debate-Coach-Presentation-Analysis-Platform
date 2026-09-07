@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from routers.auth import get_current_user
 from services.ai_engine import ai_engine_service
+from services.score_service import save_session_score
 import models
 import schemas
 
@@ -30,17 +31,18 @@ def calculate_score(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
-    score_rec = models.PerformanceScore(
-        session_id=payload.session_id,
-        user_id=current_user.id,
-        argument_quality=payload.argument_quality,
-        evidence_use=payload.evidence_use,
-        logical_consistency=payload.logical_consistency,
-        rebuttal_effectiveness=payload.rebuttal_effectiveness,
-        communication_skills=payload.communication_skills,
-        overall_weighted_score=overall,
+    score_rec = save_session_score(
+        db,
+        debate_session,
+        {
+            "argument_quality": payload.argument_quality,
+            "evidence_use": payload.evidence_use,
+            "logical_consistency": payload.logical_consistency,
+            "rebuttal_effectiveness": payload.rebuttal_effectiveness,
+            "communication_skills": payload.communication_skills,
+            "overall_weighted_score": overall,
+        },
     )
-    db.add(score_rec)
     db.commit()
     return {
         "session_id": payload.session_id,

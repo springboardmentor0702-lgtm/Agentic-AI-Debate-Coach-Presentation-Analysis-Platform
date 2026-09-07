@@ -19,7 +19,7 @@ import os
 import re
 
 from app.agents.base_agent import BaseAgent
-from app.llm_client import safe_call_llm_json
+from app.llm_client import call_llm_json, safe_call_llm_json
 
 # Same filler vocabulary as backend/services/speech_engine.py, so the LLM path and
 # the deterministic fallback path never disagree on what counts as a filler.
@@ -492,7 +492,7 @@ class SpeechAnalysisAgent(BaseAgent):
         )
         user_prompt = f"{measurement_block}\nTranscript:\n\"{transcript}\""
 
-        raw_result = safe_call_llm_json(SYSTEM_PROMPT, user_prompt)
+        raw_result = call_llm_json(SYSTEM_PROMPT, user_prompt)
         if "error" in raw_result:
             return {}
 

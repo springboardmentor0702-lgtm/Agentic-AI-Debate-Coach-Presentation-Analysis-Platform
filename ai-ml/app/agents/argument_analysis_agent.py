@@ -3,7 +3,8 @@ Argument Analysis Agent (Module 4 from the project doc)
 Role: judges how strong an argument is - claim, evidence, clarity, relevance, logical consistency.
 """
 from app.agents.base_agent import BaseAgent
-from app.llm_client import call_llm_json
+from app.language_guard import ENGLISH_ONLY_INSTRUCTION, enforce_english
+from app.llm_client import call_llm_json, safe_call_llm_json
 
 MIN_WORDS = 4
 
@@ -64,7 +65,7 @@ class ArgumentAnalysisAgent(BaseAgent):
             }
 
         user_prompt = f"Analyze this argument:\n\n\"{argument_text}\""
-        raw_result = call_llm_json(SYSTEM_PROMPT, user_prompt)
+        raw_result = safe_call_llm_json(SYSTEM_PROMPT, user_prompt)
 
         if "error" in raw_result:
             return {**DEFAULT_RESULT, "notes": "Analysis failed - model returned an unexpected format."}
