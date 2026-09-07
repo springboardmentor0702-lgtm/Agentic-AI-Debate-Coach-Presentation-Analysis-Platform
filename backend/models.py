@@ -126,3 +126,18 @@ class CoachingPlan(Base):
     learning_path_steps = Column(Text)
     progress_status = Column(String, default="In Progress")
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+class SimulationTurn(Base):
+    __tablename__ = "simulation_turns"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("debate_sessions.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    turn_number = Column(Integer, default=1)
+    user_argument = Column(Text, nullable=False)
+    opponent_persona = Column(String, default="The Contrarian")
+    opponent_rebuttal = Column(Text)
+    fallacies_detected = Column(Text)  # JSON string
+    rebuttal_strength_percent = Column(Float, default=0.0)
+    coaching_tip = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)

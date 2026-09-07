@@ -132,3 +132,25 @@ class CoachingPlanResponse(BaseModel):
     targeted_recommendations: List[str]
     learning_path_steps: List[str]
     progress_status: str
+
+# Simulation Turn Schema
+class SimulationTurnCreate(BaseModel):
+    session_id: int
+    user_argument: str
+    opponent_persona: Optional[str] = "The Contrarian"
+    debate_format: Optional[str] = "AI Simulation"  # 1-on-1, Parliamentary, Oxford, Policy, Public Forum
+
+class SimulationTurnResponse(BaseModel):
+    id: int
+    session_id: int
+    turn_number: int
+    user_argument: str
+    opponent_persona: str
+    opponent_rebuttal: str
+    fallacies_detected: List[FallacyDetail]
+    rebuttal_strength_percent: float
+    coaching_tip: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
