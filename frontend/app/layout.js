@@ -1,7 +1,7 @@
 import './globals.css';
 import styles from './layout.module.css';
 import Link from 'next/link';
-import { Home, MessageSquare, ShieldAlert, History } from 'lucide-react';
+import { Home, MessageSquare, ShieldAlert, History, Mic } from 'lucide-react';
 
 export const metadata = {
   title: 'LOGOS.AI | Debate Coach',
@@ -32,6 +32,10 @@ export default function RootLayout({ children }) {
               <Link href="/analysis" className={styles.navLink}>
                 <ShieldAlert size={20} />
                 <span>Argument Analysis</span>
+              </Link>
+              <Link href="/presentation" className={styles.navLink}>
+                <Mic size={20} />
+                <span>Presentation Analytics</span>
               </Link>
               <Link href="/history" className={styles.navLink}>
                 <History size={20} />

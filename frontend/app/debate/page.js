@@ -96,7 +96,7 @@ export default function DebateArena() {
           </div>
           <div>
             <h1>Debate Setup</h1>
-            <p>Configure your debate opponent and step into the arena.</p>
+            <p>Configure your debate opponent, format, and step into the arena.</p>
           </div>
         </header>
 
@@ -123,6 +123,38 @@ export default function DebateArena() {
               onChange={e => setStance(e.target.value)}
               required
             />
+          </div>
+
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label htmlFor="format">Debate Format</label>
+              <select 
+                id="format"
+                className="input"
+                value={format}
+                onChange={e => setFormat(e.target.value)}
+              >
+                <option value="1-on-1">1-on-1 Debate</option>
+                <option value="Parliamentary">Parliamentary Debate</option>
+                <option value="Oxford">Oxford Debate</option>
+                <option value="Policy">Policy Debate</option>
+                <option value="Public Forum">Public Forum Debate</option>
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="persona">AI Persona</label>
+              <select 
+                id="persona"
+                className="input"
+                value={persona}
+                onChange={e => setPersona(e.target.value)}
+              >
+                <option value="The Contrarian">The Contrarian (Challenges every premise)</option>
+                <option value="The Academic">The Academic (Cites data & research)</option>
+                <option value="The Strategist">The Strategist (Focuses on practical impact)</option>
+              </select>
+            </div>
           </div>
           
           <div className={styles.formGroup}>
