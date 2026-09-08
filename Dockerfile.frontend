@@ -2,10 +2,14 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY frontend/package.json ./
+# Copy package files first
+COPY frontend/package*.json ./
+
+# Install dependencies
 RUN npm install
 
-COPY frontend/ .
+# Copy the rest of the frontend
+COPY frontend/ ./
 
 EXPOSE 3000
 
