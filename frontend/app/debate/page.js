@@ -10,6 +10,8 @@ export default function DebateArena() {
   const [topic, setTopic] = useState('');
   const [stance, setStance] = useState('');
   const [difficulty, setDifficulty] = useState('intermediate');
+  const [format, setFormat] = useState('1-on-1');
+  const [persona, setPersona] = useState('The Contrarian');
   
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
