@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Any
-from sqlalchemy import String, Integer, DateTime, JSON, Text, ForeignKey, create_engine
+from sqlalchemy import String, Integer, DateTime, JSON, Text, ForeignKey, create_engine, event
 from sqlalchemy.orm import declarative_base, mapped_column, Mapped, sessionmaker
 
 import sys
@@ -13,7 +13,13 @@ if _PROJECT_ROOT not in sys.path:
 
 from backend.config import settings
 
-engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
+# Create engine with retry logic for Docker environments
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,  # Verify connections before using
+    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
@@ -52,9 +58,11 @@ class PerformanceRecord(Base):
 
 
 def create_tables():
+    """Create all database tables."""
     Base.metadata.create_all(bind=engine)
 
 def get_db():
+    """Dependency for getting database session in routes."""
     db = SessionLocal()
     try:
         yield db
