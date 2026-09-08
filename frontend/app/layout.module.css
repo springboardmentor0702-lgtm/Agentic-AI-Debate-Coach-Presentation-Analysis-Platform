@@ -1,0 +1,110 @@
+.appContainer {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  background: rgba(15, 17, 21, 0.8);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 50;
+}
+
+.logo {
+  padding: 32px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: 8px;
+  font-weight: bold;
+  color: white;
+  font-size: 1.2rem;
+  box-shadow: var(--shadow-glow);
+}
+
+.logo h2 {
+  font-size: 1.2rem;
+  letter-spacing: 0.1em;
+  background: linear-gradient(to right, #fff, #a1a5b3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.navLink:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  transform: translateX(4px);
+}
+
+/* Note: In a real app we'd use a client component for active states, but simple hover is fine for layout base */
+
+.sidebarFooter {
+  padding: 24px;
+  border-top: 1px solid var(--surface-border);
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .appContainer {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 16px;
+  }
+  .mainContent {
+    padding: 20px;
+  }
+}

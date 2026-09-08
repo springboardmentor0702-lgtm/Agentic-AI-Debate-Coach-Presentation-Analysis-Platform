@@ -1,0 +1,214 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.iconWrapper {
+  width: 64px;
+  height: 64px;
+  background: rgba(236, 72, 153, 0.1);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.2);
+}
+
+.header p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-top: 4px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.inputSection {
+  padding: 32px;
+}
+
+.inputSection label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.textarea {
+  min-height: 200px;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.error {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Results */
+.resultsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.scorecard {
+  padding: 32px;
+}
+
+.scorecard h3 {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.capitalize {
+  text-transform: capitalize;
+  color: var(--accent-primary);
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.metric {
+  background: rgba(0,0,0,0.2);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  text-align: center;
+  border: 1px solid var(--surface-border);
+}
+
+.metricValue {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.metricLabel {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.analysisDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 24px;
+  border-top: 1px solid var(--surface-border);
+}
+
+.detailBlock h4 {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.detailBlock p {
+  color: var(--text-primary);
+  background: rgba(0,0,0,0.15);
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent-primary);
+}
+
+.fallaciesWrapper h3 {
+  margin-bottom: 20px;
+}
+
+.noFallacies {
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.noFallacies p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.fallacyList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fallacyCard {
+  padding: 24px;
+  border-left: 4px solid var(--danger-color);
+}
+
+.fallacyHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fallacyHeader h4 {
+  flex: 1;
+  color: #f87171;
+}
+
+.excerpt {
+  font-style: italic;
+  color: var(--text-secondary);
+  padding: 12px 16px;
+  background: rgba(0,0,0,0.2);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+.explanation {
+  margin-bottom: 16px;
+}
+
+.suggestion {
+  padding: 16px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #d1fae5;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+}
