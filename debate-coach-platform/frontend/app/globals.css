@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 33% 97%;
+  --foreground: 205 55% 16%;
+  --primary: 196 51% 31%;
+  --accent: 12 76% 61%;
+  --muted: 207 25% 92%;
+  --border: 207 22% 84%;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, hsl(210 33% 97%) 0%, hsl(204 38% 94%) 52%, hsl(30 60% 97%) 100%);
+  color: hsl(var(--foreground));
+  font-family: "Plus Jakarta Sans", "Avenir Next", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: hsl(var(--accent) / 0.2);
+  color: hsl(var(--foreground));
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+button:active,
+a:active {
+  transform: translateY(1px);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #e76f51 !important;
+  box-shadow: 0 0 0 3px rgb(231 111 81 / 0.16) !important;
+  outline: none;
+}
+
+/* Keep the existing Tailwind markup on one deliberate product palette. */
+.bg-slate-100 { background-color: #f1f6f8 !important; }
+.bg-slate-50 { background-color: #f7fafb !important; }
+.bg-slate-900 { background-color: #102a43 !important; }
+.text-slate-950, .text-slate-900 { color: #102a43 !important; }
+.text-slate-800 { color: #243b53 !important; }
+.text-slate-700 { color: #486581 !important; }
+.text-slate-600 { color: #627d98 !important; }
+.text-slate-500 { color: #829ab1 !important; }
+.border-slate-300, .border-slate-200 { border-color: #d9e2ec !important; }
+.border-slate-100 { border-color: #e8eef2 !important; }
+
+.bg-teal-700 { background-color: #24566a !important; }
+.bg-teal-800 { background-color: #163f50 !important; }
+.bg-teal-600 { background-color: #2f7180 !important; }
+.bg-teal-500 { background-color: #3d8c92 !important; }
+.bg-teal-400 { background-color: #78c2bd !important; }
+.bg-teal-50 { background-color: #e7f3f1 !important; }
+.text-teal-800, .text-teal-700, .text-teal-600 { color: #24566a !important; }
+.text-teal-500 { color: #3d8c92 !important; }
+.text-teal-100 { color: #d8efeb !important; }
+.border-teal-500 { border-color: #3d8c92 !important; }
+
+.bg-amber-600 { background-color: #d85f43 !important; }
+.bg-amber-500 { background-color: #e76f51 !important; }
+.bg-amber-50 { background-color: #fff1eb !important; }
+.text-amber-700, .text-amber-900 { color: #b94d36 !important; }
+.text-amber-600 { color: #d85f43 !important; }
+.border-amber-200 { border-color: #f2c6b8 !important; }
+
+.bg-violet-700 { background-color: #486581 !important; }
+.bg-violet-600 { background-color: #627d98 !important; }
+.bg-violet-50 { background-color: #edf2f7 !important; }
+.text-violet-700, .text-violet-600 { color: #486581 !important; }
+
+.bg-rose-50, .bg-red-50 { background-color: #fff1f0 !important; }
+.text-rose-600, .text-red-700 { color: #b5474c !important; }
+.border-rose-200, .border-red-200 { border-color: #f1c3c5 !important; }
+
+.shadow-sm { box-shadow: 0 8px 24px rgb(16 42 67 / 0.06) !important; }
+.shadow-md { box-shadow: 0 12px 30px rgb(16 42 67 / 0.09) !important; }
+
