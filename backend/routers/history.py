@@ -1,51 +1,142 @@
-"""API endpoints for debate session history."""
-from fastapi import APIRouter, HTTPException
-from backend.schemas import (
-    SessionListResponse, SessionSummary,
-    SessionDetailResponse, ErrorResponse,
+"""User History & Performance Records Router"""
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from backend.database import get_db, AnalysisResult, DebateSession, PerformanceRecord
+
+router = APIRouter(
+    prefix="/history",
+    tags=["History"],
+    responses={404: {"description": "Not found"}},
 )
-from backend.services import debate_service
-
-router = APIRouter(prefix="/history", tags=["History"])
 
 
-@router.get(
-    "/sessions",
-    response_model=SessionListResponse,
-    summary="List all debate sessions",
-    description="Get a list of all debate sessions with summary info.",
-)
-def list_sessions():
-    sessions = debate_service.list_sessions()
-    return SessionListResponse(
-        sessions=[SessionSummary(**s) for s in sessions],
-        total=len(sessions),
-    )
-
-
-@router.get(
-    "/sessions/{session_id}",
-    response_model=SessionDetailResponse,
-    summary="Get session details",
-    description="Get full details of a specific debate session.",
-    responses={404: {"model": ErrorResponse}},
-)
-def get_session(session_id: str):
+@router.get("/analyses")
+def get_analysis_history(
+    limit: int = 10,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    """
+    Get user's analysis history.
+    
+    - **limit**: Number of records to return (default: 10)
+    - **offset**: Number of records to skip (default: 0)
+    """
     try:
-        result = debate_service.get_session_detail(session_id)
-        return SessionDetailResponse(**result)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        analyses = db.query(AnalysisResult).offset(offset).limit(limit).all()
+        
+        return {
+            "status": "success",
+            "total": len(analyses),
+            "analyses": [
+                {
+                    "id": a.id,
+                    "input_text": a.input_text[:100] + "..." if len(a.input_text) > 100 else a.input_text,
+                    "analysis_type": a.analysis_type,
+                    "created_at": a.created_at
+                }
+                for a in analyses
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete(
-    "/sessions/{session_id}",
-    summary="Delete a session",
-    description="Delete a debate session and all associated data.",
-    responses={404: {"model": ErrorResponse}},
-)
-def delete_session(session_id: str):
-    deleted = debate_service.delete_session(session_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
-    return {"message": f"Session '{session_id}' deleted successfully"}
+@router.get("/debates")
+def get_debate_history(
+    limit: int = 10,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    """
+    Get user's debate session history.
+    
+    - **limit**: Number of records to return (default: 10)
+    - **offset**: Number of records to skip (default: 0)
+    """
+    try:
+        sessions = db.query(DebateSession).offset(offset).limit(limit).all()
+        
+        return {
+            "status": "success",
+            "total": len(sessions),
+            "debates": [
+                {
+                    "id": s.id,
+                    "topic": s.topic,
+                    "opponent_stance": s.opponent_stance,
+                    "difficulty": s.difficulty,
+                    "status": s.status,
+                    "created_at": s.created_at
+                }
+                for s in sessions
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/performance/{session_id}")
+def get_performance_records(
+    session_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get performance evaluation records for a debate session."""
+    try:
+        records = db.query(PerformanceRecord).filter(
+            PerformanceRecord.session_id == session_id
+        ).all()
+        
+        if not records:
+            raise HTTPException(status_code=404, detail="No performance records found for this session")
+        
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "records": [
+                {
+                    "id": r.id,
+                    "evaluation_data": r.evaluation_data,
+                    "coaching_data": r.coaching_data,
+                    "learning_plan": r.learning_plan,
+                    "created_at": r.created_at
+                }
+                for r in records
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/analysis/{analysis_id}")
+def delete_analysis(
+    analysis_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a specific analysis record."""
+    try:
+        analysis = db.query(AnalysisResult).filter(AnalysisResult.id == analysis_id).first()
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis record not found")
+        
+        db.delete(analysis)
+        db.commit()
+        
+        return {"status": "success", "message": "Analysis record deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/health")
+def history_health():
+    """Check history module health."""
+    return {
+        "status": "healthy",
+        "module": "History & Records",
+        "version": "1.0.0"
+    }
