@@ -4,11 +4,23 @@ from database import get_db
 import models, schemas
 import json
 from services.ai_engine import ai_engine_service
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/simulation", tags=["AI Debate Simulation Engine"])
 
 @router.post("/turn", response_model=schemas.SimulationTurnResponse)
-def run_simulation_turn(payload: schemas.SimulationTurnCreate, user_id: int = 1, db: Session = Depends(get_db)):
+def run_simulation_turn(
+    payload: schemas.SimulationTurnCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    debate_session = db.query(models.DebateSession).filter(
+        models.DebateSession.id == payload.session_id
+    ).first()
+    if not debate_session:
+        raise HTTPException(status_code=404, detail="Debate session not found. Start a session first.")
+    if debate_session.user_id != current_user.id and current_user.role != "Administrator":
+        raise HTTPException(status_code=403, detail="You cannot add turns to another user's session.")
     # Get current turn number for this session
     last_turn = db.query(models.SimulationTurn).filter(
         models.SimulationTurn.session_id == payload.session_id
@@ -23,7 +35,7 @@ def run_simulation_turn(payload: schemas.SimulationTurnCreate, user_id: int = 1,
     # Save turn to database
     new_turn = models.SimulationTurn(
         session_id=payload.session_id,
-        user_id=user_id,
+        user_id=current_user.id,
         turn_number=turn_number,
         user_argument=payload.user_argument,
         opponent_persona=persona,

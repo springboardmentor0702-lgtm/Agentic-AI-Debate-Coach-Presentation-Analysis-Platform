@@ -1,0 +1,22 @@
+name: logos-ai
+location: REPLACE_WITH_AZURE_REGION
+resourceGroup: REPLACE_WITH_RESOURCE_GROUP
+services:
+  backend:
+    image: REPLACE_WITH_ACR_BACKEND_IMAGE
+    targetPort: 8000
+    ingress: external
+    healthProbe:
+      path: /health/ready
+      port: 8000
+    env:
+      DATABASE_URL: REPLACE_WITH_MANAGED_DATABASE_URL
+      SECRET_KEY: REPLACE_WITH_SECRET_REFERENCE
+  frontend:
+    image: REPLACE_WITH_ACR_FRONTEND_IMAGE
+    targetPort: 3000
+    ingress: external
+    env:
+      NEXT_PUBLIC_API_URL: REPLACE_WITH_BACKEND_URL
+monitoring:
+  applicationInsights: REPLACE_WITH_APPLICATION_INSIGHTS_CONNECTION_STRING

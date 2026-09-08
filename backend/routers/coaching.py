@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
 import models, schemas
 import json
+from routers.auth import get_current_user
 
 router = APIRouter(
     prefix="/api/v1/coaching",
@@ -199,7 +200,13 @@ def generate_learning_path(skill_analysis: dict) -> list:
 
 
 @router.get("/plan/{user_id}", response_model=schemas.CoachingPlanResponse)
-def get_coaching_plan(user_id: int, db: Session = Depends(get_db)):
+def get_coaching_plan(
+    user_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.id != user_id and current_user.role not in ["Debate Coach", "Educator", "Administrator"]:
+        raise HTTPException(status_code=403, detail="You may only access your own coaching plan.")
     # Analyze user's actual performance data
     skill_analysis = analyze_skill_gaps(user_id, db)
     
@@ -277,6 +284,53 @@ def get_coaching_plan(user_id: int, db: Session = Depends(get_db)):
         "learning_path_steps": learning_path_steps,
         "progress_status": new_plan.progress_status
     }
+
+@router.post("/assignments", response_model=schemas.CoachAssignmentResponse)
+def assign_learner(
+    assignment_data: schemas.CoachAssignmentCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.role not in ["Debate Coach", "Educator", "Administrator"]:
+        raise HTTPException(status_code=403, detail="Coach, educator, or administrator access is required.")
+    learner = db.query(models.User).filter(
+        models.User.id == assignment_data.learner_id,
+        models.User.role == "Learner"
+    ).first()
+    if not learner:
+        raise HTTPException(status_code=404, detail="Learner not found.")
+    existing = db.query(models.CoachAssignment).filter(
+        models.CoachAssignment.coach_id == current_user.id,
+        models.CoachAssignment.learner_id == learner.id
+    ).first()
+    if existing:
+        return existing
+    assignment = models.CoachAssignment(coach_id=current_user.id, learner_id=learner.id)
+    db.add(assignment)
+    db.commit()
+    db.refresh(assignment)
+    return assignment
+
+@router.get("/assignments", response_model=list[dict])
+def list_assignments(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.role not in ["Debate Coach", "Educator", "Administrator"]:
+        raise HTTPException(status_code=403, detail="Coach access is required.")
+    assignments = db.query(models.CoachAssignment).filter(
+        models.CoachAssignment.coach_id == current_user.id
+    ).all()
+    return [
+        {
+            "id": assignment.id,
+            "learner_id": assignment.learner_id,
+            "learner_name": db.query(models.User.full_name).filter(models.User.id == assignment.learner_id).scalar(),
+            "status": assignment.status,
+            "created_at": assignment.created_at
+        }
+        for assignment in assignments
+    ]
 
 
 @router.get("/analysis/{user_id}")

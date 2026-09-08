@@ -38,6 +38,26 @@ class DebateSession(Base):
     presentation_metrics = relationship("PresentationMetric", back_populates="session")
     performance_scores = relationship("PerformanceScore", back_populates="session")
 
+class CoachAssignment(Base):
+    __tablename__ = "coach_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    coach_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    learner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String, default="Active")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class DebateRecording(Base):
+    __tablename__ = "debate_recordings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("debate_sessions.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    transcript = Column(Text, nullable=False)
+    audio_url = Column(String)
+    duration_seconds = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class ArgumentAnalysis(Base):
     __tablename__ = "argument_analyses"
 
@@ -96,6 +116,11 @@ class PresentationMetric(Base):
     confidence_score = Column(Float, default=0.0)
     clarity_score = Column(Float, default=0.0)
     engagement_score = Column(Float, default=0.0)
+    prosody_score = Column(Float, default=0.0)
+    vocal_variety = Column(Float, default=0.0)
+    vocabulary_diversity = Column(Float, default=0.0)
+    avg_sentence_length = Column(Float, default=0.0)
+    pace_feedback = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("DebateSession", back_populates="presentation_metrics")

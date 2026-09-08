@@ -23,6 +23,15 @@ export default function Navbar() {
         <Link href="/presentation" className={`nav-link ${pathname === '/presentation' ? 'active' : ''}`}>
           VOCAL_METRICS
         </Link>
+        <Link href="/analysis" className={`nav-link ${pathname === '/analysis' ? 'active' : ''}`}>
+          ARGUMENTS
+        </Link>
+        <Link href="/fallacies" className={`nav-link ${pathname === '/fallacies' ? 'active' : ''}`}>
+          FALLACIES
+        </Link>
+        <Link href="/schedule" className={`nav-link ${pathname === '/schedule' ? 'active' : ''}`}>
+          SCHEDULE
+        </Link>
         <Link href="/dashboard" className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}>
           ANALYTICS
         </Link>

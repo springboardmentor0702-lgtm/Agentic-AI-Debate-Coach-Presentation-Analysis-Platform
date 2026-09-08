@@ -37,21 +37,7 @@ def decode_access_token(token: str) -> dict:
 
 def get_current_user(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)) -> models.User:
     if not authorization or not authorization.startswith("Bearer "):
-        # Return or create demo default user if unauthenticated
-        user = db.query(models.User).filter(models.User.email == "learner@logos.ai").first()
-        if not user:
-            user = models.User(
-                email="learner@logos.ai",
-                hashed_password=hash_password("password123"),
-                full_name="Standard Learner",
-                role="Learner",
-                experience_level="Intermediate",
-                preferred_topics="Technology, Ethics, Policy"
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        return user
+        raise HTTPException(status_code=401, detail="Authentication is required.")
 
     token = authorization.split(" ")[1]
     payload = decode_access_token(token)

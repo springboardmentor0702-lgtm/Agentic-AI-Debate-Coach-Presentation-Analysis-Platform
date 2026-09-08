@@ -42,6 +42,8 @@ class DebateSessionCreate(BaseModel):
     topic: str
     format: Optional[str] = "AI Simulation"
     assigned_position: Optional[str] = "Affirmative"
+    scheduled_at: Optional[datetime] = None
+    status: Optional[str] = "Active"
 
 class DebateSessionResponse(BaseModel):
     id: int
@@ -52,6 +54,36 @@ class DebateSessionResponse(BaseModel):
     assigned_position: str
     status: str
     scheduled_at: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class CoachAssignmentCreate(BaseModel):
+    learner_id: int
+
+class CoachAssignmentResponse(BaseModel):
+    id: int
+    coach_id: int
+    learner_id: int
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class DebateRecordingCreate(BaseModel):
+    transcript: str
+    audio_url: Optional[str] = None
+    duration_seconds: Optional[float] = 0.0
+
+class DebateRecordingResponse(BaseModel):
+    id: int
+    session_id: int
+    user_id: int
+    transcript: str
+    audio_url: Optional[str]
+    duration_seconds: float
     created_at: datetime
 
     class Config:
@@ -100,6 +132,11 @@ class PresentationMetricResponse(BaseModel):
     confidence_score: float
     clarity_score: float
     engagement_score: float
+    prosody_score: float
+    vocal_variety: float
+    pace_feedback: str
+    vocabulary_diversity: float
+    avg_sentence_length: float
 
 # Simulation Schemas
 class SimulationTurnSubmit(BaseModel):

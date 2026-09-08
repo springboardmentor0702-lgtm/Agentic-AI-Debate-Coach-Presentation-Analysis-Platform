@@ -3,11 +3,24 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
 from services.ai_engine import ai_engine_service
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/argument-analysis", tags=["Argument Analysis Engine"])
 
 @router.post("/evaluate", response_model=schemas.ArgumentAnalysisResponse)
-def evaluate_argument(payload: schemas.ArgumentSubmit, user_id: int = 1, db: Session = Depends(get_db)):
+def evaluate_argument(
+    payload: schemas.ArgumentSubmit,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    session = db.query(models.DebateSession).filter(
+        models.DebateSession.id == payload.session_id,
+        models.DebateSession.user_id == current_user.id
+    ).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Debate session not found for this user.")
+
+    user_id = current_user.id
     # 1. AI Analysis
     analysis_res = ai_engine_service.analyze_argument(payload.speech_text)
     

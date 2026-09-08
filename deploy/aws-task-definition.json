@@ -1,0 +1,26 @@
+{
+  "family": "logos-ai-platform",
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "REPLACE_WITH_ECS_EXECUTION_ROLE_ARN",
+  "taskRoleArn": "REPLACE_WITH_ECS_TASK_ROLE_ARN",
+  "containerDefinitions": [
+    {
+      "name": "logos-ai-backend",
+      "image": "REPLACE_WITH_ECR_BACKEND_IMAGE",
+      "essential": true,
+      "portMappings": [{"containerPort": 8000, "protocol": "tcp"}],
+      "healthCheck": {"command": ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')\""], "interval": 30, "timeout": 5, "retries": 3},
+      "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/logos-ai", "awslogs-region": "REPLACE_WITH_AWS_REGION", "awslogs-stream-prefix": "backend"}}
+    },
+    {
+      "name": "logos-ai-frontend",
+      "image": "REPLACE_WITH_ECR_FRONTEND_IMAGE",
+      "essential": true,
+      "portMappings": [{"containerPort": 3000, "protocol": "tcp"}],
+      "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/logos-ai", "awslogs-region": "REPLACE_WITH_AWS_REGION", "awslogs-stream-prefix": "frontend"}}
+    }
+  ]
+}

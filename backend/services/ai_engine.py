@@ -3,194 +3,86 @@ import random
 import numpy as np
 from typing import Dict, List, Any
 
-# Supported Fallacies Catalogue
 FALLACY_PATTERNS = {
-    "Ad Hominem": {
-        "keywords": ["idiot", "fool", "corrupt", "liar", "ignorant", "stupid", "you don't know", "incompetent"],
-        "explanation": "Attacking the opponent's character or personal traits rather than engaging with their argument.",
-        "correction": "Focus directly on the evidence and logical premises of the claim rather than personal attributes."
-    },
-    "Straw Man": {
-        "keywords": ["so you're saying", "you want to destroy", "completely eliminate", "ban everything", "claim that all"],
-        "explanation": "Misrepresenting or exaggerating an opponent's argument to make it easier to attack.",
-        "correction": "State the opponent's true position accurately before refuting it."
-    },
-    "False Dilemma": {
-        "keywords": ["either", "or else", "only two choices", "with us or against us", "if we don't then total"],
-        "explanation": "Presenting two alternative states as the only possibilities, when in fact more possibilities exist.",
-        "correction": "Acknowledge nuanced middle-ground positions and alternative solutions."
-    },
-    "Slippery Slope": {
-        "keywords": ["lead to total", "inevitably result in", "next thing you know", "slippery slope", "catastrophe"],
-        "explanation": "Asserting that a relatively small first step will inevitably lead to a chain of negative events without proving direct causality.",
-        "correction": "Provide empirical evidence for each causal step in the predicted chain reaction."
-    },
-    "Appeal to Authority": {
-        "keywords": ["famous person said", "celebrity agrees", "unnamed experts claim", "because I said so", "authority"],
-        "explanation": "Claiming something is true simply because an authoritative figure said it, without corroborating evidence.",
-        "correction": "Cite peer-reviewed data, verifiable statistics, and primary research sources."
-    },
-    "Circular Reasoning": {
-        "keywords": ["because it is", "obviously true because", "by definition", "self-evident that"],
-        "explanation": "Using the conclusion of the argument as one of the premises used to support it.",
-        "correction": "Provide independent supporting evidence that does not assume the conclusion."
-    },
-    "Hasty Generalization": {
-        "keywords": ["everyone knows", "all of them", "always", "never", "based on my one friend"],
-        "explanation": "Making a broad claim based on an insufficient or unrepresentative sample size.",
-        "correction": "Qualify your claim with statistical bounds and representative sample data."
-    },
-    "Red Herring": {
-        "keywords": ["what about", "moving on to", "distraction", "irrelevant topic", "instead of talking about"],
-        "explanation": "Introducing an irrelevant topic into an argument to divert attention from the original issue.",
-        "correction": "Maintain focus on the specific proposition currently being debated."
-    }
+    "Ad Hominem": (["idiot", "fool", "corrupt", "liar", "ignorant", "stupid"], "Attacking a person rather than the argument.", "Address the evidence and premises directly."),
+    "Straw Man": (["so you're saying", "you want to destroy", "ban everything"], "Misrepresenting an opponent's position.", "State the actual position before rebutting it."),
+    "False Dilemma": (["either", "only two choices", "with us or against us", "or else"], "Presenting two options as the only possibilities.", "Consider reasonable alternatives."),
+    "Slippery Slope": (["inevitably result in", "slippery slope", "catastrophe"], "Claiming an unproven chain of consequences.", "Support each causal step with evidence."),
+    "Hasty Generalization": (["everyone knows", "all of them", "always", "never"], "Making a broad claim from too little evidence.", "Use representative evidence and qualifying language.")
 }
 
 class AIEngine:
     def __init__(self):
-        # Initialize Vector DB (FAISS/In-Memory Semantic Cache) for Argument Context Memory
-        self.argument_memory = [] # Stores dicts with {"text": str, "vector": np.ndarray}
-        
+        self.argument_memory = []
+        self._last_rebuttal_index = {}
+
     def _get_embedding(self, text: str) -> np.ndarray:
-        # High-fidelity simulated embedding vector (128-dimensional) based on word frequencies
-        words = text.lower().split()
         vector = np.zeros(128)
-        for i, word in enumerate(words[:128]):
-            hash_val = hash(word) % 128
-            vector[hash_val] += 1.0
+        for word in text.lower().split()[:128]:
+            vector[hash(word) % 128] += 1
         norm = np.linalg.norm(vector)
-        if norm > 0:
-            vector = vector / norm
-        return vector
+        return vector / norm if norm else vector
 
     def index_argument(self, text: str):
-        # Save argument embedding vector to Vector DB Context Memory
-        vector = self._get_embedding(text)
-        self.argument_memory.append({"text": text, "vector": vector})
+        self.argument_memory.append({"text": text, "vector": self._get_embedding(text)})
 
     def search_similar_arguments(self, query: str, top_k: int = 2) -> List[Dict[str, Any]]:
-        # Semantic search using Cosine Similarity over FAISS-style vector index
         if not self.argument_memory:
             return []
         query_vector = self._get_embedding(query)
-        results = []
-        for doc in self.argument_memory:
-            similarity = np.dot(query_vector, doc["vector"])
-            results.append((similarity, doc["text"]))
-        results.sort(key=lambda x: x[0], reverse=True)
-        return [{"text": text, "similarity": float(sim)} for sim, text in results[:top_k]]
+        ranked = sorted(((float(np.dot(query_vector, item["vector"])), item["text"]) for item in self.argument_memory), reverse=True)
+        return [{"text": text, "similarity": score} for score, text in ranked[:top_k]]
 
     def analyze_argument(self, text: str) -> Dict[str, Any]:
-        text_lower = text.lower()
-        
-        # Index argument in context memory vector database
         self.index_argument(text)
-        
-        # 1. Claim extraction
-        first_sentence = text.split('.')[0] if '.' in text else text
-        claim = f"Main Proposition: {first_sentence.strip()}"
-        
-        # 2. Score calculations
-        word_count = len(text.split())
-        evidence_strength = min(100.0, max(45.0, word_count * 1.5 + (20 if "data" in text_lower or "percent" in text_lower or "%" in text_lower or "study" in text_lower else 0)))
-        clarity_score = min(100.0, max(50.0, 95.0 - (word_count > 100) * 10))
-        relevance_score = min(100.0, max(60.0, 85.0 + random.uniform(-5, 10)))
-        logical_consistency = 90.0
-        
-        # 3. Detect fallacies
-        detected_fallacies = []
-        for fallacy_name, meta in FALLACY_PATTERNS.items():
-            for kw in meta["keywords"]:
-                if kw in text_lower:
-                    logical_consistency -= 15.0
-                    detected_fallacies.append({
-                        "fallacy_type": fallacy_name,
-                        "explanation": meta["explanation"],
-                        "correction_suggestion": meta["correction"]
-                    })
-                    break
-        
-        logical_consistency = max(20.0, logical_consistency)
-        reasoning_quality = (evidence_strength + logical_consistency + clarity_score) / 3.0
-        persuasiveness_score = (reasoning_quality * 0.7) + (relevance_score * 0.3)
-
-        # 4. Generate Rebuttals across 5 types
-        counterarguments = [
-            {
-                "rebuttal_type": "Logical",
-                "rebuttal_text": f"While your premise rests on '{claim[:60]}...', it assumes a linear causal relationship that ignores external systemic variables.",
-                "challenge_question": "What empirical evidence demonstrates that your premise holds under non-ideal market conditions?",
-                "strategy_tip": "Challenge the opponent's unstated core assumption."
-            },
-            {
-                "rebuttal_type": "Evidence-Based",
-                "rebuttal_text": "Recent quantitative studies contradict this stance by showing a counter-correlation when accounting for socioeconomic baselines.",
-                "challenge_question": "Can you provide peer-reviewed statistical validation for this specific claim?",
-                "strategy_tip": "Demand primary source verification."
-            },
-            {
-                "rebuttal_type": "Ethical",
-                "rebuttal_text": "From a normative perspective, prioritizing this outcome disproportionately burdens underrepresented stakeholders.",
-                "challenge_question": "How does your policy safeguard the rights of affected minority groups?",
-                "strategy_tip": "Shift the moral frame to equitable distribution of impacts."
-            },
-            {
-                "rebuttal_type": "Practical",
-                "rebuttal_text": "Implementation of this approach faces severe operational bottlenecks and fiscal overruns in real-world scenarios.",
-                "challenge_question": "What is the concrete timeline and budget allocation for enforcing this proposal?",
-                "strategy_tip": "Focus on feasibility and operational friction."
-            },
-            {
-                "rebuttal_type": "Policy",
-                "rebuttal_text": "Alternative regulatory frameworks achieve identical strategic objectives with significantly lower systemic risk.",
-                "challenge_question": "Why should we adopt this high-risk policy over proven incremental reforms?",
-                "strategy_tip": "Offer a safer, higher-yield policy alternative."
-            }
-        ]
-
-        return {
-            "claim_identified": claim,
-            "evidence_strength": round(evidence_strength, 1),
-            "reasoning_quality": round(reasoning_quality, 1),
-            "clarity_score": round(clarity_score, 1),
-            "relevance_score": round(relevance_score, 1),
-            "logical_consistency": round(logical_consistency, 1),
-            "persuasiveness_score": round(persuasiveness_score, 1),
-            "fallacies": detected_fallacies,
-            "counterarguments": counterarguments
-        }
+        lowered = text.lower()
+        fallacies, consistency = [], 90.0
+        for name, (keywords, explanation, correction) in FALLACY_PATTERNS.items():
+            if any(keyword in lowered for keyword in keywords):
+                consistency -= 15
+                fallacies.append({"fallacy_type": name, "explanation": explanation, "correction_suggestion": correction})
+        words = len(text.split())
+        evidence = min(100.0, max(45.0, words * 1.5 + (20 if any(key in lowered for key in ["data", "study", "percent", "%"]) else 0)))
+        clarity, relevance = (85.0 if words < 100 else 75.0), round(random.uniform(80, 95), 1)
+        quality = (evidence + consistency + clarity) / 3
+        return {"claim_identified": f"Main Proposition: {text.split('.')[0].strip()}", "evidence_strength": round(evidence, 1), "reasoning_quality": round(quality, 1), "clarity_score": clarity, "relevance_score": relevance, "logical_consistency": max(20.0, consistency), "persuasiveness_score": round(quality * .7 + relevance * .3, 1), "fallacies": fallacies, "counterarguments": []}
 
     def generate_simulation_response(self, text: str, persona: str) -> Dict[str, Any]:
         analysis = self.analyze_argument(text)
-        
-        persona_styles = {
-            "The Contrarian": "Directly challenging assumptions with aggressive counter-evidence.",
-            "The Academic": "Socratic, precise, demanding rigorous citations and methodological clarity.",
-            "The Strategist": "Focusing on pragmatic policy outcomes, unintended consequences, and cost-benefit trade-offs."
+        claim = re.sub(r"\s+", " ", text.strip().strip("“”\"")).rstrip(".?!")
+        claim = claim[:180] + ("..." if len(claim) > 180 else "")
+        responses = {
+            "The Contrarian": [
+                ("Your claim — '{claim}' — assumes the benefit will follow automatically. What evidence isolates this proposal's effect from other factors?", "Give one measurable causal link and evidence for it."),
+                ("I dispute the scope of '{claim}'. It treats affected people and institutions as if they have identical needs and resources.", "Who is most likely to be harmed or excluded?"),
+                ("'{claim}' identifies an objective but skips the mechanism. A desired result is not proof that this intervention can deliver it.", "Explain who acts, what changes, and how success is measured."),
+                ("'{claim}' overlooks a narrower, reversible alternative that could pursue the same goal with less risk.", "Why is a broad rule better than a pilot or targeted policy?"),
+                ("I challenge the trade-off in '{claim}'. A gain for one group may transfer cost or power to another.", "What downside are you accepting, and how will you limit it?")
+            ],
+            "The Academic": [
+                ("The proposition '{claim}' is under-specified. Its key terms and success standard are not defined.", "Define the scope, comparison group, and success metric."),
+                ("You assert '{claim}', but have not established causation. Intuition and anecdotes are not enough.", "Which credible study supports the causal claim?"),
+                ("'{claim}' needs a boundary condition: a policy working in one context may not generalize.", "Under what conditions would it fail?"),
+                ("Before accepting '{claim}', compare it with plausible alternatives and doing nothing.", "What evidence shows it outperforms the nearest alternative?"),
+                ("'{claim}' makes a value choice as if it were purely factual.", "Which value wins when fairness, autonomy, and effectiveness conflict?")
+            ],
+            "The Strategist": [
+                ("Even if '{claim}' has an attractive goal, implementation determines success. Enforcement, staffing, and compliance costs are missing.", "Who administers it, what does it cost, and how is compliance checked?"),
+                ("'{claim}' may create incentives that undermine its purpose.", "What unintended consequence is most likely, and how would you mitigate it?"),
+                ("'{claim}' has a sequencing problem: deployment before testing capacity can turn a good idea into a costly failure.", "What pilot, review point, and exit criteria would you use?"),
+                ("A uniform version of '{claim}' may be inefficient when local conditions differ.", "Why not use a targeted or phased approach first?"),
+                ("'{claim}' has an opportunity cost: resources used here cannot address competing priorities.", "What is displaced, and why is this the better investment?")
+            ]
         }
-        
-        rebuttal_prefix = {
-            "The Contrarian": "I strongly reject your core premise.",
-            "The Academic": "Your argument exhibits notable methodological gaps.",
-            "The Strategist": "From a policy implementation standpoint, your thesis collapses."
-        }
-        
-        prefix = rebuttal_prefix.get(persona, "I counter your statement.")
-        primary_counter = analysis["counterarguments"][0]["rebuttal_text"]
-        
-        rebuttal_full = f"{prefix} {primary_counter} {analysis['counterarguments'][0]['challenge_question']}"
-        rebuttal_strength = round(random.uniform(91.0, 99.4), 1)
-        
-        return {
-            "opponent_rebuttal": rebuttal_full,
-            "fallacies_detected": analysis["fallacies"],
-            "rebuttal_strength_percent": rebuttal_strength,
-            "coaching_tip": f"Persona Style: {persona_styles.get(persona, 'Standard')}. Maintain composure and address the core challenge question directly."
-        }
+        options = responses.get(persona, responses["The Contrarian"])
+        last = self._last_rebuttal_index.get(persona)
+        selected = random.choice([index for index in range(len(options)) if index != last])
+        self._last_rebuttal_index[persona] = selected
+        template, coaching = options[selected]
+        styles = {"The Contrarian": "Direct, assumption-testing, and adversarial.", "The Academic": "Socratic, precise, and evidence-focused.", "The Strategist": "Pragmatic and implementation-focused."}
+        return {"opponent_rebuttal": template.format(claim=claim), "fallacies_detected": analysis["fallacies"], "rebuttal_strength_percent": round(random.uniform(91, 99.4), 1), "coaching_tip": f"{styles.get(persona, 'Standard style')} {coaching}"}
 
     def calculate_weighted_score(self, arg_quality: float, evidence: float, logic: float, rebuttal: float, comms: float) -> float:
-        weighted = (0.30 * arg_quality) + (0.20 * evidence) + (0.20 * logic) + (0.15 * rebuttal) + (0.15 * comms)
-        return round(weighted, 1)
+        return round(.30 * arg_quality + .20 * evidence + .20 * logic + .15 * rebuttal + .15 * comms, 1)
 
 ai_engine_service = AIEngine()

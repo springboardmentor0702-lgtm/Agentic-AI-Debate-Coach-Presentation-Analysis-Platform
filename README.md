@@ -124,6 +124,38 @@ npm run build
 docker-compose up --build
 ```
 
+### Milestone 4 Verification
+
+Milestone 4 includes the presentation analytics workflow, metric visualizations, authenticated presentation session creation, live report summaries, CSV/XLSX/PDF exports, and production Docker serving.
+
+Validate the implementation locally:
+```bash
+cd backend
+python -m py_compile routers/presentation_analysis.py routers/reports.py
+cd ../frontend
+npm run build
+cd ..
+docker compose config
+```
+
+Run the complete deployment locally with:
+```bash
+docker compose up --build
+```
+
+### Complete Milestone 1-4 Surface
+
+The application now includes dedicated `/analysis`, `/fallacies`, and `/schedule` workflows, coach assignments, authenticated recordings, Educator and Administrator dashboard views, protected report exports, API health endpoints, structured request logging, and automated API/security tests.
+
+Run the automated checks from `backend/`:
+```bash
+pytest -q
+```
+
+Deployment templates are provided in `deploy/aws-task-definition.json` and `deploy/azure-container-apps.yaml`. Replace the documented image, region, role, database, and secret placeholders before deploying. The backend exposes `/health/live` and `/health/ready` for load balancers and monitoring systems.
+
+The frontend is served on `http://localhost:3000`, the API on `http://localhost:8000`, and the API health endpoint is `http://localhost:8000/`.
+
 ---
 
 ## ❓ Troubleshooting & Setup Issues

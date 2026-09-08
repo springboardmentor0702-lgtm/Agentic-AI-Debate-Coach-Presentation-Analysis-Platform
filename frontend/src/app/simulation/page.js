@@ -21,6 +21,8 @@ const [userInput, setUserInput] = useState("");
 
 const [loading, setLoading] = useState(false);
 
+  const [sessionId, setSessionId] = useState(null);
+
   const [transcript, setTranscript] = useState([
     {
       speaker: "System",
@@ -35,6 +37,7 @@ const [loading, setLoading] = useState(false);
   ]);
 
   const [lastAnalysis, setLastAnalysis] = useState(null);
+  const [recordingStatus, setRecordingStatus] = useState('Transcript not saved');
 
   const handleSendArgument = async (e) => {
     e.preventDefault();
@@ -47,18 +50,45 @@ const [loading, setLoading] = useState(false);
     setLoading(true);
 
     try {
-      // Call FastAPI simulation & argument evaluation backend
+      const token = localStorage.getItem('logos_ai_jwt');
+      if (!token) throw new Error("Please log in before starting a debate session.");
+
+      let activeSessionId = sessionId;
+      if (!activeSessionId) {
+        const createRes = await fetch("http://localhost:8000/api/v1/sessions/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: `AI Simulation: ${userMsg.slice(0, 80)}`,
+            topic: userMsg,
+            format,
+            assigned_position: position
+          })
+        });
+        const createdSession = await createRes.json();
+        if (!createRes.ok) throw new Error(createdSession.detail || "Could not create the debate session.");
+        activeSessionId = createdSession.id;
+        setSessionId(activeSessionId);
+      }
+
       const simRes = await fetch("http://localhost:8000/api/v1/simulation/turn", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
-          session_id: 1,
+          session_id: activeSessionId,
           user_argument: userMsg,
           opponent_persona: persona
         })
       });
 
       const data = await simRes.json();
+      if (!simRes.ok) throw new Error(data.detail || "The debate turn could not be saved.");
 
       setTranscript(prev => [
         ...prev,
@@ -67,30 +97,45 @@ const [loading, setLoading] = useState(false);
           text: data.opponent_rebuttal,
           type: "opponent",
           rebuttal_strength: data.rebuttal_strength_percent,
-          fallacies: data.fallacies_detected_in_user
+          fallacies: data.fallacies_detected
         }
       ]);
 
       setLastAnalysis({
         rebuttal_strength: data.rebuttal_strength_percent,
-        fallacies: data.fallacies_detected_in_user,
+        fallacies: data.fallacies_detected,
         coaching_tip: data.coaching_tip
       });
 
     } catch (err) {
-      // Fallback local response if backend API is offline during client rendering
       setTranscript(prev => [
         ...prev,
         {
-          speaker: `AI Opponent (${persona})`,
-          text: `I reject your proposition. Asserting that liability rests on autonomous units ignores manufacturer warranty and human operator oversight.`,
-          type: "opponent",
-          rebuttal_strength: 96.5,
-          fallacies: []
+          speaker: "System",
+          text: `Unable to save this turn: ${err.message}`,
+          type: "system"
         }
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveTranscript = async () => {
+    if (!sessionId) return;
+    setRecordingStatus('Saving transcript...');
+    try {
+      const token = localStorage.getItem('logos_ai_jwt');
+      const transcriptText = transcript.map((turn) => `${turn.speaker}: ${turn.text}`).join('\n');
+      const response = await fetch(`http://localhost:8000/api/v1/sessions/${sessionId}/recording`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ transcript: transcriptText, duration_seconds: 0 })
+      });
+      if (!response.ok) throw new Error('Could not save transcript.');
+      setRecordingStatus('Transcript saved');
+    } catch (error) {
+      setRecordingStatus(error.message);
     }
   };
 
@@ -191,6 +236,10 @@ const [loading, setLoading] = useState(false);
               TRANSMIT
             </button>
           </form>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem', background: '#17171D', color: '#CBD5E1' }}>
+            <span className="font-mono" style={{ fontSize: '0.72rem' }}>RECORDING: {recordingStatus}</span>
+            <button type="button" onClick={saveTranscript} className="btn btn-login" style={{ padding: '0.45rem 0.75rem', fontSize: '0.7rem' }} disabled={!sessionId}>SAVE TRANSCRIPT</button>
+          </div>
         </div>
 
         {/* Real-time Telemetry Sidebar */}
