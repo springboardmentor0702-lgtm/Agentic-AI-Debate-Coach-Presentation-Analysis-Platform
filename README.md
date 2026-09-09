@@ -151,3 +151,9 @@ docker-compose up --build
 
 ## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Full Milestone Build
+
+This version includes the complete hackathon-oriented milestone surface: JWT/RBAC, OAuth2-compatible development handoff, profiles and skill tracking, scheduled debate sessions, argument/fallacy/counterargument engines, topic-aware multi-turn AI simulation, personalized coaching/learning paths, presentation and Whisper speech analysis, dashboards for learner/coach/educator/admin roles, notifications, PDF/Excel exports, PostgreSQL + MongoDB Docker services, health/metrics endpoints, CI, security guards, and cloud deployment documentation.
+
+See `MILESTONE_COMPLETION.md`, `DEPLOYMENT.md`, and `DEMO_CHECKLIST.md`.

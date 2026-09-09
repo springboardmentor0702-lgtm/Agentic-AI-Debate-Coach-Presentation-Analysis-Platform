@@ -74,7 +74,8 @@ export default function DashboardPage() {
       setUserEmail(payload.sub);
       
       fetchProfile(savedToken);
-      fetchCoachingPlan();
+      const userId = Number(payload.user_id);
+      fetchCoachingPlan(savedToken, Number.isInteger(userId) && userId > 0 ? userId : null);
     } catch (e) {
       localStorage.removeItem('logos_ai_jwt');
       router.push('/login');
@@ -102,9 +103,17 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchCoachingPlan = async () => {
+  const fetchCoachingPlan = async (token = localStorage.getItem('logos_ai_jwt'), userId = null) => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/coaching/plan/1");
+      if (!token) return;
+      if (!userId) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        userId = Number(payload.user_id);
+      }
+      if (!Number.isInteger(userId) || userId <= 0) throw new Error("Invalid authenticated user id");
+      const res = await fetch(`http://localhost:8000/api/v1/coaching/plan/${userId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setSkillGapSummary(data.skill_gap_summary);
@@ -139,7 +148,8 @@ export default function DashboardPage() {
       if (res.ok) {
         setUserName(fullName);
         setProfileMsg({ type: 'success', text: 'User profile metrics successfully updated in PostgreSQL database.' });
-        fetchCoachingPlan(); // Refresh coaching recommendations based on updated profile
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        fetchCoachingPlan(token, Number(payload.user_id)); // Refresh coaching recommendations
       } else {
         setProfileMsg({ type: 'error', text: 'Error updating profile. Please verify authorization.' });
       }

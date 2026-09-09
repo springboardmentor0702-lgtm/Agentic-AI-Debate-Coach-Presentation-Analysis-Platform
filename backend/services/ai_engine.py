@@ -198,10 +198,15 @@ class AIEngine:
         reasoning_quality = _clamp((evidence_strength + logical_consistency + clarity_score) / 3.0)
         persuasiveness_score = _clamp(reasoning_quality * 0.7 + relevance_score * 0.3)
 
+        # Keep the quoted claim readable: never cut it in the middle of a word.
+        claim_excerpt = claim
+        if len(claim_excerpt) > 120:
+            claim_excerpt = claim_excerpt[:120].rsplit(" ", 1)[0].rstrip(" ,.;:") + "..."
+
         counterarguments = [
             {
                 "rebuttal_type": "Logical",
-                "rebuttal_text": f"Your proposition, '{claim[:120]}', may rely on an unstated assumption. Test whether the conclusion still follows if that assumption is weakened.",
+                "rebuttal_text": f"Your proposition, '{claim_excerpt}', may rely on an unstated assumption. Test whether the conclusion still follows if that assumption is weakened.",
                 "challenge_question": "Which premise is necessary for your conclusion, and what would falsify it?",
                 "strategy_tip": "Identify and challenge the argument's strongest hidden assumption.",
             },
@@ -255,13 +260,109 @@ class AIEngine:
             "The Academic": "Your argument needs clearer methodological support.",
             "The Strategist": "From an implementation perspective, your thesis needs a stronger plan.",
         }
-        primary_counter = analysis["counterarguments"][0]
+        # Choose a rebuttal based on the actual argument topic/claim first,
+        # then fall back to the analytical scores. This prevents every weak
+        # argument from receiving the same generic rebuttal.
+        normalized = text.lower()
+        fallacies = analysis["fallacies"]
+
+        if re.search(r"\b(teacher|teachers|school|classroom|education|educator|teaching)\b", normalized) and re.search(r"\b(replace|replacing|replacement|substitut|take over)\b", normalized):
+            primary_counter = {
+                "rebuttal_type": "Practical",
+                "rebuttal_text": (
+                    "Replacing teachers assumes teaching is mainly an information-delivery task, "
+                    "but teachers also provide mentorship, classroom management, emotional support, "
+                    "and individualized human interaction."
+                ),
+                "challenge_question": (
+                    "What evidence shows AI can perform those human-centered teaching functions "
+                    "at the same level across different students and classrooms?"
+                ),
+            }
+        elif re.search(r"\b(ai|artificial intelligence|model|models|chatbot|chatbots)\b", normalized) and re.search(r"\b(always|fully|completely|100%|all|every|correct|accurate|never wrong)\b", normalized):
+            primary_counter = {
+                "rebuttal_type": "Evidence-Based",
+                "rebuttal_text": (
+                    "The claim that AI gives fully correct answers is an absolute claim and "
+                    "assumes that AI outputs are universally accurate across subjects, contexts, "
+                    "and edge cases."
+                ),
+                "challenge_question": (
+                    "What independent evidence or verification process demonstrates that AI answers "
+                    "remain correct across those different situations?"
+                ),
+            }
+        elif re.search(r"\b(ai|artificial intelligence|model|models)\b", normalized) and re.search(r"\b(not|don't|do not|incorrect|incorrectly|wrong|error|errors|mistake|mistakes)\b", normalized):
+            primary_counter = {
+                "rebuttal_type": "Evidence-Based",
+                "rebuttal_text": (
+                    "Acknowledging that some AI systems can produce incorrect answers weakens any "
+                    "absolute claim about AI accuracy, but the scope of the problem still needs to "
+                    "be established."
+                ),
+                "challenge_question": (
+                    "Which AI systems are you referring to, how often do they make errors, and what "
+                    "evidence supports that error rate?"
+                ),
+            }
+        elif re.search(r"\b(legal|liable|liability|law|lawsuit|regulation|regulatory|legally)\b", normalized):
+            primary_counter = {
+                "rebuttal_type": "Policy",
+                "rebuttal_text": (
+                    "Legal liability requires a clear basis for responsibility, especially when an AI "
+                    "system, developer, deployer, and user may all contribute to the outcome."
+                ),
+                "challenge_question": (
+                    "Who should be legally responsible when an autonomous system causes unintended damage, "
+                    "and how should that responsibility be determined?"
+                ),
+            }
+        elif fallacies:
+            primary_counter = analysis["counterarguments"][0]
+        elif analysis["evidence_strength"] < 65:
+            primary_counter = analysis["counterarguments"][1]
+        elif analysis["logical_consistency"] < 80:
+            primary_counter = analysis["counterarguments"][0]
+        elif analysis["clarity_score"] < 75:
+            primary_counter = analysis["counterarguments"][3]
+        elif analysis["persuasiveness_score"] < 80:
+            primary_counter = analysis["counterarguments"][2]
+        else:
+            primary_counter = analysis["counterarguments"][4]
+
         strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
+        if fallacies:
+            names = ", ".join(item["fallacy_type"] for item in fallacies)
+            coaching_tip = (
+                f"Fallacy alert: {names}. {fallacies[0]['correction_suggestion']} "
+                "Address the opponent's strongest challenge before introducing a new point."
+            )
+        elif analysis["evidence_strength"] < 65:
+            coaching_tip = (
+                "Evidence gap: add a specific, verifiable source, statistic, study, or example "
+                "to support your central claim before moving to a new point."
+            )
+        elif analysis["logical_consistency"] < 80:
+            coaching_tip = (
+                "Logic focus: make the connection between your premises and conclusion explicit, "
+                "and avoid unsupported leaps in reasoning."
+            )
+        elif analysis["clarity_score"] < 75:
+            coaching_tip = (
+                "Clarity focus: shorten the argument, state one main claim, and connect each "
+                "supporting point directly to it."
+            )
+        else:
+            coaching_tip = (
+                f"{styles[persona]} Your argument is relatively strong; now directly answer "
+                "the opponent's strongest challenge and strengthen your evidence."
+            )
+
         return {
             "opponent_rebuttal": f"{prefixes[persona]} {primary_counter['rebuttal_text']} {primary_counter['challenge_question']}",
-            "fallacies_detected": analysis["fallacies"],
+            "fallacies_detected": fallacies,
             "rebuttal_strength_percent": round(strength, 1),
-            "coaching_tip": f"Persona style: {styles[persona]} Address the challenge directly before introducing a new point.",
+            "coaching_tip": coaching_tip,
         }
 
     def calculate_weighted_score(

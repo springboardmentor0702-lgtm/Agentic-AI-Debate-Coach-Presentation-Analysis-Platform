@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import VoiceRecorder from "../../components/VoiceRecorder";
 
 const authHeaders = (json = false) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
@@ -16,29 +17,6 @@ const PRESET_TOPICS = [
   "Social media platforms should be regulated like public utilities.",
   "Custom Topic (Enter below)"
 ];
-
-function TypewriterText({ text, speed = 15 }) {
-  const [displayedText, setDisplayedText] = useState("");
-
-  useEffect(() => {
-    let index = 0;
-    setDisplayedText("");
-    const timer = setInterval(() => {
-      setDisplayedText((prev) => {
-        const nextChar = text.charAt(index);
-        index++;
-        if (index >= text.length) {
-          clearInterval(timer);
-        }
-        return prev + nextChar;
-      });
-    }, speed);
-
-    return () => clearInterval(timer);
-  }, [text, speed]);
-
-  return <span>{displayedText}</span>;
-}
 
 export default function SimulationPage() {
   const [topic, setTopic] = useState(PRESET_TOPICS[0]);
@@ -58,6 +36,87 @@ export default function SimulationPage() {
 
   const [transcript, setTranscript] = useState([]);
   const [lastAnalysis, setLastAnalysis] = useState(null);
+  const [sessionScores, setSessionScores] = useState({
+    overall: 0,
+    argument_quality: 0,
+    evidence_use: 0,
+    logical: 0,
+    rebuttal: 0,
+    communication: 0
+  });
+
+  const [presentationMetrics, setPresentationMetrics] = useState(null);
+
+  const clampScore = (value) => Math.max(0, Math.min(100, Number(value) || 0));
+
+  // Convert scores returned by different AI modules into a common 0-100 scale.
+  // Some agents return 0-1 decimals while others return percentages.
+  const normalizeScore = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return n >= 0 && n <= 1 ? n * 100 : n;
+  };
+
+  const getScore = (obj, keys) => {
+    for (const key of keys) {
+      const value = normalizeScore(obj?.[key]);
+      if (value !== null) return clampScore(value);
+    }
+    return null;
+  };
+
+  const calculateScores = (analysis, rebuttalStrength, fallacies = []) => {
+    const a = analysis || {};
+
+    // Support both the flat response and common nested agent responses.
+    const nested = a.analysis || a.result || a.argument_analysis || {};
+    const source = { ...nested, ...a };
+
+    const reasoning = getScore(source, [
+      "reasoning_quality",
+      "reasoning_score",
+      "strength_score"
+    ]);
+    const consistency = getScore(source, [
+      "logical_consistency",
+      "logical_consistency_score",
+      "consistency_score"
+    ]);
+    const clarity = getScore(source, [
+      "clarity_score",
+      "clarity"
+    ]);
+    const relevance = getScore(source, [
+      "relevance_score",
+      "relevance"
+    ]);
+
+    const logicalValues = [reasoning, consistency, clarity, relevance]
+      .filter(value => value !== null);
+
+    // If the backend already provides a logical score, use it as a fallback.
+    let logical = logicalValues.length
+      ? logicalValues.reduce((sum, value) => sum + value, 0) / logicalValues.length
+      : getScore(source, [
+          "logical_score",
+          "logic_score",
+          "overall_argument_score",
+          "persuasiveness_score"
+        ]) ?? 0;
+
+    // Penalize detected fallacies without allowing the score to go negative.
+    const fallacyPenalty = Math.min(20, (fallacies?.length || 0) * 10);
+    logical = clampScore(logical - fallacyPenalty);
+
+    const rebuttal = clampScore(normalizeScore(rebuttalStrength) ?? 0);
+    const overall = clampScore((logical * 0.6) + (rebuttal * 0.4));
+
+    return {
+      overall: Number(overall.toFixed(1)),
+      logical: Number(logical.toFixed(1)),
+      rebuttal: Number(rebuttal.toFixed(1))
+    };
+  };
 
   const handleStartDebate = async () => {
     setLoading(true);
@@ -91,6 +150,8 @@ export default function SimulationPage() {
         }
       ]);
       setLastAnalysis(null);
+      setSessionScores({ overall: 0, argument_quality: 0, evidence_use: 0, logical: 0, rebuttal: 0, communication: 0 });
+      setPresentationMetrics(null);
       setSessionStatus("Running");
     } catch (err) {
       // Offline fallback
@@ -107,6 +168,9 @@ export default function SimulationPage() {
           type: "opponent"
         }
       ]);
+      setLastAnalysis(null);
+      setSessionScores({ overall: 0, argument_quality: 0, evidence_use: 0, logical: 0, rebuttal: 0, communication: 0 });
+      setPresentationMetrics(null);
       setSessionStatus("Running");
     } finally {
       setLoading(false);
@@ -143,6 +207,51 @@ export default function SimulationPage() {
     }
   };
 
+  const handleVoiceConfirmed = async (spokenText, durationSec) => {
+    setUserInput("");
+    setTranscript(prev => [...prev, { speaker: "You (Voice)", text: spokenText, type: "user" }]);
+    setLoading(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("logos_ai_jwt") : null;
+      const analysisRes = await fetch("http://localhost:8000/api/v1/argument-analysis/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ session_id: sessionId, speech_text: spokenText })
+      });
+      if (!analysisRes.ok) throw new Error("Argument analysis failed");
+      const analysis = await analysisRes.json();
+      const simRes = await fetch("http://localhost:8000/api/v1/simulation/turn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ session_id: sessionId, user_argument: spokenText, opponent_persona: persona })
+      });
+      if (!simRes.ok) throw new Error("Simulation analysis failed");
+      const data = await simRes.json();
+      setTranscript(prev => [...prev, { speaker: `AI Opponent (${persona})`, text: data.opponent_rebuttal, type: "opponent", rebuttal_strength: data.rebuttal_strength_percent, fallacies: data.fallacies_detected_in_user }]);
+      const dynamicScores = calculateScores(
+        analysis,
+        data.rebuttal_strength_percent,
+        data.fallacies_detected_in_user
+      );
+
+      setSessionScores(dynamicScores);
+
+      setLastAnalysis({
+        rebuttal_strength: data.rebuttal_strength_percent,
+        fallacies: data.fallacies_detected_in_user,
+        coaching_tip: data.coaching_tip,
+        argument_analysis: analysis,
+        duration_sec: durationSec,
+        scores: dynamicScores
+      });
+    } catch (err) {
+      console.error(err);
+      setTranscript(prev => [...prev, { speaker: "System", text: `Voice analysis unavailable: ${err.message}`, type: "system" }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCompleteSession = async () => {
     setLoading(true);
     try {
@@ -151,9 +260,26 @@ export default function SimulationPage() {
         headers: authHeaders()
       });
       if (!response.ok) throw new Error('Unable to complete the debate session.');
+      const result = await response.json();
+      if (result.scores) {
+        setSessionScores({
+          overall: Number(result.scores.overall) || 0,
+          argument_quality: Number(result.scores.argument_quality) || 0,
+          evidence_use: Number(result.scores.evidence_use) || 0,
+          logical: Number(result.scores.logical_consistency) || 0,
+          rebuttal: Number(result.scores.rebuttal_effectiveness) || 0,
+          communication: Number(result.scores.communication_skills) || 0
+        });
+      }
+      setPresentationMetrics(result.presentation_metrics || null);
       setSessionStatus("Completed");
     } catch (err) {
-      setSessionStatus("Completed");
+      console.error(err);
+      setTranscript(prev => [...prev, {
+        speaker: "System",
+        text: `Session completion failed: ${err.message}`,
+        type: "system"
+      }]);
     } finally {
       setLoading(false);
     }
@@ -165,11 +291,25 @@ export default function SimulationPage() {
 
     const userMsg = userInput;
     setUserInput("");
-
     setTranscript(prev => [...prev, { speaker: "You", text: userMsg, type: "user" }]);
     setLoading(true);
 
     try {
+      // IMPORTANT: typed arguments must go through the same Argument Analysis
+      // pipeline as voice arguments. This persists ArgumentAnalysis/FallacyLog/
+      // Counterargument records so the final session score is not 0.
+      const analysisRes = await fetch("http://localhost:8000/api/v1/argument-analysis/evaluate", {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ session_id: sessionId, speech_text: userMsg })
+      });
+      if (!analysisRes.ok) {
+        const detail = await analysisRes.text();
+        throw new Error(`Argument analysis failed (${analysisRes.status}): ${detail}`);
+      }
+      const analysis = await analysisRes.json();
+
+      // Then persist the simulation turn and generate the AI opponent response.
       const simRes = await fetch("http://localhost:8000/api/v1/simulation/turn", {
         method: "POST",
         headers: authHeaders(true),
@@ -179,38 +319,41 @@ export default function SimulationPage() {
           opponent_persona: persona
         })
       });
-
-      if (!simRes.ok) throw new Error('Unable to process this debate turn.');
+      if (!simRes.ok) {
+        const detail = await simRes.text();
+        throw new Error(`Simulation failed (${simRes.status}): ${detail}`);
+      }
       const data = await simRes.json();
 
-      setTranscript(prev => [
-        ...prev,
-        {
-          speaker: `AI Opponent (${persona})`,
-          text: data.opponent_rebuttal,
-          type: "opponent",
-          rebuttal_strength: data.rebuttal_strength_percent,
-          fallacies: data.fallacies_detected_in_user
-        }
-      ]);
+      setTranscript(prev => [...prev, {
+        speaker: `AI Opponent (${persona})`,
+        text: data.opponent_rebuttal,
+        type: "opponent",
+        rebuttal_strength: data.rebuttal_strength_percent,
+        fallacies: data.fallacies_detected_in_user
+      }]);
+
+      const dynamicScores = calculateScores(
+        analysis,
+        data.rebuttal_strength_percent,
+        data.fallacies_detected_in_user
+      );
+      setSessionScores(dynamicScores);
 
       setLastAnalysis({
         rebuttal_strength: data.rebuttal_strength_percent,
         fallacies: data.fallacies_detected_in_user,
-        coaching_tip: data.coaching_tip
+        coaching_tip: data.coaching_tip,
+        argument_analysis: analysis,
+        scores: dynamicScores
       });
-
     } catch (err) {
-      setTranscript(prev => [
-        ...prev,
-        {
-          speaker: `AI Opponent (${persona})`,
-          text: `I reject your proposition. Asserting that liability rests on autonomous units ignores manufacturer warranty and human operator oversight.`,
-          type: "opponent",
-          rebuttal_strength: 96.5,
-          fallacies: []
-        }
-      ]);
+      console.error(err);
+      setTranscript(prev => [...prev, {
+        speaker: "System",
+        text: `Turn processing failed: ${err.message}`,
+        type: "system"
+      }]);
     } finally {
       setLoading(false);
     }
@@ -413,11 +556,7 @@ export default function SimulationPage() {
                       </div>
 
                       <div style={{ paddingLeft: '1.5rem', color: t.type === 'system' ? '#888' : '#e0e0e0', lineHeight: '1.5' }}>
-                        {t.type === 'opponent' && idx === transcript.length - 1 ? (
-                          <TypewriterText text={t.text} />
-                        ) : (
-                          t.text
-                        )}
+                        {t.text}
                       </div>
 
                       {t.fallacies && t.fallacies.length > 0 && (
@@ -430,6 +569,8 @@ export default function SimulationPage() {
                   ))}
                   {loading && <div className="text-muted font-mono animate-pulse">&gt; Agent computing rebuttal...</div>}
                 </div>
+
+                <VoiceRecorder onConfirmed={handleVoiceConfirmed} disabled={loading || !sessionId} />
 
                 {/* Form Input */}
                 <form onSubmit={handleSendArgument} style={{ display: 'flex', borderTop: '1px solid var(--dark-border)', background: '#0e0e12' }}>
@@ -502,20 +643,43 @@ export default function SimulationPage() {
               Your session has been recorded. The rhetoric model has calculated your initial argument scores and committed the profile logs to your matrix records.
             </p>
 
-            {/* Score Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
-              <div style={{ padding: '1.5rem', background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-                <div className="font-mono text-muted" style={{ fontSize: '0.7rem', marginBottom: '0.5rem' }}>OVERALL SCORE</div>
-                <div className="font-display text-red" style={{ fontSize: '2rem', fontWeight: '900' }}>84.2%</div>
-              </div>
-              <div style={{ padding: '1.5rem', background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-                <div className="font-mono text-muted" style={{ fontSize: '0.7rem', marginBottom: '0.5rem' }}>LOGICAL SCORE</div>
-                <div className="font-display" style={{ fontSize: '2rem', fontWeight: '900' }}>88.5%</div>
-              </div>
-              <div style={{ padding: '1.5rem', background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-                <div className="font-mono text-muted" style={{ fontSize: '0.7rem', marginBottom: '0.5rem' }}>REBUTTAL EFF.</div>
-                <div className="font-display" style={{ fontSize: '2rem', fontWeight: '900' }}>82.0%</div>
-              </div>
+            {/* Complete Milestone Performance Matrix */}
+            <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
+              <div className="font-mono text-muted" style={{ fontSize: '0.72rem', letterSpacing: '0.08em' }}>DEBATE PERFORMANCE // WEIGHTED MODEL</div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+              {[
+                ['OVERALL SCORE', sessionScores.overall, true],
+                ['ARGUMENT QUALITY · 30%', sessionScores.argument_quality, false],
+                ['EVIDENCE USE · 20%', sessionScores.evidence_use, false],
+                ['LOGICAL CONSISTENCY · 20%', sessionScores.logical, false],
+                ['REBUTTAL EFFECTIVENESS · 15%', sessionScores.rebuttal, false],
+                ['COMMUNICATION · 15%', sessionScores.communication, false],
+              ].map(([label, value, accent]) => (
+                <div key={label} style={{ padding: '1.25rem', background: '#F9FAFB', border: '1px solid #E5E7EB', textAlign: 'left' }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.65rem', marginBottom: '0.45rem' }}>{label}</div>
+                  <div className={accent ? 'font-display text-red' : 'font-display'} style={{ fontSize: accent ? '2rem' : '1.75rem', fontWeight: '900' }}>{Number(value || 0).toFixed(1)}%</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
+              <div className="font-mono text-muted" style={{ fontSize: '0.72rem', letterSpacing: '0.08em' }}>PRESENTATION & SPEECH ANALYTICS</div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '3rem' }}>
+              {[
+                ['SPEAKING PACE', presentationMetrics ? `${presentationMetrics.speech_pace_wpm} WPM` : 'Not recorded'],
+                ['FILLER WORDS', presentationMetrics ? `${presentationMetrics.filler_words_count}` : 'Not recorded'],
+                ['CONFIDENCE', presentationMetrics ? `${presentationMetrics.confidence_score}%` : 'Not recorded'],
+                ['CLARITY', presentationMetrics ? `${presentationMetrics.clarity_score}%` : 'Not recorded'],
+                ['ENGAGEMENT', presentationMetrics ? `${presentationMetrics.engagement_score}%` : 'Not recorded'],
+                ['FILLER BREAKDOWN', presentationMetrics ? (presentationMetrics.filler_words_list || 'None') : 'Not recorded'],
+              ].map(([label, value]) => (
+                <div key={label} style={{ padding: '1.15rem', background: '#FFF', border: '1px solid #E5E7EB', textAlign: 'left' }}>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.65rem', marginBottom: '0.45rem' }}>{label}</div>
+                  <div className="font-display" style={{ fontSize: label === 'FILLER BREAKDOWN' ? '0.95rem' : '1.5rem', fontWeight: '900', wordBreak: 'break-word' }}>{value}</div>
+                </div>
+              ))}
             </div>
 
             <button 

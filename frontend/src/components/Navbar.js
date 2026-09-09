@@ -9,6 +9,7 @@ export default function Navbar() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [userRole, setUserRole] = useState("Learner");
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -17,6 +18,7 @@ export default function Navbar() {
       const token = localStorage.getItem('logos_ai_jwt');
       setIsLoggedIn(!!token);
       if (token) {
+        try { setUserRole(JSON.parse(atob(token.split(".")[1])).role || "Learner"); } catch (_) {}
         fetchNotifications();
       }
     };
@@ -41,7 +43,8 @@ export default function Navbar() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts");
+      const token = localStorage.getItem("logos_ai_jwt");
+      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
@@ -107,12 +110,15 @@ export default function Navbar() {
         <Link href="/presentation" className={`nav-link ${pathname === '/presentation' ? 'active' : ''}`}>
           VOCAL_METRICS
         </Link>
-        <Link href="/dashboard" className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}>
+        <Link href="/analytics" className={`nav-link ${pathname === '/analytics' ? 'active' : ''}`}>
           ANALYTICS
         </Link>
         <Link href="/reports" className={`nav-link ${pathname === '/reports' ? 'active' : ''}`}>
           REPORTS
         </Link>
+        {userRole === 'Debate Coach' && <Link href="/coach" className="nav-link">COACH</Link>}
+        {userRole === 'Educator' && <Link href="/educator" className="nav-link">EDUCATOR</Link>}
+        {userRole === 'Administrator' && <Link href="/admin" className="nav-link">ADMIN</Link>}
         
         <Link href="/simulation" className="btn btn-red" style={{ padding: '0.45rem 1rem', fontSize: '0.75rem', borderRadius: '4px' }}>
           DEPLOY_AGENT

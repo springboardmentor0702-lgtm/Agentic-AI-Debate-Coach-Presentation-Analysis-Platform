@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const authHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
@@ -17,6 +17,22 @@ export default function PresentationPage() {
   const [duration, setDuration] = useState(30);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('logos_ai_jwt');
+    if (!token) return;
+    fetch('http://localhost:8000/api/v1/sessions/user/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(sessions => {
+        const active = sessions.find(s => s.status === 'Active' || s.status === 'Scheduled');
+        if (active) { setSessionId(active.id); return; }
+        return fetch('http://localhost:8000/api/v1/sessions/create', {
+          method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Presentation Practice', topic: 'Presentation Analytics Practice', format: 'Presentation Analysis', assigned_position: 'Affirmative', status: 'Active' })
+        }).then(r => r.ok ? r.json() : null).then(created => { if (created) setSessionId(created.id); });
+      }).catch(() => {});
+  }, []);
 
   const handleAnalyze = async (e) => {
     e.preventDefault();
@@ -27,7 +43,7 @@ export default function PresentationPage() {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          session_id: 1,
+          session_id: sessionId || 1,
           speech_text: speechText,
           audio_duration_seconds: parseFloat(duration)
         })
