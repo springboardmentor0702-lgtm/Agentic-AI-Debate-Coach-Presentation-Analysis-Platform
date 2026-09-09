@@ -1,6 +1,6 @@
 """Request/Response Pydantic Schemas for API validation"""
 from pydantic import BaseModel, Field
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Dict
 from datetime import datetime
 
 
@@ -14,9 +14,14 @@ class HealthResponse(BaseModel):
 # ============= Analysis Router Schemas =============
 
 class AnalysisRequest(BaseModel):
-    """Request model for argument analysis."""
+    """Request model for argument analysis (legacy endpoint)."""
     text: str = Field(..., min_length=10, description="The argument text to analyze")
     analysis_type: str = Field(default="both", description="Type: argument/fallacy/both")
+
+
+class ArgumentRequest(BaseModel):
+    """Request model for argument/fallacy analysis endpoints."""
+    argument_text: str = Field(..., min_length=5, description="The argument text to analyze")
 
 
 class AnalysisResponse(BaseModel):
@@ -37,8 +42,13 @@ class DebateSessionRequest(BaseModel):
     difficulty: str = Field(default="intermediate", description="Difficulty level")
 
 
+class DebateTurnRequest(BaseModel):
+    """Request model for submitting a user turn."""
+    user_message: str = Field(..., min_length=1, description="User's argument/message")
+
+
 class DebateReplyRequest(BaseModel):
-    """Request model for debate reply."""
+    """Request model for debate reply (legacy endpoint)."""
     user_argument: str = Field(..., min_length=5, description="User's argument/response")
 
 
@@ -59,6 +69,17 @@ class PipelineRequest(BaseModel):
     """Request model for full analysis pipeline."""
     text: str = Field(..., min_length=10, description="Content to analyze")
     session_id: Optional[str] = Field(None, description="Optional session ID for tracking")
+
+
+class EvaluateRequest(BaseModel):
+    """Request model for debate evaluation."""
+    topic: str = Field(..., description="The debate topic")
+    transcript: List[Dict[str, Any]] = Field(..., description="Debate transcript")
+
+
+class CoachingRequest(BaseModel):
+    """Request model for coaching generation."""
+    evaluation: Dict[str, Any] = Field(..., description="Evaluation result dict")
 
 
 class PipelineResponse(BaseModel):

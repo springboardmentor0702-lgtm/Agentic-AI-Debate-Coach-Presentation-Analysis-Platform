@@ -71,15 +71,16 @@ export default function DebateArena() {
   const handleEnd = async () => {
     if (!session || evaluating) return;
     setEvaluating(true);
-    
+
     try {
       const transcriptData = await endDebate(session);
       const evalData = await evaluateDebate(topic, transcriptData.transcript);
       setEvaluation(evalData);
-      
+
       const coachingData = await generateCoaching(evalData);
+      // Backend returns { coaching: {...}, learning_plan: {...} }
       setCoaching(coachingData);
-      
+
       setSession(null); // End session in UI
     } catch (err) {
       alert(err.message || 'Failed to evaluate debate.');
@@ -234,18 +235,38 @@ export default function DebateArena() {
         {/* Coaching Plan */}
         {coaching && (
           <div className={`glass-panel ${styles.coachingCard}`}>
-            <h3>Personalized Learning Plan</h3>
+            <h3>Personalized Coaching Plan</h3>
             <div className={styles.planContent}>
-              <h4>Focus Area: {coaching.learning_plan.focus_area}</h4>
-              <p>{coaching.learning_plan.explanation}</p>
-              
-              <h4>Recommended Exercises:</h4>
-              <ul>
-                {coaching.learning_plan.exercises?.map((ex, i) => <li key={i}>{ex}</li>)}
-              </ul>
+              {coaching.coaching?.feedback_summary && (
+                <div className={styles.feedbackSummary}>
+                  <h4>Coach Feedback</h4>
+                  <p>{coaching.coaching.feedback_summary}</p>
+                </div>
+              )}
+              {coaching.coaching?.priority_focus_area && (
+                <h4>Priority Focus: <span style={{color:'var(--accent-primary)'}}>{coaching.coaching.priority_focus_area}</span></h4>
+              )}
+              {coaching.learning_plan?.practice_activities?.length > 0 && (
+                <>
+                  <h4>Recommended Exercises:</h4>
+                  <ul>
+                    {coaching.learning_plan.practice_activities.map((act, i) => (
+                      <li key={i}><strong>{act.activity}</strong> — {act.duration_minutes} min ({act.skill_targeted})</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {coaching.learning_plan?.recommended_next_topics?.length > 0 && (
+                <>
+                  <h4>Next Topics to Practice:</h4>
+                  <ul>
+                    {coaching.learning_plan.recommended_next_topics.map((t, i) => <li key={i}>{t}</li>)}
+                  </ul>
+                </>
+              )}
             </div>
-            
-            <button className="btn btn-secondary" onClick={() => { setEvaluation(null); setSession(null); setMessages([]); }}>
+
+            <button className="btn btn-secondary" onClick={() => { setEvaluation(null); setSession(null); setMessages([]); setCoaching(null); }}>
               Start New Debate
             </button>
           </div>

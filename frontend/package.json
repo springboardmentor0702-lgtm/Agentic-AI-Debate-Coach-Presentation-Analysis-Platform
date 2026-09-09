@@ -1,6 +1,6 @@
 {
-  "name": "logos-ai-frontend",
-  "version": "4.0.0",
+  "name": "speakaz-frontend",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

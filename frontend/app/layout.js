@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { Home, MessageSquare, ShieldAlert, History, Mic } from 'lucide-react';
 
 export const metadata = {
-  title: 'LOGOS.AI | Debate Coach',
-  description: 'AI-powered debate coach and presentation analysis platform.',
+  title: 'SpeakAZ | AI Debate Coach',
+  description: 'AI-powered debate coaching and presentation analysis — practice, improve, dominate.',
 };
 
 export default function RootLayout({ children }) {
@@ -16,10 +16,10 @@ export default function RootLayout({ children }) {
           {/* Sidebar Navigation */}
           <aside className={styles.sidebar}>
             <div className={styles.logo}>
-              <span className={styles.logoMark}>∆</span>
-              <h2>LOGOS.AI</h2>
+              <span className={styles.logoMark}>S</span>
+              <h2>SpeakAZ</h2>
             </div>
-            
+
             <nav className={styles.nav}>
               <Link href="/" className={styles.navLink}>
                 <Home size={20} />
@@ -35,19 +35,19 @@ export default function RootLayout({ children }) {
               </Link>
               <Link href="/presentation" className={styles.navLink}>
                 <Mic size={20} />
-                <span>Presentation Analytics</span>
+                <span>Speech Analytics</span>
               </Link>
               <Link href="/history" className={styles.navLink}>
                 <History size={20} />
                 <span>History</span>
               </Link>
             </nav>
-            
+
             <div className={styles.sidebarFooter}>
-              <p>v4.0.0 Alpha</p>
+              <p>SpeakAZ v1.0.0</p>
             </div>
           </aside>
-          
+
           {/* Main Content Area */}
           <main className={styles.mainContent}>
             {children}

@@ -1,8 +1,8 @@
-"""LOGOS.AI Debate Coach & Presentation Analysis Platform \u2014 Backend API"""
+"""SpeakAZ — AI Debate Coach & Presentation Analysis Platform — Backend API"""
 import sys
 import os
 
-# Ensure project root and ai-ml dir are in sys.path for imports
+# Ensure project root and AI/ML dirs are in sys.path for imports
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
@@ -19,17 +19,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.database import create_tables
 from backend.schemas import HealthResponse
 from backend.routers import analysis, debate, pipeline, history
 
-# Set env vars for AIML modules
-os.environ['GEMINI_API_KEY'] = settings.GEMINI_API_KEY
+# Propagate API keys so AI/ML modules can read them as env vars
+os.environ.setdefault('GEMINI_API_KEY', settings.GEMINI_API_KEY)
+os.environ.setdefault('GROQ_API_KEY', settings.GROQ_API_KEY or '')
 os.environ.setdefault('GROK_API_KEY', '')
-os.environ.setdefault('GROQ_API_KEY', '')
 
 app = FastAPI(
-    title="LOGOS.AI \u2014 Debate Coach & Presentation Analysis Platform",
+    title="SpeakAZ \u2014 AI Debate Coach & Presentation Analysis Platform",
     description=(
         "AI-powered backend for debate coaching, argument analysis, "
         "fallacy detection, and performance evaluation."
@@ -57,14 +56,19 @@ app.include_router(history.router, prefix="/api/v1")
 
 @app.on_event("startup")
 def on_startup():
-    """Initialize database tables on startup."""
-    create_tables()
-    print("\\n" + "=" * 60)
-    print("  LOGOS.AI Backend API \u2014 Ready")
-    print(f"  Swagger UI:  http://localhost:8000/docs")
-    print(f"  ReDoc:       http://localhost:8000/redoc")
-    print(f"  Health:      http://localhost:8000/api/v1/health")
-    print("=" * 60 + "\\n")
+    """Initialize database tables on startup. Gracefully handles DB connection failures."""
+    try:
+        from backend.database import create_tables
+        create_tables()
+        print("\n" + "=" * 60)
+        print("  SpeakAZ Backend API \u2014 Ready")
+        print(f"  Swagger UI:  http://localhost:8000/docs")
+        print(f"  ReDoc:       http://localhost:8000/redoc")
+        print(f"  Health:      http://localhost:8000/api/v1/health")
+        print("=" * 60 + "\n")
+    except Exception as e:
+        print(f"\n[WARNING] Database initialization failed: {e}")
+        print("[WARNING] App will run but DB-dependent features may fail.\n")
 
 
 @app.get(
@@ -74,13 +78,13 @@ def on_startup():
     summary="Health check",
 )
 def health_check():
-    return HealthResponse(status="healthy", version="1.0.0", service="LOGOS.AI Backend")
+    return HealthResponse(status="healthy", version="1.0.0", service="SpeakAZ Backend")
 
 
 @app.get("/", tags=["System"])
 def root():
     return {
-        "service": "LOGOS.AI Debate Coach & Presentation Analysis Platform",
+        "service": "SpeakAZ — AI Debate Coach & Presentation Analysis Platform",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/api/v1/health",
