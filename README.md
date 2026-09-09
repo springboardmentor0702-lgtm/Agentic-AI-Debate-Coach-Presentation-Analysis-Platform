@@ -1,153 +1,182 @@
-# LOGOS.AI: Agentic AI Debate Coach & Presentation Analysis Platform
+# LOGOS.AI
 
-**LOGOS.AI** is a state-of-the-art, AI-powered Agentic Debate Coach & Presentation Analytics Platform engineered to assist learners, debate coaches, educators, and administrators in mastering high-stakes rhetoric, argument structure, public speaking, and logical fallacy defence.
+**Agentic AI Debate Coach & Presentation Analysis Platform.**
 
----
-
-## 🌟 Features
-
-1. **Exact Editorial Design Identity**: Recreated faithfully from visual design mockups featuring a premium white/obsidian/cyber-red palette (`#D90429`), clean monospace accents, `LOGOS.AI` typography, and background `"RHETORIC"` watermarks.
-2. **The Analysis Suite (8 Core Modules)**:
-   - **Argument Mining**: Automatic claim & evidence extraction.
-   - **Logic Audit**: Real-time detection of 8 key fallacies (*Ad Hominem, Straw Man, False Dilemma, Slippery Slope, Appeal to Authority, Circular Reasoning, Hasty Generalization, Red Herring*).
-   - **Rebuttal Gen**: Multi-perspective counterarguments (*Logical, Evidence-Based, Ethical, Practical, Policy*).
-   - **Vocal Metrics**: Prosody analysis, WPM speech pace, filler word counter, confidence score.
-   - **Simulation Engine**: Multi-turn AI debate opponent across 5 formats (*Parliamentary, Oxford, Policy, 1-on-1, Public Forum*).
-   - **Scoring Model**: Exact 5-part weighted performance model ($30\%$ Arg Quality + $20\%$ Evidence + $20\%$ Consistency + $15\%$ Rebuttal + $15\%$ Communication).
-   - **Coaching Engine**: Skill gap matrix & personalized learning recommendations.
-   - **Analytics Suite**: Tailored dashboards for Learner, Coach, Educator, Admin.
-3. **Interactive AI Debate Terminal (`/simulation`)**: Live debate cross-examination terminal with customizable AI opponent personas (*"The Contrarian"*, *"The Academic"*, *"The Strategist"*).
-4. **Prosody & Vocal Analytics (`/presentation`)**: Instant WPM calculation, filler word density breakdown, confidence scoring.
-5. **Reports & Exports (`/reports`)**: One-click CSV/PDF performance scorecards & certificates.
-6. **Notification & Engagement Engine**: Real-time alerts for scheduled sessions, coaching feedback, and milestone achievement alerts.
-7. **Vector Context Memory**: Built-in vector embedding indexes for semantic search memory, allowing the AI to recall and cross-reference statements.
+A full-stack application that evaluates how a learner argues and
+presents — scoring logic, catching fallacies, generating
+counterarguments, simulating a live debate opponent, and analyzing
+speech delivery — across four dashboards: Learner, Debate Coach,
+Educator, and Admin.
 
 ---
 
-## 🛠️ Tech Stack
+## Architecture
 
-* **Backend**: FastAPI, Pydantic, SQLAlchemy ORM, SQLite/PostgreSQL, MongoDB Document Store
-* **Frontend**: Next.js 14, React 18, Vanilla CSS, Lucide Icons
-* **DevOps & Containers**: Docker, Docker Compose
-
----
-
-##  📂 Folder Structure
+React/Next.js talks to a FastAPI backend over authenticated REST
+calls (`/api/v1/*`); the backend persists data via SQLAlchemy
+(SQLite by default, Postgres/MongoDB-ready) and calls out to **Groq**
+as the primary LLM provider, with automatic fallback to **Google
+Gemini** if Groq is unavailable. A dedicated `ai-ml/` module hosts
+the six reasoning agents behind a shared `BaseAgent` pattern, and
+`faster-whisper` handles speech-to-text transcription for the
+presentation-analysis module.
 
 ```
-Agentic-AI-Debate-Coach/
-├── backend/                  # FastAPI Application
-│   ├── routers/              # Microservice API Endpoints
-│   ├── services/             # AI Reasoning, Vector DB & Speech Metrics
-│   ├── database.py           # SQL/Mongo Dual-Database Engine
-│   ├── main.py               # Application Entrypoint
-│   ├── requirements.txt      # Python Dependencies
-│   └── package.json          # Node wrapper for execution scripts
-├── frontend/                 # Next.js Application
-│   ├── src/
-│   │   ├── app/              # Page layouts & router endpoints
-│   │   └── components/       # Premium UI components
-│   └── package.json          # Frontend Dependencies & scripts
-├── docker-compose.yml        # Multi-container local deployment config
-├── Dockerfile.backend        # Backend image specifications
-├── Dockerfile.frontend       # Frontend image specifications
-└── README.md                 # Professional documentation
+Browser  →  Next.js Frontend (:3000)  →  FastAPI Backend (:8000, /api/v1/*)
+                                              │
+                                              ├──▶  AI Agents (Groq → Gemini fallback)
+                                              ├──▶  faster-whisper (speech-to-text)
+                                              └──▶  SQLite / PostgreSQL + MongoDB
 ```
 
 ---
 
-## 📋 Prerequisites
+## What it does
 
-Ensure you have the following installed on your machine:
-* Node.js (v18.x or later)
-* Python (3.10 or later)
-* Git
-* PostgreSQL & MongoDB (Optional: SQLite Fallback active by default)
+- **Argument Analysis** — scores claim clarity, evidence strength,
+  relevance, logical consistency, and persuasiveness (1–10 each).
+- **Logic Audit (Fallacy Detection)** — flags 8 fallacy types in real
+  time (*Ad Hominem, Straw Man, False Dilemma, Slippery Slope, Appeal
+  to Authority, Circular Reasoning, Hasty Generalization, Red
+  Herring*) with correction suggestions.
+- **Rebuttal Generation** — multi-perspective counterarguments
+  (logical, evidence-based, ethical, practical, policy).
+- **AI Debate Simulation** — a multi-turn AI opponent across 5 debate
+  formats (1-on-1, Parliamentary, Oxford, Policy, Public Forum).
+- **Presentation Analysis** — speech pace (WPM), filler-word density,
+  and confidence scoring from a recording or transcript.
+- **Weighted Scoring Model** — one explainable score built from five
+  weighted components: Argument Quality (30%), Evidence Usage (20%),
+  Logical Consistency (20%), Rebuttal Effectiveness (15%),
+  Communication Skills (15%).
+- **Coaching Engine** — personalized skill-gap recommendations and
+  learning paths.
+- **Reports & Export** — session, performance, and coaching reports
+  exportable as PDF/Excel.
+- **Role-based Dashboards** — tailored views for Learner, Debate
+  Coach, Educator, and Admin, plus session scheduling, roster
+  management, and notifications.
 
----
+## Tech stack
 
-## 💻 Local Setup Instructions
+| Layer | Stack |
+|---|---|
+| Frontend | Next.js 14, React 18, Lucide Icons, vanilla CSS |
+| Backend | Python, FastAPI, SQLAlchemy, JWT Auth |
+| Database | SQLite (default/dev) — PostgreSQL + MongoDB ready |
+| AI / LLM | Groq (primary), Google Gemini (automatic fallback) |
+| Speech | faster-whisper (speech-to-text) |
+| Search | FAISS vector index |
+| Reports | ReportLab (PDF), OpenPyXL (Excel) |
+| DevOps | Docker, Docker Compose, Render (cloud deployment) |
 
-Running the application locally requires opening two terminal windows to execute the backend and frontend concurrently:
+## Getting started
 
-### 🖥️ Terminal 1 (Backend Server)
-Navigate to the `backend/` directory, set up your configuration environment, install dependencies, and start the FastAPI reload server:
+### Backend
+
 ```bash
 cd backend
-npm install
-cp .env.example .env
-npm run dev
+python -m venv .venv
+.venv\Scripts\activate            # Windows
+pip install -r requirements.txt
+# copy .env.example to .env and fill in your keys (SECRET_KEY, GROQ_API_KEY, GEMINI_API_KEY)
+.venv\Scripts\python.exe -m uvicorn main:app --reload --port 8000
 ```
-*(Alternatively, using Python directly: `pip install -r requirements.txt` followed by `uvicorn main:app --reload --port 8000`)*
 
-### 🖥️ Terminal 2 (Next.js Frontend Client)
-Navigate to the `frontend/` directory, install dependencies, and run the development hot-reloaded dev client:
+Backend runs at **http://localhost:8000** — interactive API docs at
+`http://localhost:8000/docs`.
+
+### Frontend
+
 ```bash
 cd frontend
 npm install
+# copy .env.example to .env.local (NEXT_PUBLIC_API_URL=http://localhost:8000)
 npm run dev
 ```
 
----
+Frontend runs at **http://localhost:3000**.
 
-## 🔧 Environment Variable Setup
+### AI/ML module (standalone agents)
 
-The backend configuration relies on settings stored inside `backend/.env`. Create this file by copying the template file:
 ```bash
-cp backend/.env.example backend/.env
-```
-Ensure the parameters are filled:
-* `POSTGRES_USER` / `POSTGRES_PASSWORD`: Your credentials for local PostgreSQL.
-* `MONGO_URI`: Address of your local MongoDB instance.
-* `SECRET_KEY`: Cryptographic key used to sign JWT session access tokens.
-
----
-
-## 🔗 Port Mappings & Backend Connections
-* **Frontend Port**: Runs locally on port **`3000`** (`http://localhost:3000`).
-* **Backend Port**: Runs locally on port **`8000`** (`http://localhost:8000`).
-* **Connection Interface**: The frontend connects to the backend REST API by dispatching async requests to `http://localhost:8000/api/v1/*`. The token retrieved upon authentication is appended inside the standard `Authorization: Bearer <JWT>` request header.
-
----
-
-## 📦 Build & Production Bundle
-To create an optimized production deployment bundle:
-
-### Frontend Build
-```bash
-cd frontend
-npm run build
+cd ai-ml
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+# copy .env.example to .env and add GROQ_API_KEY / GEMINI_API_KEY
+python -m app.run_flow
 ```
 
-### Run Production Containers (Docker)
+## Running with Docker
+
 ```bash
 docker-compose up --build
 ```
 
----
+This builds and runs both `backend` (port 8000) and `frontend` (port
+3000) from `Dockerfile.backend` and `Dockerfile.frontend`.
 
-## ❓ Troubleshooting & Setup Issues
+## Testing
 
-### 1. PostgreSQL/MongoDB Connection Refused
-* **Issue**: The server console prints fallback warning messages and switches database handlers.
-* **Resolution**: Ensure your local database services are actively running:
-  - On Windows (Services App): Ensure PostgreSQL and MongoDB services are marked as "Running".
-  - Run database checks by running: `python backend/diagnose_db.py`.
+- **Backend tests:** `backend/tests/test_agent_bridge.py`,
+  `backend/test_api.py` (live API smoke test against a running
+  server), `backend/test_ai_backend.py`
+- **AI/ML agent tests:** `ai-ml/tests/test_agents_demo.py`,
+  `ai-ml/tests/test_fallacies.py`, `ai-ml/tests/test_new_agents.py`
 
-### 2. Port 8000 or 3000 already in use
-* **Issue**: Error: `listen EADDRINUSE: address already in use :::8000`.
-* **Resolution**: Terminate any lingering background processes or change the port mapping config inside `backend/.env` / `frontend/package.json`.
+```bash
+# Run backend tests
+cd backend
+pytest
 
----
+# Run AI/ML agent tests
+cd ai-ml
+python tests/test_agents_demo.py
+python tests/test_fallacies.py
+```
 
-## 🤝 Contributing Guidelines
-1. Fork this repository.
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request.
+## Deployment
 
----
+Deployed on Render's free tier (backend + frontend as separate Docker
+web services):
 
-## 📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+- **Frontend:** https://logos-ai-frontend.onrender.com
+- **Backend API docs:** https://logos-ai-backend.onrender.com/docs
+
+> Free-tier instances spin down after inactivity — the first request
+> after idle time may take 30–50 seconds to respond while the service
+> wakes up.
+
+## Documentation
+
+| Document | What it's for |
+|---|---|
+| [`README.md`](README.md) | Project overview, setup, deployment (this file) |
+| [`BACKEND_AIML_ANALYSIS.md`](BACKEND_AIML_ANALYSIS.md) | Detailed backend + AI/ML module technical analysis |
+| [`ai-ml/README.md`](ai-ml/README.md) | AI/ML agents: setup, agent architecture, run instructions |
+
+## Project structure
+
+```
+Springboard-Project/
+├── backend/            FastAPI app: routers, services, models, tests
+│   ├── routers/        auth, sessions, argument_analysis, fallacy_detection,
+│   │                   counterarguments, simulation, scoring, coaching,
+│   │                   dashboards, roster_management, reports, notifications,
+│   │                   presentation_analysis
+│   └── services/       ai_engine.py, speech_engine.py
+├── ai-ml/               Standalone AI agents (BaseAgent pattern)
+│   └── app/agents/      argument_analysis, fallacy_detection, counterargument,
+│                        opponent, scoring, speech_analysis
+├── frontend/            Next.js app (dashboards, simulation terminal, reports)
+├── Dockerfile.backend
+├── Dockerfile.frontend
+├── docker-compose.yml
+└── BACKEND_AIML_ANALYSIS.md
+```
+
+## License
+
+Built as part of the Infosys Springboard Virtual Internship 7.0.
+Not currently licensed for reuse.
