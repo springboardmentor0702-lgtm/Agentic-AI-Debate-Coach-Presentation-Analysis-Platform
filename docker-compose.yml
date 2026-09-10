@@ -1,21 +1,6 @@
 version: '3.8'
 
 services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-logos_ai}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: .
@@ -24,19 +9,17 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - MYSQL_HOST=mysql
-      - MYSQL_PORT=3306
-      - MYSQL_USER=root
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-rootpassword}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-logos_ai}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROK_API_KEY=${GROK_API_KEY:-}
       - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-    depends_on:
-      mysql:
-        condition: service_healthy
+      # Uses SQLite by default (speakaz.db) — no database server needed.
+      # To use MySQL/PostgreSQL, uncomment and set DATABASE_URL:
+      # - DATABASE_URL=mysql+pymysql://root:password@db:3306/speakaz
     volumes:
       - ./backend:/app/backend
       - ./aiml:/app/aiml
       - ./ai-ml:/app/ai-ml
+      - speakaz_data:/app/data
 
   frontend:
     build:
@@ -44,10 +27,12 @@ services:
       dockerfile: Dockerfile.frontend
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
     depends_on:
       - backend
     volumes:
       - ./frontend:/app
 
 volumes:
-  mysql_data:
+  speakaz_data:

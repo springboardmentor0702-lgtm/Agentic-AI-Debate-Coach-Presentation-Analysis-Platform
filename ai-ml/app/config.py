@@ -8,7 +8,7 @@ load_dotenv()
 
 # --- Primary provider: Groq ---
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
 
 # --- Fallback provider: Gemini (used automatically if Groq fails/quota runs out) ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")

@@ -6,6 +6,10 @@ WORKDIR /app
 COPY backend/requirements.txt ./backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
+# Install ai-ml dependencies (agents: argument analysis, fallacy detection)
+COPY ai-ml/requirements.txt ./ai-ml/requirements.txt
+RUN pip install --no-cache-dir -r ai-ml/requirements.txt
+
 # Copy all source directories
 COPY backend/ ./backend/
 COPY aiml/ ./aiml/

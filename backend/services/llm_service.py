@@ -15,7 +15,7 @@ from backend.config import settings
 # Set environment variables BEFORE importing AIML modules
 os.environ['GEMINI_API_KEY'] = settings.GEMINI_API_KEY
 os.environ.setdefault('GROK_API_KEY', '')  # Not used but prevents import errors
-os.environ.setdefault('GROQ_API_KEY', settings.GEMINI_API_KEY)  # ai-ml fallback
+os.environ.setdefault('GROQ_API_KEY', settings.GROQ_API_KEY or '')  # ai-ml fallback
 os.environ.setdefault('GEMINI_API_KEY', settings.GEMINI_API_KEY)
 
 def get_aiml_llm_client():

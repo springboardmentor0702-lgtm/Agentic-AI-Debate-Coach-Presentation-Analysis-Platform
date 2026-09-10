@@ -29,8 +29,8 @@ from openai import OpenAI  # xAI Grok exposes an OpenAI-compatible API
 # never overwritten by this.
 load_dotenv()
 
-GEMINI_MODEL = "gemini-3.6-flash"
-GROK_MODEL = "grok-4"
+GEMINI_MODEL = "gemini-2.0-flash"
+GROK_MODEL = "grok-2-1212"
 GROK_BASE_URL = "https://api.x.ai/v1"
 
 
