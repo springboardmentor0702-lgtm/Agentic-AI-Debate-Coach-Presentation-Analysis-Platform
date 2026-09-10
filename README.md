@@ -177,3 +177,10 @@ python -m pytest backend/tests test_reports.py -v
 * `GET  /api/reports/{type}/{id}/export/pdf` - Download PDF report
 * `GET  /api/reports/{type}/{id}/export/excel` - Download Excel/CSV report
 * `GET  /api/notifications` - List user notifications & milestones
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for full details.
+
