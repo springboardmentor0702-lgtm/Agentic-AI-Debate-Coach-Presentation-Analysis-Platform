@@ -1,0 +1,6 @@
+{
+  "name": "MindArena AI",
+  "description": "Train Your Mind. Sharpen Your Arguments. Master Every Debate. AI-powered debate coaching, presentation analysis, research, and communication intelligence platform.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

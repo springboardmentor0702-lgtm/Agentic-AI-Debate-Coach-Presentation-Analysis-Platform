@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function() {
+        // Suppress benign Vite HMR logs, connection errors, and unhandled rejections
+        try {
+          const origDebug = console.debug;
+          console.debug = function(...args) {
+            if (typeof args[0] === 'string' && args[0].includes('[vite]')) return;
+            return origDebug.apply(console, args);
+          };
+
+          const origError = console.error;
+          console.error = function(...args) {
+            if (
+              typeof args[0] === 'string' &&
+              (args[0].includes('[vite]') || args[0].includes('WebSocket closed without opened'))
+            ) {
+              return;
+            }
+            return origError.apply(console, args);
+          };
+
+          window.addEventListener('unhandledrejection', function(event) {
+            const reason = event && event.reason;
+            const msg = reason ? (reason.message || String(reason)) : '';
+            if (msg.includes('WebSocket') || msg.includes('vite')) {
+              event.preventDefault();
+              if (typeof event.stopImmediatePropagation === 'function') {
+                event.stopImmediatePropagation();
+              }
+            }
+          }, true);
+
+          if (typeof window !== 'undefined' && typeof window.WebSocket !== 'undefined') {
+            const NativeWebSocket = window.WebSocket;
+
+            class ViteDummyWebSocket extends EventTarget {
+              static CONNECTING = 0;
+              static OPEN = 1;
+              static CLOSING = 2;
+              static CLOSED = 3;
+
+              CONNECTING = 0;
+              OPEN = 1;
+              CLOSING = 2;
+              CLOSED = 3;
+
+              constructor(url, protocols) {
+                super();
+                this.url = String(url || '');
+                this.protocol = Array.isArray(protocols) ? protocols[0] || '' : (protocols || '');
+                this.readyState = 1;
+                this.binaryType = 'blob';
+                this.bufferedAmount = 0;
+                this.extensions = '';
+
+                setTimeout(() => {
+                  const ev = new Event('open');
+                  if (typeof this.onopen === 'function') this.onopen(ev);
+                  this.dispatchEvent(ev);
+                }, 0);
+              }
+
+              send() {}
+
+              close() {
+                this.readyState = 3;
+                let ev;
+                try {
+                  ev = new CloseEvent('close', { wasClean: true });
+                } catch {
+                  ev = new Event('close');
+                }
+                if (typeof this.onclose === 'function') this.onclose(ev);
+                this.dispatchEvent(ev);
+              }
+            }
+
+            const WebSocketProxy = new Proxy(NativeWebSocket, {
+              construct(target, args) {
+                const url = String(args[0] || '');
+                const proto = Array.isArray(args[1]) ? args[1].join(',') : String(args[1] || '');
+                if (proto.includes('vite') || url.includes('vite') || url.includes('token=')) {
+                  return new ViteDummyWebSocket(args[0], args[1]);
+                }
+                return Reflect.construct(target, args);
+              }
+            });
+
+            window.WebSocket = WebSocketProxy;
+          }
+        } catch (e) {
+          // Silent fallback
+        }
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MindArena AI - Train Your Mind. Sharpen Your Arguments. Master Every Debate.</title>
+    <meta name="description" content="AI-powered debate coaching, presentation analysis, research, and communication intelligence platform." />
+    <meta property="og:title" content="MindArena AI" />
+    <meta property="og:description" content="AI-powered debate coaching, presentation analysis, research, and communication intelligence platform." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+

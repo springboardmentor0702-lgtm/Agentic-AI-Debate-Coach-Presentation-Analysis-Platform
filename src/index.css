@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/* 
+  High-Fidelity Smooth Dual Theme Architecture
+  Dark Mode: Deep Obsidian & Midnight Slate (#020617 / #0f172a / #1e293b)
+  Light Mode: Crisp Clean Architectural Off-White (#f8fafc / #ffffff / #e2e8f0)
+*/
+
+:root {
+  color-scheme: light;
+  /* Light Theme Slate Spectrum */
+  --color-slate-950: #f8fafc;
+  --color-slate-900: #ffffff;
+  --color-slate-800: #e2e8f0;
+  --color-slate-700: #cbd5e1;
+  --color-slate-600: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-400: #475569;
+  --color-slate-300: #334155;
+  --color-slate-200: #1e293b;
+  --color-slate-100: #0f172a;
+  --color-slate-50: #020617;
+}
+
+html.dark,
+:root.dark {
+  color-scheme: dark;
+  /* Dark Theme Slate Spectrum */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+}
+
+/* Global Smooth Theme Transition Engine */
+html,
+body,
+#root,
+div,
+header,
+aside,
+nav,
+main,
+section,
+article,
+button,
+input,
+textarea,
+select,
+span,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+svg {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-duration: 400ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* In light mode: ensure high contrast headings & text on white cards */
+html:not(.dark) h1.text-white,
+html:not(.dark) h2.text-white,
+html:not(.dark) h3.text-white,
+html:not(.dark) h4.text-white,
+html:not(.dark) strong.text-white,
+html:not(.dark) span.text-white:not([class*="bg-indigo"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-emerald"]):not([class*="bg-blue"]):not([class*="bg-purple"]),
+html:not(.dark) td.text-white,
+html:not(.dark) th.text-white {
+  color: #0f172a !important;
+}
+
+/* Light mode form elements */
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html:not(.dark) textarea,
+html:not(.dark) select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* In light mode, elevate cards with subtle soft shadow */
+html:not(.dark) .bg-slate-900 {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* In light mode, badges and active links */
+html:not(.dark) .bg-indigo-950 {
+  background-color: #e0e7ff !important;
+  color: #3730a3 !important;
+  border-color: #c7d2fe !important;
+}
+
+html:not(.dark) .text-amber-300 {
+  color: #b45309 !important;
+}
+
+html:not(.dark) .bg-amber-500\/10,
+html:not(.dark) .bg-amber-500\/15 {
+  background-color: #fef3c7 !important;
+  border-color: #fde68a !important;
+}
+
