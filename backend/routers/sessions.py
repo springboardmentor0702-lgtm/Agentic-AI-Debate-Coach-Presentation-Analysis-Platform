@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -61,7 +61,7 @@ def complete_debate_session(
         communication = (
             (latest_metric.confidence_score + latest_metric.clarity_score + latest_metric.engagement_score) / 3.0
             if latest_metric
-            else 0.0
+            else (latest_analysis.clarity_score if latest_analysis else 0.0)
         )
         existing_score = models.PerformanceScore(
             session_id=session_id,
@@ -78,6 +78,38 @@ def complete_debate_session(
         db.add(existing_score)
     db.commit()
     return {"message": "Debate session successfully completed and performance scores recorded.", "session_id": session_id}
+
+
+@router.get("/coach/pending", response_model=List[schemas.DebateSessionResponse])
+def get_coach_pending_sessions(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role != "Debate Coach":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Debate Coaches can access pending evaluations.",
+        )
+
+    scored_session_ids = {
+        score.session_id
+        for score in db.query(models.PerformanceScore).all()
+        if score.session_id is not None
+        and score.overall_weighted_score is not None
+    }
+
+    return (
+        db.query(models.DebateSession)
+        .join(models.User, models.DebateSession.user_id == models.User.id)
+        .filter(
+            models.User.role == "Learner",
+            models.User.coach_id == current_user.id,
+            models.DebateSession.status == "Completed",
+            ~models.DebateSession.id.in_(scored_session_ids or {-1}),
+        )
+        .order_by(models.DebateSession.created_at.desc())
+        .all()
+    )
 
 
 @router.get("/user/me", response_model=List[schemas.DebateSessionResponse])
@@ -110,3 +142,4 @@ def get_session_by_id(
     if not debate_session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debate session not found.")
     return debate_session
+

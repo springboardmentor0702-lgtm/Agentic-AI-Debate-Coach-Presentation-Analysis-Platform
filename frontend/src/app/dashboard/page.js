@@ -11,6 +11,23 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
+  const [coachSystemOnline, setCoachSystemOnline] = useState(false);
+  const [dashboardData, setDashboardData] = useState({
+    total_debates_completed: 0,
+    average_overall_score: 0,
+    top_fallacy: 'None recorded',
+    recent_performance_trend: [],
+    debate_history: [],
+    presentation_history: [],
+    skill_matrix: {
+      logical_consistency: 0,
+      argument_construction: 0,
+      evidence_strength: 0,
+      rebuttal_effectiveness: 0,
+      communication_skills: 0
+    },
+    recommended_exercises: []
+  });
 
   // Profile Form States
   const [fullName, setFullName] = useState('');
@@ -28,84 +45,270 @@ export default function DashboardPage() {
   const [recommendations, setRecommendations] = useState([]);
   const [pathSteps, setPathSteps] = useState([]);
   const [progressStatus, setProgressStatus] = useState('');
+const [coachFeedback, setCoachFeedback] = useState([]);
 
-  // Simulated Datasets for Learner
-  const [debateHistory, setDebateHistory] = useState([
-    { id: 101, topic: 'AI Legal Liability & Regulatory Frameworks', format: 'Oxford Style', position: 'Affirmative', score: 86.4, status: 'Completed', date: '2026-07-22' },
-    { id: 102, topic: 'Universal Basic Income Feasibility', format: 'Parliamentary', position: 'Negative', score: 81.2, status: 'Completed', date: '2026-07-20' },
-    { id: 103, topic: 'Space Colonization Funding Priority', format: 'AI Simulation', position: 'Affirmative', score: 79.5, status: 'Completed', date: '2026-07-18' }
-  ]);
+  // Database-driven learner analytics
+  const [debateHistory, setDebateHistory] = useState([]);
+  const [presentationHistory, setPresentationHistory] = useState([]);
 
-  const [presentationHistory, setPresentationHistory] = useState([
-    { id: 201, title: 'Keynote on Generative Models & Rhetoric', duration: '2m 15s', wpm: 138, fillerWords: 4, confidence: '94%', clarity: '88%' },
-    { id: 202, title: 'Opening Statement - Oxford Debate Mock', duration: '1m 40s', wpm: 146, fillerWords: 9, confidence: '81%', clarity: '79%' },
-    { id: 203, title: 'Elevator Pitch - Venture Capital Simulation', duration: '45s', wpm: 128, fillerWords: 2, confidence: '96%', clarity: '92%' }
-  ]);
-
-  // Skill Metrics Matrix
+  // Database-driven Skill Metrics Matrix
   const skillsMatrix = [
-    { name: 'Logical Consistency', value: 88, color: '#D90429', description: 'Ability to avoid fallacy traps (e.g. straw man, ad hominem) under cross-examination.' },
-    { name: 'Argument Construction', value: 84, color: '#111827', description: 'Evidence strength, claim isolation, and structural reasoning relevance.' },
-    { name: 'Vocal Clarity & Cadence', value: 80, color: '#4B5563', description: 'Pacing precision (target: 130-150 WPM) and voice modulation.' },
-    { name: 'Filler Word Control', value: 92, color: '#10B981', description: 'Minimal use of vocal pauses (e.g. "um", "uh", "you know").' },
-    { name: 'Rebuttal Effectiveness', value: 78, color: '#3B82F6', description: 'Addressing critical challenges using 5-type argument strategies.' }
+    {
+      name: 'Logical Consistency',
+      value: dashboardData.skill_matrix?.logical_consistency || 0,
+      color: '#D90429',
+      description: 'Ability to avoid fallacy traps under cross-examination.'
+    },
+    {
+      name: 'Argument Construction',
+      value: dashboardData.skill_matrix?.argument_construction || 0,
+      color: '#111827',
+      description: 'Evidence strength, claim isolation, and structural reasoning relevance.'
+    },
+    {
+      name: 'Vocal Clarity & Cadence',
+      value: dashboardData.skill_matrix?.communication_skills || 0,
+      color: '#4B5563',
+      description: 'Pacing precision and voice modulation.'
+    },
+    {
+      name: 'Filler Word Control',
+      value: dashboardData.skill_matrix?.communication_skills || 0,
+      color: '#10B981',
+      description: 'Control of unnecessary filler words and vocal pauses.'
+    },
+    {
+      name: 'Rebuttal Effectiveness',
+      value: dashboardData.skill_matrix?.rebuttal_effectiveness || 0,
+      color: '#3B82F6',
+      description: 'Addressing critical challenges using effective rebuttal strategies.'
+    }
   ];
 
   // Coach Dashboard States
-  const [coachStudents, setCoachStudents] = useState([
-    { name: 'Alex Mercer', topic: 'AI Governance', grade: 'A', gap: 'Slippery Slope' },
-    { name: 'Sofia Chen', topic: 'Climate Policy', grade: 'A-', gap: 'Straw Man' },
-    { name: 'David Kim', topic: 'Universal Basic Income', grade: 'B+', gap: 'Circular Reasoning' },
-    { name: 'Marcus Aurelius', topic: 'Space Priorities', grade: 'A', gap: 'False Dilemma' }
-  ]);
+  const [coachStudents, setCoachStudents] = useState([]);
+  const [selectedCoachStudent, setSelectedCoachStudent] = useState('');
   const [coachFeedbackInput, setCoachFeedbackInput] = useState('');
   const [coachSuccessMsg, setCoachSuccessMsg] = useState('');
+  const [pendingCoachReviews, setPendingCoachReviews] = useState([]);
+
+  // Administrator Coach-Learner Assignment States
+  const [assignmentData, setAssignmentData] = useState({ coaches: [], learners: [] });
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const [assignmentMessage, setAssignmentMessage] = useState('');
+  const [selectedAssignmentCoach, setSelectedAssignmentCoach] = useState('');
+const [adminUsers, setAdminUsers] = useState([]);
+const [adminStats, setAdminStats] = useState({ platform_users_total: 0, system_runtime_seconds: 0 });
 
   useEffect(() => {
     const savedToken = localStorage.getItem('logos_ai_jwt');
+
+    fetch('http://localhost:8000/api/v1/coach-feedback/my', {
+      headers: { Authorization: "Bearer " + savedToken }
+    })
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setCoachFeedback(Array.isArray(data) ? data : []))
+      .catch((err) => console.error('Failed to load coach feedback:', err));
     if (!savedToken) {
       router.push('/login');
       return;
     }
 
     try {
-      const payload = JSON.parse(atob(savedToken.split('.')[1]));
-      setUserRole(payload.role || 'Learner');
+      const base64 = savedToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      const payload = JSON.parse(atob(padded));
+      const role = payload.role || 'Learner';
+
+      setUserRole(role);
       setUserEmail(payload.sub);
+
       
-      fetchProfile(savedToken);
-      fetchCoachingPlan();
+      if (role === 'Debate Coach' || role === 'Administrator') {
+        fetchCoachDashboard(savedToken);
+        if (role === 'Debate Coach') {
+          fetchPendingCoachReviews(savedToken);
+        }
+        if (role === 'Administrator') {
+          fetchAssignmentData(savedToken);
+          fetchAdminUsers(savedToken);
+        }
+      } else {
+        fetchDashboardData(savedToken);
+        getUserId(savedToken).then(fetchCoachingPlan).catch(console.error);
+      }
     } catch (e) {
-      localStorage.removeItem('logos_ai_jwt');
-      router.push('/login');
+      console.error("DASHBOARD AUTH ERROR:", e);
+      alert("Dashboard error: " + e.message);
     }
   }, []);
-
-  const fetchProfile = async (token) => {
-    try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/profile/me", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setFullName(data.full_name);
-        setUserName(data.full_name);
-        setExperience(data.experience_level);
-        setTopics(data.preferred_topics);
-        setDomains(data.presentation_domains);
-        setGoals(data.learning_goals);
-        setCoaching(data.coaching_preferences);
+  const fetchAdminUsers = async (token) => {
+  try {
+    const res = await fetch("http://localhost:8000/api/v1/dashboards/admin", {
+      headers: {
+        "Authorization": `Bearer ${token}` 
       }
-      setLoading(false);
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setAdminUsers(data.users || []);
+      setAdminStats({ platform_users_total: data.platform_users_total || 0, system_runtime_seconds: data.system_runtime_seconds || 0, inference_latency_ms: data.inference_latency_ms });
+    } else {
+      console.error("Failed to load administrator users:", res.status);
+    }
+  } catch (err) {
+    console.error("Administrator user directory error:", err);
+  }
+};
+const fetchAssignmentData = async (token) => {
+    setAssignmentLoading(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/coach-assignments/", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        setCoachSystemOnline(true);
+        const data = await res.json();
+        setAssignmentData({
+          coaches: data.coaches || [],
+          learners: data.learners || []
+        });
+      } else {
+        console.error("Failed to load coach assignments:", res.status);
+        setAssignmentMessage("Unable to load coach assignments.");
+      }
     } catch (err) {
+      console.error("Failed to connect to coach assignment API:", err);
+      setAssignmentMessage("Unable to connect to the assignment service.");
+    } finally {
+      setAssignmentLoading(false);
+    }
+  };
+  const fetchDashboardData = async (token) => {
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/dashboards/learner/me", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        setCoachSystemOnline(true);
+        const data = await res.json();
+
+        setDashboardData(data);
+        setDebateHistory(data.debate_history || []);
+        setPresentationHistory(data.presentation_history || []);
+      } else {
+        console.error("Failed to load learner dashboard:", res.status);
+      }
+    } catch (err) {
+      console.error("Failed to connect to dashboard API:", err);
+    } finally {
       setLoading(false);
     }
   };
-
-  const fetchCoachingPlan = async () => {
+  const fetchPendingCoachReviews = async (token) => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/coaching/plan/1");
+      const res = await fetch('http://localhost:8000/api/v1/sessions/coach/pending', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        setPendingCoachReviews([]);
+        return;
+      }
+
+      const data = await res.json();
+      setPendingCoachReviews(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to load pending coach reviews:', err);
+      setPendingCoachReviews([]);
+    }
+  };
+
+  const fetchCoachDashboard = async (token) => {
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/dashboards/coach/me", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
       if (res.ok) {
+        setCoachSystemOnline(true);
+        const data = await res.json();
+
+        const rosterStudents = (data.student_roster || []).map((student, index) => ({
+          id: student.user_id,
+          rank: index + 1,
+          name: student.name,
+          topic: student.topic || "No debate session recorded",
+          grade: student.grade || "Not graded",
+          gap: student.gap || "No fallacies recorded",
+          logic: "-",
+          clarity: "-",
+          overall: student.grade || "Not graded"
+        }));
+
+        const rankedStudents = (data.top_performers || []).map((student, index) => ({
+          rank: student.rank || index + 1,
+          name: student.name,
+          logic: student.logic != null
+            ? student.logic.toFixed(1) + '%'
+            : '-',
+          clarity: student.clarity != null
+            ? student.clarity.toFixed(1) + '%'
+            : '-',
+          overall: `${Number(student.score || 0).toFixed(1)}%`
+        }));
+
+        const rankedByName = new Map(
+          rankedStudents.map(student => [student.name, student])
+        );
+
+        const mergedStudents = rosterStudents.map(student => {
+          const ranked = rankedByName.get(student.name);
+
+          return ranked
+            ? { ...student, ...ranked }
+            : student;
+        });
+
+        setCoachStudents(mergedStudents);
+        setDashboardData(data);
+
+        console.log("Coach dashboard loaded:", data);
+      } else {
+        setCoachSystemOnline(false);
+        console.error("Failed to load coach dashboard:", res.status);
+      }
+    } catch (err) {
+      setCoachSystemOnline(false);
+      console.error("Failed to connect to coach dashboard API:", err);
+    }  finally {
+       setLoading(false);
+    }
+  };
+
+  const getUserId = async (token) => {
+    const res = await fetch("http://localhost:8000/api/v1/auth/profile/me", {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Unable to fetch user profile");
+    const profile = await res.json();
+    return profile.id;
+  };
+
+  const fetchCoachingPlan = async (userId) => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/coaching/plan/${userId}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("logos_ai_jwt")}` } });
+      if (res.ok) {
+        setCoachSystemOnline(true);
         const data = await res.json();
         setSkillGapSummary(data.skill_gap_summary);
         setRecommendations(data.targeted_recommendations);
@@ -139,7 +342,7 @@ export default function DashboardPage() {
       if (res.ok) {
         setUserName(fullName);
         setProfileMsg({ type: 'success', text: 'User profile metrics successfully updated in PostgreSQL database.' });
-        fetchCoachingPlan(); // Refresh coaching recommendations based on updated profile
+        getUserId(localStorage.getItem('logos_ai_jwt')).then(fetchCoachingPlan).catch(console.error); // Refresh coaching recommendations based on updated profile
       } else {
         setProfileMsg({ type: 'error', text: 'Error updating profile. Please verify authorization.' });
       }
@@ -150,14 +353,56 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSendCoachFeedback = (e) => {
+  const handleSendCoachFeedback = async (e) => {
     e.preventDefault();
-    if (!coachFeedbackInput.trim()) return;
-    setCoachSuccessMsg("Coaching feedback dispatched to student dashboard!");
-    setCoachFeedbackInput('');
-    setTimeout(() => setCoachSuccessMsg(''), 3000);
-  };
 
+    if (!selectedCoachStudent) {
+      setCoachSuccessMsg("Please select a student first.");
+      return;
+    }
+
+    if (!coachFeedbackInput.trim()) {
+      setCoachSuccessMsg("Please enter feedback before sending.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("logos_ai_jwt");
+
+      const params = new URLSearchParams({
+        learner_id: selectedCoachStudent,
+        feedback: coachFeedbackInput.trim()
+      });
+
+      const res = await fetch(
+        `http://localhost:8000/api/v1/coach-feedback?${params.toString()}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail || "Failed to dispatch coaching feedback."
+        );
+      }
+
+      setCoachSuccessMsg(
+        "Coaching feedback dispatched to student dashboard!"
+      );
+      setCoachFeedbackInput('');
+      setTimeout(() => setCoachSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error("Failed to send coach feedback:", err);
+      setCoachSuccessMsg(
+        typeof err?.message === 'string' ? err.message : "Failed to send coaching feedback."
+      );
+    }
+  };
   const handleLogout = () => {
     localStorage.removeItem('logos_ai_jwt');
     router.push('/login');
@@ -183,11 +428,11 @@ export default function DashboardPage() {
             ROUTER SESSION ACTIVE // ROLE: {userRole.toUpperCase()}
           </div>
           <h1 className="font-display" style={{ fontSize: '3rem', fontWeight: '900', textTransform: 'uppercase', lineHeight: '1.1' }}>
-            Welcome, {userName || 'User'}
+            DEBATE COACH DASHBOARD
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>Account email: {userEmail}</p>
         </div>
-        <button onClick={handleLogout} className="btn btn-login" style={{ padding: '0.6rem 1.4rem', fontSize: '0.8rem', borderRadius: 0, border: '1px solid #E5E7EB', background: 'transparent', cursor: 'pointer', fontWeight: 700 }}>
+        <button onClick={handleLogout} className="btn btn-login" style={{ padding: '0.6rem 1.4rem', fontSize: '0.8rem', borderRadius: 0, border: '1px solid #E5E7EB', background: 'transparent', fontWeight: 700 }}>
           LOGOUT
         </button>
       </div>
@@ -231,22 +476,22 @@ export default function DashboardPage() {
           {activeTab === 'overview' && (
             <div>
               {/* Quick statistics cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>DEBATES COMPLETED</div>
-                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>14</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{dashboardData.total_debates_completed || 0}</div>
                 </div>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>AVG OVERALL SCORE</div>
-                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>88.5%</div>
+                  <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{Number(dashboardData.average_overall_score || 0).toFixed(1)}%</div>
                 </div>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE DRILL STATUS</div>
-                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>Level 2</div>
+                  <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{dashboardData.recommended_exercises?.length ? 'Active' : 'No Active Drill'}</div>
                 </div>
                 <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOP AVOIDED FALLACY</div>
-                  <div className="font-display" style={{ fontSize: '1.8rem', fontWeight: '900', textTransform: 'uppercase' }}>Straw Man</div>
+                  <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOP DETECTED FALLACY</div>
+                  <div className="font-display" style={{ fontSize: '1.8rem', fontWeight: '900', textTransform: 'uppercase' }}>{dashboardData.top_fallacy || 'None recorded'}</div>
                 </div>
               </div>
 
@@ -284,7 +529,32 @@ export default function DashboardPage() {
                     <div style={{ fontSize: '0.9rem', color: '#FFF', fontWeight: 600 }}>{pathSteps[0]}</div>
                   </div>
 
-                  {/* Recommendations Exercise list */}
+                  {/* Coach Feedback */}
+               <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+                 <h4 className="font-display" style={{ fontSize: '1.1rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Coach Feedback</h4>
+                 {coachFeedback.length === 0 ? (
+                   <p style={{ fontSize: '0.88rem', color: '#6B7280', margin: 0 }}>
+                     No coach feedback received yet.
+                   </p>
+                 ) : (
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                     {coachFeedback.map((item) => (
+                       <div key={item.id} style={{ borderLeft: '3px solid #111827', paddingLeft: '1rem' }}>
+                         <p style={{ fontSize: '0.9rem', color: '#374151', lineHeight: '1.5', margin: '0 0 0.5rem' }}>
+                           {item.feedback}
+                         </p>
+                         {item.created_at && (
+                           <div className="font-mono" style={{ fontSize: '0.7rem', color: '#6B7280' }}>
+                             {new Date(item.created_at).toLocaleString()}
+                           </div>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+
+               {/* Recommendations Exercise list */}
                   <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
                     <h4 className="font-display" style={{ fontSize: '1.1rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Recommended Practice drills</h4>
                     <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.88rem', color: '#4B5563', lineHeight: '1.4' }}>
@@ -447,10 +717,10 @@ export default function DashboardPage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                  <button type="button" onClick={() => setActiveTab('overview')} style={{ padding: '0.75rem 1.5rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFF', fontWeight: 600, cursor: 'pointer' }}>
+                  <button type="button" onClick={() => setActiveTab('overview')} style={{ padding: '0.75rem 1.5rem', borderRadius: 0, border: '1px solid #E5E7EB', background: '#FFF', fontWeight: 600 }}>
                     Cancel
                   </button>
-                  <button type="submit" disabled={updating} style={{ padding: '0.75rem 2rem', borderRadius: 0, border: 'none', background: '#111827', color: '#FFF', fontWeight: 600, cursor: 'pointer' }}>
+                  <button type="submit" disabled={updating} style={{ padding: '0.75rem 2rem', borderRadius: 0, border: 'none', background: '#111827', color: '#FFF', fontWeight: 600 }}>
                     {updating ? 'Saving Metrics...' : 'Save Settings'}
                   </button>
                 </div>
@@ -466,35 +736,45 @@ export default function DashboardPage() {
       {userRole === 'Debate Coach' && (
         <div>
           {/* Quick Metrics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ASSIGNED STUDENTS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>28</div>
+              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>
+                {dashboardData.assigned_students_count || 0}
+              </div>
             </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>CLASS PERFORMANCE AVERAGE</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>85.4%</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>PENDING EVALUATIONS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>4</div>
+                    <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
+          <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.8rem' }}>AVERAGE LEARNER PERFORMANCE</div>
+          <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>
+            {dashboardData.class_performance_average != null
+              ? `${Number(dashboardData.class_performance_average).toFixed(1)}%`
+              : '0.0%'}
+          </div>
+        </div>
+            <div
+              style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}
+            >
+              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>PENDING COACH REVIEWS</div><div style={{ fontSize: '0.72rem', marginTop: '0.5rem', color: '#6B7280' }}>Session awaiting evaluation &gt;</div>
+            <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>
+              {dashboardData.pending_evaluations ?? 0}
+            </div>  
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>STATUS SYSTEM</div>
-              <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '900', color: '#10B981' }}>100% ONLINE</div>
+              <div className="font-display" style={{ fontSize: '1.6rem', fontWeight: '900', color: '#10B981' }}>{coachSystemOnline ? 'ONLINE' : 'OFFLINE'}</div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2.5rem' }}>
             {/* Student Progress Monitoring */}
             <div style={{ background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Student Progress Monitoring</h3>
+              <h3 id="pending-coach-review" className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1.5rem' }}>Student Progress Monitoring</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
                     <th style={{ padding: '0.75rem' }}>Student Name</th>
                     <th style={{ padding: '0.75rem' }}>Active Debate Topic</th>
-                    <th style={{ padding: '0.75rem' }}>Grade Rating</th>
+                    <th style={{ padding: '0.75rem' }}>Overall Score</th>
                     <th style={{ padding: '0.75rem' }}>Top Logic Gap</th>
                   </tr>
                 </thead>
@@ -519,11 +799,9 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
                 <div className="font-mono text-red" style={{ fontSize: '0.72rem', marginBottom: '0.5rem' }}>ROSTER SKILL GAP ANALYSIS</div>
-                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Top Class Pain Points</h4>
+                <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Top Learner Skill Gaps</h4>
                 <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: '#ccc' }}>
-                  <li><strong>Straw Man fallacies</strong> flagged in 8 student transcripts.</li>
-                  <li>Inability to cite empirical statistics (low **Evidence Strength**).</li>
-                  <li>Speaking pace exceeding 165 WPM under cross-examination rebuttal.</li>
+            {dashboardData.class_skill_gaps.map((gap, index) => <li key={index}><strong>{gap.name}</strong>{gap.message ? ` - ${gap.message}` : ""}</li>)}
                 </ul>
               </div>
 
@@ -532,14 +810,23 @@ export default function DashboardPage() {
                 <h4 className="font-display" style={{ fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Dispatch Coaching Recommendations</h4>
                 {coachSuccessMsg && (
                   <div style={{ background: '#ECFDF5', border: '1px solid #6EE7B7', color: '#059669', padding: '0.5rem', fontSize: '0.8rem', marginBottom: '1rem' }}>
-                    {coachSuccessMsg}
+                    {typeof coachSuccessMsg === 'string' ? coachSuccessMsg : coachSuccessMsg?.message || 'Coaching feedback dispatched successfully.'}
                   </div>
                 )}
                 <form onSubmit={handleSendCoachFeedback}>
                   <div style={{ marginBottom: '1rem' }}>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '0.3rem' }}>Select Student</label>
-                    <select style={{ width: '100%', padding: '0.5rem', border: '1px solid #E5E7EB', background: '#FFF' }}>
-                      {coachStudents.map((s, i) => <option key={i}>{s.name}</option>)}
+                    <select
+                      value={selectedCoachStudent}
+                      onChange={(e) => setSelectedCoachStudent(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #E5E7EB', background: '#FFF' }}
+                    >
+                      <option value="">Select a student</option>
+                      {coachStudents.map((s, i) => (
+                        <option key={i} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div style={{ marginBottom: '1rem' }}>
@@ -568,7 +855,7 @@ export default function DashboardPage() {
       {userRole === 'Educator' && (
         <div>
           {/* Roster classroom statistics cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE CLASSES</div>
               <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>3</div>
@@ -602,12 +889,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { rank: 1, name: 'Sofia Chen', logic: '94%', clarity: '91%', overall: '92.5%' },
-                    { rank: 2, name: 'Alex Mercer', logic: '91%', clarity: '88%', overall: '89.4%' },
-                    { rank: 3, name: 'David Kim', logic: '89%', clarity: '86%', overall: '87.1%' },
-                    { rank: 4, name: 'Elena Rostova', logic: '87%', clarity: '89%', overall: '86.8%' }
-                  ].map((student, i) => (
+                  {coachStudents.map((student, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '0.85rem', fontWeight: 700 }}>#{student.rank}</td>
                       <td style={{ padding: '0.85rem', fontWeight: 600 }}>{student.name}</td>
@@ -658,22 +940,18 @@ export default function DashboardPage() {
       {userRole === 'Administrator' && (
         <div>
           {/* Admin Platform Stats cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
               <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>TOTAL PLATFORM USERS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>1,420</div>
+              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{Number(adminStats.platform_users_total || 0).toLocaleString()}</div>
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>ACTIVE AI OPPO AGENTS</div>
-              <div className="font-display" style={{ fontSize: '2.2rem', fontWeight: '900' }}>8 Agents</div>
+              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>AI ENGINE LATENCY</div>
+              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{adminStats.inference_latency_ms != null ? `${Number(adminStats.inference_latency_ms).toFixed(2)}ms` : 'No data'}</div>
             </div>
             <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>LLM INFERENCE LATENCY</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>112ms</div>
-            </div>
-            <div style={{ padding: '1.75rem', background: '#FFF', border: '1px solid #E5E7EB', borderRadius: 0 }}>
-              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>SYSTEM UPTIME</div>
-              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>99.98%</div>
+              <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.4rem' }}>SYSTEM RUNTIME</div>
+              <div className="font-display text-red" style={{ fontSize: '2.2rem', fontWeight: '900' }}>{Math.floor((adminStats.system_runtime_seconds || 0) / 3600)}h {Math.floor(((adminStats.system_runtime_seconds || 0) % 3600) / 60)}m</div>
             </div>
           </div>
 
@@ -692,12 +970,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { email: 'mentor@logos.ai', role: 'Debate Coach', status: 'Active' },
-                    { email: 'admin@logos.ai', role: 'Administrator', status: 'Active' },
-                    { email: 'student1@logos.ai', role: 'Learner', status: 'Active' },
-                    { email: 'teacher@logos.ai', role: 'Educator', status: 'Suspended' }
-                  ].map((user, i) => (
+                  {adminUsers.map((user, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '0.85rem', fontWeight: 600 }}>{user.email}</td>
                       <td style={{ padding: '0.85rem' }}>{user.role}</td>
@@ -713,7 +986,7 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td style={{ padding: '0.85rem' }}>
-                        <button onClick={() => alert(`Status change for ${user.email} triggered!`)} style={{ background: 'none', border: 'none', color: '#D90429', fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem', textDecoration: 'underline' }}>
+                        <button onClick={() => alert(`Status change for ${user.email} triggered!`)} style={{ background: 'none', border: 'none', color: '#D90429', fontWeight: 600, fontSize: '0.78rem', textDecoration: 'underline' }}>
                           Toggle Status
                         </button>
                       </td>
@@ -727,7 +1000,181 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Platform Health and System Reports */}
+            {/* Coach-Learner Assignment Panel */}
+<div style={{ gridColumn: '1 / -1', background: '#FFF', padding: '2rem', border: '1px solid #E5E7EB', marginTop: '0.5rem' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+    <div>
+      <h3 className="font-display" style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+        Coach-Learner Assignment
+      </h3>
+      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+        Assign, reassign, or unassign learners from Debate Coaches.
+      </p>
+    </div>
+    <button
+      onClick={() => {
+        const savedToken = localStorage.getItem('logos_ai_jwt');
+        if (savedToken) fetchAssignmentData(savedToken);
+      }}
+      className="btn btn-dark"
+      style={{ padding: '0.6rem 1rem', fontSize: '0.78rem' }}
+      disabled={assignmentLoading}
+    >
+      {assignmentLoading ? 'Refreshing...' : 'Refresh'}
+    </button>
+  </div>
+
+  {assignmentMessage && (
+    <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#F0FDF4', color: '#166534', fontSize: '0.82rem' }}>
+      {assignmentMessage}
+    </div>
+  )}
+
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+    <div>
+      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+        Select Debate Coach
+      </label>
+      <select
+        value={selectedAssignmentCoach}
+        onChange={(e) => setSelectedAssignmentCoach(e.target.value)}
+        style={{ width: '100%', padding: '0.75rem', border: '1px solid #D1D5DB', background: '#FFF', fontSize: '0.85rem' }}
+      >
+        <option value="">Select a coach</option>
+        {assignmentData.coaches.map((coach) => (
+          <option key={coach.id} value={coach.id}>
+            {coach.name} â€” {coach.email}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div style={{ padding: '0.75rem 1rem', background: '#F9FAFB', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center' }}>
+      <strong>
+        {assignmentData.coaches.length} Coach{assignmentData.coaches.length === 1 ? '' : 'es'} / {assignmentData.learners.length} Learner{assignmentData.learners.length === 1 ? '' : 's'}
+      </strong>
+    </div>
+  </div>
+
+  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+    <thead>
+      <tr style={{ borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 600 }}>
+        <th style={{ padding: '0.75rem' }}>Learner</th>
+        <th style={{ padding: '0.75rem' }}>Email</th>
+        <th style={{ padding: '0.75rem' }}>Current Coach</th>
+        <th style={{ padding: '0.75rem' }}>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {assignmentData.learners.map((learner) => {
+        const currentCoach = assignmentData.coaches.find((coach) => coach.id === learner.coach_id);
+
+        return (
+          <tr key={learner.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+            <td style={{ padding: '0.85rem', fontWeight: 600 }}>{learner.name}</td>
+            <td style={{ padding: '0.85rem' }}>{learner.email}</td>
+            <td style={{ padding: '0.85rem' }}>
+              {currentCoach ? currentCoach.name : (
+                <span style={{ color: '#B45309', fontWeight: 600 }}>Unassigned</span>
+              )}
+            </td>
+            <td style={{ padding: '0.85rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button
+                  onClick={async () => {
+                    if (!selectedAssignmentCoach) {
+                      setAssignmentMessage('Please select a Debate Coach first.');
+                      return;
+                    }
+
+                    const savedToken = localStorage.getItem('logos_ai_jwt');
+                    if (!savedToken) return;
+
+                    setAssignmentMessage('');
+
+                    try {
+                      const res = await fetch(
+                        `http://localhost:8000/api/v1/coach-assignments/${learner.id}/${selectedAssignmentCoach}`,
+                        {
+                          method: 'POST',
+                          headers: {
+                            Authorization: `Bearer ${savedToken}`
+                          }
+                        }
+                      );
+
+                      const result = await res.json();
+
+                      if (res.ok) {
+                        setAssignmentMessage(`${learner.name} assigned successfully.`);
+                        await fetchAssignmentData(savedToken);
+                      } else {
+                        setAssignmentMessage(result.detail || 'Unable to assign learner.');
+                      }
+                    } catch (err) {
+                      console.error('Assignment failed:', err);
+                      setAssignmentMessage('Unable to connect to the assignment service.');
+                    }
+                  }}
+                  style={{ background: '#111827', color: '#FFF', border: 'none', padding: '0.5rem 0.8rem', fontSize: '0.75rem', fontWeight: 700 }}
+                >
+                  {learner.coach_id ? 'Reassign' : 'Assign'}
+                </button>
+
+                {learner.coach_id && (
+                  <button
+                    onClick={async () => {
+                      const savedToken = localStorage.getItem('logos_ai_jwt');
+                      if (!savedToken) return;
+
+                      setAssignmentMessage('');
+
+                      try {
+                        const res = await fetch(
+                          `http://localhost:8000/api/v1/coach-assignments/${learner.id}`,
+                          {
+                            method: 'DELETE',
+                            headers: {
+                              Authorization: `Bearer ${savedToken}`
+                            }
+                          }
+                        );
+
+                        const result = await res.json();
+
+                        if (res.ok) {
+                          setAssignmentMessage(`${learner.name} unassigned successfully.`);
+                          await fetchAssignmentData(savedToken);
+                        } else {
+                          setAssignmentMessage(result.detail || 'Unable to unassign learner.');
+                        }
+                      } catch (err) {
+                        console.error('Unassignment failed:', err);
+                        setAssignmentMessage('Unable to connect to the assignment service.');
+                      }
+                    }}
+                    style={{ background: 'none', color: '#D90429', border: '1px solid #D90429', padding: '0.45rem 0.75rem', fontSize: '0.75rem', fontWeight: 700 }}
+                  >
+                    Unassign
+                  </button>
+                )}
+              </div>
+            </td>
+          </tr>
+        );
+      })}
+
+      {assignmentData.learners.length === 0 && (
+        <tr>
+          <td colSpan="4" style={{ padding: '1.5rem', textAlign: 'center', color: '#6B7280' }}>
+            No learners found.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
+{/* Platform Health and System Reports */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ background: '#111827', color: '#FFF', padding: '2rem', borderRadius: 0 }}>
                 <div className="font-mono text-red" style={{ fontSize: '0.72rem', marginBottom: '0.5rem' }}>AI MODEL MONITORING</div>
@@ -763,3 +1210,52 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

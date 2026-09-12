@@ -45,3 +45,16 @@ ENV/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Local backup and progress files
+*.backup
+TODAY_PROGRESS_*.txt
+
+# Temporary development files
+check_scores.py
+frontend/src/app/dashboard/page-backup.js
+frontend/src/app/dashboard/page.js.before-db-update
+frontend/src/app/dashboard/page.js.before-db-update-2
+frontend/src/app/dashboard/page.js.before-hardcoded-fix
+frontend/src/app/dashboard/page.js.learner-db-working
+frontend/src/app/dashboard/page_full.txt

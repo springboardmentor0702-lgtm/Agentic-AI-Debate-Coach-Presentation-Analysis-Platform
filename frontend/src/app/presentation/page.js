@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const authHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
@@ -12,11 +12,140 @@ const authHeaders = () => {
 
 export default function PresentationPage() {
   const [speechText, setSpeechText] = useState(
-    "Um, so basically, we believe that AI policy, you know, must be strictly enforced. Uh, without proper controls, like, risks could increase."
+    ""
   );
   const [duration, setDuration] = useState(30);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const recognitionRef = useRef(null);
+  const timerRef = useRef(null);
+  const recordingStartRef = useRef(null);
+
+  const startRecording = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert(
+        'Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.'
+      );
+      return;
+    }
+
+    setSpeechText('');
+    setRecordingSeconds(0);
+    setIsRecording(true);
+    recordingStartRef.current = Date.now();
+
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-IN';
+
+    recognition.onresult = (event) => {
+      let transcript = '';
+
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+
+      setSpeechText(transcript.trim());
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+
+      if (
+        event.error === 'not-allowed' ||
+        event.error === 'service-not-allowed'
+      ) {
+        alert(
+          'Microphone permission was denied. Please allow microphone access and try again.'
+        );
+      }
+
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+
+      if (recordingStartRef.current) {
+        const elapsed = Math.max(
+          1,
+          Math.round((Date.now() - recordingStartRef.current) / 1000)
+        );
+        setRecordingSeconds(elapsed);
+        setDuration(elapsed);
+      }
+    };
+
+    recognitionRef.current = recognition;
+
+    try {
+      recognition.start();
+
+      timerRef.current = window.setInterval(() => {
+        if (recordingStartRef.current) {
+          const elapsed = Math.floor(
+            (Date.now() - recordingStartRef.current) / 1000
+          );
+          setRecordingSeconds(elapsed);
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Unable to start speech recognition:', error);
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Unable to stop speech recognition:', error);
+      }
+    }
+
+    setIsRecording(false);
+
+    if (recordingStartRef.current) {
+      const elapsed = Math.max(
+        1,
+        Math.round((Date.now() - recordingStartRef.current) / 1000)
+      );
+      setRecordingSeconds(elapsed);
+      setDuration(elapsed);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+      }
+
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          // Recognition may already be stopped.
+        }
+      }
+    };
+  }, []);
 
   const handleAnalyze = async (e) => {
     e.preventDefault();
@@ -66,9 +195,48 @@ export default function PresentationPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '3rem' }}>
         {/* Input Form */}
         <form onSubmit={handleAnalyze} style={{ background: 'var(--bg-secondary)', padding: '2rem', border: '1px solid var(--border-light)' }}>
-          <label className="font-mono" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-            SPEECH TRANSCRIPT / AUDIO TEXT INPUT:
-          </label>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              marginBottom: '0.75rem',
+              flexWrap: 'wrap'
+            }}
+          >
+            <label
+              className="font-mono"
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                margin: 0
+              }}
+            >
+              SPEECH TRANSCRIPT / AUDIO TEXT INPUT:
+            </label>
+
+            <button
+              type="button"
+              onClick={isRecording ? stopRecording : startRecording}
+              className="btn btn-red"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '180px',
+                padding: '0.7rem 1rem',
+                margin: 0,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+            >
+              {isRecording
+                ? `STOP RECORDING ${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(recordingSeconds % 60).padStart(2, '0')}`
+                : 'START RECORDING'}
+            </button>
+          </div>
           <textarea
             rows={8}
             value={speechText}
@@ -155,3 +323,8 @@ export default function PresentationPage() {
     </div>
   );
 }
+
+
+
+
+

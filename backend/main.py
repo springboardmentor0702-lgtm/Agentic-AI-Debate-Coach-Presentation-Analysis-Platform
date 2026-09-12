@@ -16,7 +16,9 @@ from routers import (
     coaching,
     dashboards,
     reports,
-    notifications
+    notifications,
+    coach_feedback,
+    coach_assignments
 )
 
 # Initialize DB tables
@@ -50,6 +52,8 @@ app.include_router(coaching.router)
 app.include_router(dashboards.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)
+app.include_router(coach_feedback.router)
+app.include_router(coach_assignments.router)
 
 @app.get("/")
 def root():
@@ -68,3 +72,5 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+

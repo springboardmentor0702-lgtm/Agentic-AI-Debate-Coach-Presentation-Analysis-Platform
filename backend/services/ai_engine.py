@@ -242,28 +242,289 @@ class AIEngine:
             "counterarguments": counterarguments,
         }
 
-    def generate_simulation_response(self, text: str, persona: str) -> Dict[str, Any]:
+    def generate_simulation_response(
+        self,
+        text: str,
+        persona: str,
+        topic: str,
+        history: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """Generate a context-aware local debate rebuttal."""
+
         analysis = self.analyze_argument(text)
+
         persona = persona if persona in SUPPORTED_PERSONAS else "The Contrarian"
+        history = history or []
+
         styles = {
             "The Contrarian": "Challenge the premise directly, but keep the response tied to evidence.",
             "The Academic": "Use a Socratic style and request precise definitions, sources, and methodology.",
             "The Strategist": "Focus on implementation, incentives, trade-offs, and unintended consequences.",
         }
+
         prefixes = {
             "The Contrarian": "I challenge your core premise.",
             "The Academic": "Your argument needs clearer methodological support.",
             "The Strategist": "From an implementation perspective, your thesis needs a stronger plan.",
         }
-        primary_counter = analysis["counterarguments"][0]
-        strength = _clamp(55.0 + analysis["logical_consistency"] * 0.25 + analysis["reasoning_quality"] * 0.2)
-        return {
-            "opponent_rebuttal": f"{prefixes[persona]} {primary_counter['rebuttal_text']} {primary_counter['challenge_question']}",
-            "fallacies_detected": analysis["fallacies"],
-            "rebuttal_strength_percent": round(strength, 1),
-            "coaching_tip": f"Persona style: {styles[persona]} Address the challenge directly before introducing a new point.",
+
+        text_lower = text.lower()
+        topic_lower = topic.lower()
+
+        # Different challenge styles are deliberately rotated so the
+        # opponent does not repeat the same rebuttal every turn.
+        rebuttal_types = [
+            "Evidence-Based",
+            "Practical",
+            "Ethical",
+            "Logical",
+            "Policy",
+        ]
+
+        used_types = []
+        previous_rebuttals = []
+
+        # The database currently stores the opponent response but not the
+        # rebuttal type. Therefore infer the type from the previous response.
+        type_markers = {
+            "Evidence-Based": [
+                "research", "evidence", "study", "data",
+                "measurable", "source", "results", "representative"
+            ],
+            "Practical": [
+                "implement", "implementation", "resources", "training",
+                "time", "cost", "workload", "schools", "teachers"
+            ],
+            "Ethical": [
+                "fair", "fairness", "privacy", "bias", "rights",
+                "disadvantaged", "ethical", "equal", "access"
+            ],
+            "Logical": [
+                "assumption", "logical", "premise", "conclusion",
+                "follows", "falsify", "causal", "necessarily"
+            ],
+            "Policy": [
+                "policy", "regulation", "rules", "safeguards",
+                "accountability", "enforced", "government"
+            ],
         }
 
+        for previous in history:
+            previous_type = previous.get("rebuttal_type")
+            previous_text = (previous.get("opponent_rebuttal") or "").lower()
+
+            if previous_type in rebuttal_types:
+                used_types.append(previous_type)
+
+            previous_rebuttals.append(previous_text)
+
+            # Infer the challenge category from the actual stored response.
+            if previous_text:
+                scores = {
+                    challenge_type: sum(
+                        1 for marker in markers
+                        if marker in previous_text
+                    )
+                    for challenge_type, markers in type_markers.items()
+                }
+
+                inferred_type = max(
+                    scores,
+                    key=scores.get
+                )
+
+                if scores[inferred_type] > 0:
+                    used_types.append(inferred_type)
+
+        # Remove duplicates while preserving order.
+        used_types = list(dict.fromkeys(used_types))
+
+        available_types = [
+            item for item in rebuttal_types
+            if item not in used_types
+        ]
+
+        # Prefer a challenge that matches the CURRENT argument, but only
+        # when that challenge type has not already been used.
+        preferred_type = None
+
+        if any(word in text_lower for word in [
+            "teacher", "school", "classroom", "implementation",
+            "cost", "time", "workload", "grading", "attendance",
+            "training", "resource"
+        ]):
+            preferred_type = "Practical"
+
+        elif any(word in text_lower for word in [
+            "privacy", "fair", "bias", "safe", "ethical",
+            "rights", "equal", "access"
+        ]):
+            preferred_type = "Ethical"
+
+        elif any(word in text_lower for word in [
+            "government", "policy", "regulation", "rule",
+            "law", "accountability"
+        ]):
+            preferred_type = "Policy"
+
+        elif any(word in text_lower for word in [
+            "because", "therefore", "cause", "prove",
+            "assume", "leads", "results"
+        ]):
+            preferred_type = "Logical"
+
+        if preferred_type in available_types:
+            selected_type = preferred_type
+        elif available_types:
+            selected_type = available_types[0]
+        else:
+            # All challenge categories have been used. Choose based on the
+            # current argument rather than repeating the first category.
+            if preferred_type:
+                selected_type = preferred_type
+            else:
+                selected_type = rebuttal_types[
+                    len(history) % len(rebuttal_types)
+                ]
+
+        # Extract a concise claim for natural-sounding rebuttals.
+        # Avoid repeating the entire user sentence when it contains
+        # multiple supporting reasons.
+        claim = analysis["claim_identified"].replace("Main Proposition: ", "")
+        claim = claim.strip()
+
+        if " because " in claim.lower():
+            claim = re.split(r"\s+because\s+", claim, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+
+        if ", and " in claim.lower():
+            claim = re.split(r",\s+and\s+", claim, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+
+        claim = claim.rstrip(" .,;:")
+        if len(claim) > 300:
+            claim = claim[:300].rsplit(' ', 1)[0].rstrip(' .,;:') + '...'
+
+        # Build a topic-aware context so the opponent challenges the actual
+        # debate motion instead of inserting unrelated educational examples.
+        topic_context = topic.strip()
+
+        if selected_type == "Evidence-Based":
+            rebuttal_text = (
+                f"You argue that '{claim}', but a claimed benefit alone does "
+                f"not establish that your proposal works reliably in the context "
+                f"of '{topic_context}'. What research, measurable results, or "
+                "reliable evidence supports this claim, and how strong is that "
+                "evidence across different real-world cases?"
+            )
+
+        elif selected_type == "Practical":
+            rebuttal_text = (
+                f"Your point about '{claim}' may be reasonable, but the practical "
+                f"question is how it would work under the conditions of "
+                f"'{topic_context}'. What resources, responsibilities, costs, "
+                "and safeguards would be required, and how would you handle "
+                "different real-world situations?"
+            )
+
+        elif selected_type == "Ethical":
+            rebuttal_text = (
+                f"Even if '{claim}' produces a benefit, the debate is still "
+                f"about '{topic_context}'. We must consider who could bear the "
+                "risks or disadvantages of your proposal. How would you protect "
+                "affected people from unfair treatment, privacy concerns, "
+                "unequal burdens, or other ethical harms?"
+            )
+
+        elif selected_type == "Logical":
+            rebuttal_text = (
+                f"Your argument assumes that '{claim}' supports the conclusion "
+                f"that '{topic_context}'. However, one benefit does not "
+                "automatically prove the entire conclusion. What logical link "
+                "connects your evidence to the motion, and what condition would "
+                "show that your reasoning is incorrect?"
+            )
+
+        else:  # Policy
+            rebuttal_text = (
+                f"Your argument supports '{claim}', but the proposal must also "
+                f"work within the context of '{topic_context}'. What rules, "
+                "standards, accountability mechanisms, or safeguards would you "
+                "introduce, and who should be responsible for enforcing them?"
+            )
+
+        # If the generated response is too similar to a previous response,
+        # use a topic-specific fallback with a different challenge.
+        combined_new = rebuttal_text.lower()
+
+        if any(
+            combined_new == previous_text
+            for previous_text in previous_rebuttals
+        ):
+            rebuttal_text = (
+                f"Your argument focuses on '{claim}', but the opposing side can "
+                "question whether this benefit is sufficient to justify wider "
+                f"use of AI in {topic_lower}. What limitation would you accept "
+                "and how would your proposal address it?"
+            )
+
+        strength = _clamp(
+            58.0
+            + analysis["reasoning_quality"] * 0.25
+            + min(12.0, len(history) * 1.5)
+        )
+
+        return {
+            "opponent_rebuttal": (
+                f"{prefixes[persona]} {rebuttal_text}"
+            ),
+            "fallacies_detected": analysis["fallacies"],
+            "rebuttal_strength_percent": round(strength, 1),
+            "coaching_tip": (
+        (
+            f"CHALLENGE: The opponent is questioning the logical link between "
+            f"'{claim}' and the motion '{topic_context}'. "
+            f"WHAT TO SAY: Explain the missing reasoning step clearly and show "
+            "why your claim leads to the conclusion. "
+            "EVIDENCE/EXAMPLE: Give one concrete scenario or counterexample "
+            "that demonstrates the connection."
+        )
+        if selected_type == "Logical"
+        else (
+            f"CHALLENGE: The opponent wants stronger support for the claim "
+            f"'{claim}'. "
+            f"WHAT TO SAY: Defend the claim with a specific fact, study, "
+            "measurable result, or clearly stated evidence. "
+            "EVIDENCE/EXAMPLE: Name the type of credible source or real-world "
+            "case that would strengthen your argument."
+        )
+        if selected_type == "Evidence-Based"
+        else (
+            f"CHALLENGE: The opponent is questioning how '{claim}' would "
+            f"work in practice under the motion '{topic_context}'. "
+            f"WHAT TO SAY: Explain who would implement your proposal, how it "
+            "would operate, and how practical obstacles would be handled. "
+            "EVIDENCE/EXAMPLE: Use a real implementation, existing system, "
+            "or concrete step-by-step example."
+        )
+        if selected_type == "Practical"
+        else (
+            f"CHALLENGE: The opponent is questioning the ethical consequences "
+            f"of '{claim}'. "
+            f"WHAT TO SAY: Explain who may be affected, why your position is "
+            "fair, and what safeguards should be included. "
+            "EVIDENCE/EXAMPLE: Give a concrete affected-person scenario and "
+            "show how your proposed safeguard addresses the harm."
+        )
+        if selected_type == "Ethical"
+        else (
+            f"CHALLENGE: The opponent is questioning how your proposal based "
+            f"on '{claim}' should be governed under '{topic_context}'. "
+            f"WHAT TO SAY: Identify who should be responsible and explain "
+            "the rules, accountability mechanisms, and safeguards required. "
+            "EVIDENCE/EXAMPLE: Refer to an existing policy, legal framework, "
+            "or real-world governance model."
+        )
+    ),    "rebuttal_type": selected_type,
+        }
     def calculate_weighted_score(
         self, arg_quality: float, evidence: float, logic: float, rebuttal: float, comms: float
     ) -> float:
@@ -275,3 +536,8 @@ class AIEngine:
 
 
 ai_engine_service = AIEngine()
+
+
+
+
+

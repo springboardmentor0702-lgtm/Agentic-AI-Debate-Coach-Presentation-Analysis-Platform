@@ -23,28 +23,27 @@ function TypewriterText({ text, speed = 15 }) {
   useEffect(() => {
     let index = 0;
     setDisplayedText("");
-    const timer = setInterval(() => {
-      setDisplayedText((prev) => {
-        const nextChar = text.charAt(index);
-        index++;
-        if (index >= text.length) {
-          clearInterval(timer);
-        }
-        return prev + nextChar;
-      });
-    }, speed);
 
+const timer = setInterval(() => {
+  const nextChar = text.charAt(index);
+  index++;
+
+  setDisplayedText((prev) => prev + nextChar);
+
+  if (index >= text.length) {
+    clearInterval(timer);
+  }
+}, speed);
     return () => clearInterval(timer);
   }, [text, speed]);
 
   return <span>{displayedText}</span>;
 }
-
 export default function SimulationPage() {
   const [topic, setTopic] = useState(PRESET_TOPICS[0]);
   const [customTopic, setCustomTopic] = useState("");
   const [position, setPosition] = useState("Affirmative");
-  const [format, setFormat] = useState("Parliamentary Debate");
+  const [format, setFormat] = useState("1-on-1 Debate");
   const [persona, setPersona] = useState("The Contrarian");
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -59,6 +58,131 @@ export default function SimulationPage() {
   const [transcript, setTranscript] = useState([]);
   const [lastAnalysis, setLastAnalysis] = useState(null);
 
+  // Voice Recording / Speech-to-Text States
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recognition, setRecognition] = useState(null);
+
+  const startRecording = () => {
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
+      return;
+    }
+
+    const recognitionInstance = new SpeechRecognition();
+
+    recognitionInstance.continuous = true;
+    recognitionInstance.interimResults = true;
+    recognitionInstance.lang = "en-IN";
+
+    recognitionInstance.onstart = () => {
+      setIsRecording(true);
+      setRecordingSeconds(0);
+    };
+
+    recognitionInstance.onresult = (event) => {
+    let finalTranscript = "";
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const text = event.results[i][0].transcript;
+
+      if (event.results[i].isFinal) {
+        finalTranscript += text + " ";
+      }
+    }
+
+    if (finalTranscript.trim()) {
+      setUserInput((prev) => {
+        const existing = prev.trim();
+        const addition = finalTranscript.trim();
+
+        return existing ? `${existing} ${addition}` : addition;
+      });
+    }
+  };
+  recognitionInstance.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+
+      if (
+        event.error === "not-allowed" ||
+        event.error === "service-not-allowed"
+      ) {
+        alert("Microphone permission was denied. Please allow microphone access and try again.");
+      }
+
+      setIsRecording(false);
+    };
+
+    recognitionInstance.onend = () => {
+      setIsRecording(false);
+    };
+
+    setRecognition(recognitionInstance);
+
+    try {
+      recognitionInstance.start();
+    } catch (error) {
+      console.error("Unable to start speech recognition:", error);
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.error("Unable to stop speech recognition:", error);
+      }
+    }
+
+    setIsRecording(false);
+  };
+
+  useEffect(() => {
+    let timer;
+
+    if (isRecording) {
+      timer = setInterval(() => {
+        setRecordingSeconds((seconds) => seconds + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isRecording]);
+
+  useEffect(() => {
+    return () => {
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch (error) {
+          // Recognition may already be stopped.
+        }
+      }
+    };
+  }, [recognition]);
+  const speakAIResponse = (text) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+
+    window.speechSynthesis.speak(utterance);
+  };
   const handleStartDebate = async () => {
     setLoading(true);
     const finalTopic = topic === "Custom Topic (Enter below)" ? customTopic : topic;
@@ -86,7 +210,7 @@ export default function SimulationPage() {
         },
         {
           speaker: "AI Opponent",
-          text: `Greetings. I will argue the Negative perspective. Present your opening ${position} case for: "${finalTopic}".`,
+          text: `Greetings. I will argue the ${position === "Affirmative" ? "Negative" : "Affirmative"} perspective. Present your opening ${position} case for: "${finalTopic}".`,
           type: "opponent"
         }
       ]);
@@ -103,7 +227,7 @@ export default function SimulationPage() {
         },
         {
           speaker: "AI Opponent",
-          text: `Greetings. I will argue the Negative perspective. Present your opening ${position} case for: "${finalTopic}".`,
+          text: `Greetings. I will argue the ${position === "Affirmative" ? "Negative" : "Affirmative"} perspective. Present your opening ${position} case for: "${finalTopic}".`,
           type: "opponent"
         }
       ]);
@@ -193,7 +317,7 @@ export default function SimulationPage() {
           fallacies: data.fallacies_detected_in_user
         }
       ]);
-
+      speakAIResponse(data.opponent_rebuttal);
       setLastAnalysis({
         rebuttal_strength: data.rebuttal_strength_percent,
         fallacies: data.fallacies_detected_in_user,
@@ -205,7 +329,7 @@ export default function SimulationPage() {
         ...prev,
         {
           speaker: `AI Opponent (${persona})`,
-          text: `I reject your proposition. Asserting that liability rests on autonomous units ignores manufacturer warranty and human operator oversight.`,
+          text: ``,
           type: "opponent",
           rebuttal_strength: 96.5,
           fallacies: []
@@ -390,7 +514,7 @@ export default function SimulationPage() {
             </div>
 
             {/* Terminal Window Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr', gap: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr', gap: '2rem', alignItems: 'start' }}>
               {/* Terminal Box */}
               <div className="terminal-window">
                 <div className="terminal-header">
@@ -432,7 +556,7 @@ export default function SimulationPage() {
                 </div>
 
                 {/* Form Input */}
-                <form onSubmit={handleSendArgument} style={{ display: 'flex', borderTop: '1px solid var(--dark-border)', background: '#0e0e12' }}>
+                <form onSubmit={handleSendArgument} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 190px 120px', gap: '12px', alignItems: 'stretch', borderTop: '1px solid var(--dark-border)', background: '#0e0e12', width: '100%', boxSizing: 'border-box' }}>
                   <input
                     type="text"
                     placeholder="Type your debate speech / counterargument here..."
@@ -441,6 +565,7 @@ export default function SimulationPage() {
                     className="font-mono"
                     style={{
                       flex: 1,
+                        minWidth: 0,
                       padding: '1rem 1.5rem',
                       background: 'transparent',
                       border: 'none',
@@ -449,7 +574,39 @@ export default function SimulationPage() {
                       fontSize: '0.9rem'
                     }}
                   />
-                  <button type="submit" className="btn btn-red" style={{ borderRadius: 0 }}>
+                  <button
+                    type="button"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className="btn"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flex: 'none',
+                      width: '100%',
+                      maxWidth: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                      padding: '0.9rem 0.75rem',
+                      margin: 0,
+                      borderRadius: 0,
+                      border: isRecording
+                        ? '1px solid var(--accent-red)'
+                        : '1px solid var(--border-light)',
+                      background: isRecording ? '#25080c' : '#15151b',
+                      color: isRecording ? 'var(--accent-red)' : '#fff',
+                      fontFamily: 'monospace',
+                      fontWeight: '700',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {isRecording
+                      ? `STOP RECORDING ${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(recordingSeconds % 60).padStart(2, '0')}`
+                      : 'RECORD'}
+                  </button>
+
+                  <button type="submit" className="btn btn-red" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', width: '100%', minWidth: 0, padding: '0.9rem 1rem', margin: 0, borderRadius: 0, whiteSpace: 'nowrap', cursor: 'pointer', visibility: 'visible', opacity: 1 }}>
                     TRANSMIT
                   </button>
                 </form>
@@ -460,10 +617,10 @@ export default function SimulationPage() {
                 <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-light)', padding: '1.5rem' }}>
                   <div className="font-mono text-muted" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>OPPONENT REBUTTAL PRESSURE</div>
                   <div className="font-display" style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--accent-red)' }}>
-                    {lastAnalysis ? `${lastAnalysis.rebuttal_strength}%` : '98.4%'}
+                    {lastAnalysis ? `${lastAnalysis.rebuttal_strength}%` : '0%'}
                   </div>
                   <div className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    Status: High Pressure Defense
+                    Status: {lastAnalysis ? (lastAnalysis.rebuttal_strength >= 75 ? 'High Pressure Defense' : lastAnalysis.rebuttal_strength >= 50 ? 'Moderate Pressure' : lastAnalysis.rebuttal_strength >= 25 ? 'Low Pressure' : 'No Pressure Detected') : 'No Pressure Detected'}
                   </div>
                 </div>
 
@@ -475,7 +632,7 @@ export default function SimulationPage() {
                     </div>
                   ) : (
                     <div style={{ color: '#10b981', fontWeight: 'bold' }}>
-                      ✓ No Fallacies Flagged in Last Turn
+                      &#10003; No Fallacies Flagged in Last Turn
                     </div>
                   )}
                 </div>
@@ -483,7 +640,7 @@ export default function SimulationPage() {
                 <div style={{ background: 'var(--dark-bg)', color: '#fff', border: '1px solid var(--dark-border)', padding: '1.5rem', flex: 1 }}>
                   <div className="font-mono text-red" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>COACHING ASSISTANT</div>
                   <p style={{ fontSize: '0.9rem', lineHeight: '1.5', color: '#ccc' }}>
-                    {lastAnalysis ? lastAnalysis.coaching_tip : "Pivot back to primary evidence. Emphasize regulatory precedent to counter the opponent's market-friction argument."}
+                    {lastAnalysis ? lastAnalysis.coaching_tip : "Submit your first argument. The coaching assistant will analyze the opponent's challenge and provide guidance based on your latest turn."}
                   </p>
                 </div>
               </div>
@@ -532,3 +689,36 @@ export default function SimulationPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

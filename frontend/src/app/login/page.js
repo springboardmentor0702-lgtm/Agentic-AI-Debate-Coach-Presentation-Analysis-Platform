@@ -64,7 +64,8 @@ export default function LoginPage() {
         throw new Error(`Access denied. Registered role is '${data.role}', not '${role}'.`);
       }
 
-      localStorage.setItem('logos_ai_jwt', data.access_token);
+      window.localStorage.setItem('logos_ai_jwt', String(data.access_token));
+      console.log("LOGIN JWT SAVED:", window.localStorage.getItem('logos_ai_jwt') ? "YES" : "NO");
       setMessage({ type: 'success', text: `Access granted! Redirecting to dashboard...` });
       
       setTimeout(() => {

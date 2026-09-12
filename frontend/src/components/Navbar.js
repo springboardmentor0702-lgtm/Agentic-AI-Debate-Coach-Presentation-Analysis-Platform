@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -41,31 +41,22 @@ export default function Navbar() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts");
+      const token = localStorage.getItem("logos_ai_jwt");
+      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data);
+        const readIds = JSON.parse(localStorage.getItem("logos_ai_read_notifications") || "[]");
+        const updated = data.map(n => ({
+          ...n,
+          read: n.read || readIds.includes(String(n.id))
+        }));
+        setNotifications(updated);
       }
     } catch (err) {
-      // Offline fallback values
-      setNotifications([
-        {
-          id: 1,
-          category: "Session Reminder",
-          title: "Upcoming Debate Match",
-          message: "Your debate session on 'AI Governance' is scheduled in 30 minutes.",
-          timestamp: "Just now",
-          read: false
-        },
-        {
-          id: 2,
-          category: "Feedback Alert",
-          title: "Analysis Ready",
-          message: "Coach Sofia Vance left detailed feedback on your last debate rebuttal.",
-          timestamp: "2 hours ago",
-          read: false
-        }
-      ]);
+      // Keep the notification panel empty when the API is unavailable.
+      setNotifications([]);
     }
   };
 
@@ -76,6 +67,13 @@ export default function Navbar() {
       });
     } catch (err) {}
     
+    const readIds = JSON.parse(localStorage.getItem("logos_ai_read_notifications") || "[]");
+    const normalizedId = String(id);
+    if (!readIds.includes(normalizedId)) {
+      readIds.push(normalizedId);
+      localStorage.setItem("logos_ai_read_notifications", JSON.stringify(readIds));
+    }
+
     setNotifications(prev => 
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
@@ -129,7 +127,7 @@ export default function Navbar() {
               onClick={() => setShowDropdown(!showDropdown)}
               style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', position: 'relative', padding: '0.25rem' }}
             >
-              🔔
+              &#128276;”
               {unreadCount > 0 && (
                 <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--accent-red)', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '0.15rem 0.35rem', borderRadius: '50%' }}>
                   {unreadCount}
@@ -143,8 +141,10 @@ export default function Navbar() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e5eb', paddingBottom: '0.5rem' }}>
                   <strong style={{ fontSize: '0.88rem' }}>NOTIFICATIONS ({unreadCount})</strong>
                   <button 
-                    onClick={() => {
-                      notifications.forEach(n => handleMarkAsRead(n.id));
+                    onClick={async () => {
+                      const unread = notifications.filter(n => !n.read);
+                      await Promise.all(unread.map(n => handleMarkAsRead(n.id)));
+                      setShowDropdown(false);
                     }}
                     style={{ background: 'transparent', border: 'none', color: 'var(--accent-red)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
                   >
@@ -213,3 +213,8 @@ export default function Navbar() {
     </nav>
   );
 }
+
+
+
+
+

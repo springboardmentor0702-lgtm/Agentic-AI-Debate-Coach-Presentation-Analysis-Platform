@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Response, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 import models
@@ -6,205 +6,238 @@ import io
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports & Export System"])
 
-def generate_pdf_bytes(title: str, content_lines: list) -> bytes:
-    # Minimal pure-python compliant PDF-1.4 writer
-    stream = []
-    # Title formatting
-    stream.append(b"BT\n/F1 20 Tf\n50 780 Td\n(" + title.encode('utf-8', 'ignore') + b") Tj\n")
-    stream.append(b"0 -35 Td\n/F1 10 Tf\n")
-    
-    # Render line by line
-    for line in content_lines:
-        escaped_line = line.replace('(', '\\(').replace(')', '\\)').encode('utf-8', 'ignore')
-        stream.append(b"0 -18 Td\n(" + escaped_line + b") Tj\n")
-    stream.append(b"ET\n")
-    stream_bytes = b"".join(stream)
-    
-    content_obj = f"<< /Length {len(stream_bytes)} >>\nstream\n".encode() + stream_bytes + b"\nendstream"
-    
-    objects_map = [
-        (1, b"<< /Type /Catalog /Pages 3 0 R >>"),
-        (2, b"<< /Type /Outlines /Count 0 >>"),
-        (3, b"<< /Type /Pages /Kids [ 4 0 R ] /Count 1 >>"),
-        (4, b"<< /Type /Page /Parent 3 0 R /MediaBox [ 0 0 595 842 ] /Contents 5 0 R /Resources << /Font << /F1 6 0 R >> >> >>"),
-        (5, content_obj),
-        (6, b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
-    ]
-    
-    offsets = {}
-    current_offset = len(b"%PDF-1.4\n")
-    pdf_body = [b"%PDF-1.4\n"]
-    
-    for obj_id, data in objects_map:
-        offsets[obj_id] = current_offset
-        obj_header = f"{obj_id} 0 obj\n".encode()
-        obj_footer = b"\nendobj\n"
-        full_obj = obj_header + data + obj_footer
-        pdf_body.append(full_obj)
-        current_offset += len(full_obj)
-        
-    xref_offset = current_offset
-    pdf_body.append(b"xref\n")
-    pdf_body.append(f"0 {len(objects_map) + 1}\n".encode())
-    pdf_body.append(b"0000000000 65535 f \n")
-    for obj_id in range(1, len(objects_map) + 1):
-        pdf_body.append(f"{offsets[obj_id]:010d} 00000 n \n".encode())
-        
-    pdf_body.append(b"trailer\n")
-    pdf_body.append(f"<< /Size {len(objects_map) + 1} /Root 1 0 R >>\n".encode())
-    pdf_body.append(b"startxref\n")
-    pdf_body.append(f"{xref_offset}\n".encode())
-    pdf_body.append(b"%%EOF\n")
-    
-    return b"".join(pdf_body)
 
-@router.get("/export/pdf/{session_id}")
-def export_pdf_report(session_id: int, db: Session = Depends(get_db)):
-    session = db.query(models.DebateSession).filter(models.DebateSession.id == session_id).first()
+def get_session_data(session_id: int, db: Session):
+    session = db.query(models.DebateSession).filter(
+        models.DebateSession.id == session_id
+    ).first()
+
     if not session:
-        raise HTTPException(status_code=404, detail="Debate session not found.")
-        
-    score = db.query(models.PerformanceScore).filter(models.PerformanceScore.session_id == session_id).first()
-    metric = db.query(models.PresentationMetric).filter(models.PresentationMetric.session_id == session_id).first()
-    
-    # Fallback default values if DB entry score is missing
-    score_val = score.overall_weighted_score if score else 84.2
-    arg_val = score.argument_quality if score else 85.0
-    evid_val = score.evidence_use if score else 80.0
-    logic_val = score.logical_consistency if score else 88.5
-    rebut_val = score.rebuttal_effectiveness if score else 82.0
-    comms_val = score.communication_skills if score else 85.0
-    
-    wpm_val = metric.speech_pace_wpm if metric else 142.0
-    fillers_val = metric.filler_words_count if metric else 3
-    clarity_val = metric.clarity_score if metric else 85.0
-    conf_val = metric.confidence_score if metric else 88.0
-    engage_val = metric.engagement_score if metric else 84.0
-    
-    lines = [
-        f"------------------------------------------------------------------------------------------------",
-        f"DEBATE PROPERTIES",
-        f"  Topic: {session.topic[:65]}",
-        f"  Format: {session.format} | Position: {session.assigned_position}",
-        f"  Session Status: {session.status}",
-        f"------------------------------------------------------------------------------------------------",
-        f"WEIGHTED PERFORMANCE SCORE REPORT",
-        f"  Overall Weighted Debate Rating: {score_val}%",
-        f"  - Argument Quality (30% weight): {arg_val}%",
-        f"  - Evidence Usage (20% weight): {evid_val}%",
-        f"  - Logical Consistency (20% weight): {logic_val}%",
-        f"  - Rebuttal Effectiveness (15% weight): {rebut_val}%",
-        f"  - Communication Skills (15% weight): {comms_val}%",
-        f"------------------------------------------------------------------------------------------------",
-        f"PRESENTATION & SPEECH PROSODY ASSESSMENT",
-        f"  - Speaking Pacing: {wpm_val} Words Per Minute",
-        f"  - Vocal Filler Count: {fillers_val} fillers flagged",
-        f"  - Speech Clarity Score: {clarity_val}%",
-        f"  - Speaker Confidence Rating: {conf_val}%",
-        f"  - Audience Engagement Score: {engage_val}%",
-        f"------------------------------------------------------------------------------------------------",
-        f"COACHING INSIGHTS & LEARNING PATH",
-        f"  - Priority Action: Avoid circular logic and Socratic fallacy gaps.",
-        f"  - Recommended drill: Pacing calibration exercises at 140 WPM.",
-        f"------------------------------------------------------------------------------------------------",
-        f"Generated by Logos.AI. Certification ID: CERT-LOGOS-{session_id}-2026",
-    ]
-    
-    pdf_data = generate_pdf_bytes(f"LOGOS.AI ASSESSMENT REPORT // SESSION {session_id}", lines)
-    
-    return Response(
-        content=pdf_data,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=logos_ai_session_{session_id}_assessment.pdf"}
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    performance = db.query(models.PerformanceScore).filter(
+        models.PerformanceScore.session_id == session_id
+    ).order_by(models.PerformanceScore.id.desc()).first()
+
+    analysis = db.query(models.ArgumentAnalysis).filter(
+        models.ArgumentAnalysis.session_id == session_id
+    ).order_by(models.ArgumentAnalysis.id.desc()).first()
+
+    presentation = db.query(models.PresentationMetric).filter(
+        models.PresentationMetric.session_id == session_id
+    ).order_by(models.PresentationMetric.id.desc()).first()
+
+    return session, performance, analysis, presentation
+
+
+@router.get("/export/csv/{session_id}")
+def export_csv_report(session_id: int, db: Session = Depends(get_db)):
+    session, performance, analysis, presentation = get_session_data(session_id, db)
+
+    if performance:
+        argument_quality = performance.argument_quality
+        evidence_use = performance.evidence_use
+        logical_consistency = performance.logical_consistency
+        rebuttal_effectiveness = performance.rebuttal_effectiveness
+        communication_skills = performance.communication_skills
+        overall_score = performance.overall_weighted_score
+    elif analysis:
+        argument_quality = analysis.persuasiveness_score
+        evidence_use = analysis.evidence_strength
+        logical_consistency = analysis.logical_consistency
+        rebuttal_effectiveness = analysis.persuasiveness_score
+        communication_skills = analysis.clarity_score
+        overall_score = (
+            argument_quality * 0.30
+            + evidence_use * 0.20
+            + logical_consistency * 0.20
+            + rebuttal_effectiveness * 0.15
+            + communication_skills * 0.15
+        )
+    else:
+        raise HTTPException(
+            status_code=404,
+            detail="No performance data found for this session"
+        )
+
+    wpm = presentation.words_per_minute if presentation else None
+    fillers = presentation.filler_words_count if presentation else None
+
+    csv_content = (
+        "Metric,Score,Details\n"
+        f"Argument Quality,{argument_quality:.1f},Persuasiveness and argument construction\n"
+        f"Evidence Use,{evidence_use:.1f},Evidence strength from argument analysis\n"
+        f"Logical Consistency,{logical_consistency:.1f},Logical consistency from argument analysis\n"
+        f"Rebuttal Effectiveness,{rebuttal_effectiveness:.1f},Counter-argument effectiveness\n"
+        f"Communication Skills,{communication_skills:.1f},"
+        f"{f'{wpm:.1f} WPM speech pace' if wpm is not None else 'Clarity-based communication score'}\n"
+        f"Overall Weighted Score,{overall_score:.1f},Formula: 30%+20%+20%+15%+15%\n"
     )
 
-@router.get("/export/excel/{session_id}")
-def export_excel_report(session_id: int, db: Session = Depends(get_db)):
-    session = db.query(models.DebateSession).filter(models.DebateSession.id == session_id).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Debate session not found.")
-        
-    score = db.query(models.PerformanceScore).filter(models.PerformanceScore.session_id == session_id).first()
-    metric = db.query(models.PresentationMetric).filter(models.PresentationMetric.session_id == session_id).first()
-    
-    score_val = score.overall_weighted_score if score else 84.2
-    arg_val = score.argument_quality if score else 85.0
-    evid_val = score.evidence_use if score else 80.0
-    logic_val = score.logical_consistency if score else 88.5
-    rebut_val = score.rebuttal_effectiveness if score else 82.0
-    comms_val = score.communication_skills if score else 85.0
-    
-    wpm_val = metric.speech_pace_wpm if metric else 142.0
-    fillers_val = metric.filler_words_count if metric else 3
-    
-    # Excel-compatible CSV layout (comma separated value format)
-    csv_content = f"LOGOS.AI SESSION METRIC REPORT\n" \
-                  f"Session ID,{session_id}\n" \
-                  f"Topic,\"{session.topic}\"\n" \
-                  f"Format,{session.format}\n" \
-                  f"Position,{session.assigned_position}\n" \
-                  f"Status,{session.status}\n\n" \
-                  f"Metric Category,Performance Score,Weight Percentage,Audited Notes\n" \
-                  f"Argument Quality,{arg_val},30%,Isolated claims correctly structured\n" \
-                  f"Evidence Use,{evid_val},20%,Audited factual source reference count\n" \
-                  f"Logical Consistency,{logic_val},20%,No fallacy traps triggered\n" \
-                  f"Rebuttal Effectiveness,{rebut_val},15%,Addressed cross-fire challenges\n" \
-                  f"Communication Skills,{comms_val},15%,Speaking clarity rate\n" \
-                  f"Overall Weighted Score,{score_val},100%,Weighted performance summary\n\n" \
-                  f"Speech Pace (WPM),{wpm_val},N/A,Words Per Minute\n" \
-                  f"Filler Words Count,{fillers_val},N/A,Total verbal pause counts\n"
-                  
     return Response(
         content=csv_content,
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=logos_ai_session_{session_id}_matrix.csv"}
+        headers={
+            "Content-Disposition":
+                f"attachment; filename=logos_ai_session_{session_id}_report.csv"
+        }
     )
 
-@router.get("/export/coaching/pdf/{user_id}")
-def export_coaching_pdf_report(user_id: int, db: Session = Depends(get_db)):
-    from datetime import datetime
-    from routers.coaching import get_coaching_plan
-    plan = get_coaching_plan(user_id, db)
-    
-    lines = [
-        f"------------------------------------------------------------------------------------------------",
-        f"COACHING PROFILE & PROGRESS SUMMARY",
-        f"  User ID: {user_id} | Status: {plan['progress_status']}",
-        f"------------------------------------------------------------------------------------------------",
-        f"SKILL GAP ANALYSIS",
-        f"  {plan['skill_gap_summary']}",
-        f"------------------------------------------------------------------------------------------------",
-        f"TARGETED IMPROVEMENT RECOMMENDATIONS",
-    ]
-    for idx, rec in enumerate(plan['targeted_recommendations']):
-        lines.append(f"  {idx+1}. {rec}")
-        
-    lines.append(f"------------------------------------------------------------------------------------------------")
-    lines.append(f"DYNAMIC LEARNING PATH STEPS")
-    for idx, step in enumerate(plan['learning_path_steps']):
-        lines.append(f"  {idx+1}. {step}")
-        
-    lines.append(f"------------------------------------------------------------------------------------------------")
-    lines.append(f"Generated by Logos.AI Coaching Engine. Date: {datetime.utcnow().strftime('%Y-%m-%d')}")
-    
-    pdf_data = generate_pdf_bytes(f"LOGOS.AI DYNAMIC COACHING & LEARNING PROGRESS REPORT", lines)
-    
-    return Response(
-        content=pdf_data,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=logos_ai_user_{user_id}_coaching_plan.pdf"}
-    )
 
 @router.get("/export/summary/{session_id}")
-def get_session_summary_report(session_id: int):
+def get_session_summary_report(session_id: int, db: Session = Depends(get_db)):
+    session, performance, analysis, presentation = get_session_data(session_id, db)
+
+    if performance:
+        overall_score = performance.overall_weighted_score
+    elif analysis:
+        overall_score = (
+            analysis.persuasiveness_score * 0.30
+            + analysis.evidence_strength * 0.20
+            + analysis.logical_consistency * 0.20
+            + analysis.persuasiveness_score * 0.15
+            + analysis.clarity_score * 0.15
+        )
+    else:
+        raise HTTPException(status_code=404, detail="No performance data found")
+
     return {
         "platform": "LOGOS.AI",
         "session_id": session_id,
         "title": "High-Stakes AI Debate Simulation",
-        "weighted_performance_score": 84.2,
+        "weighted_performance_score": round(overall_score, 1),
         "fallacies_detected": ["None"],
-        "speech_pace": "142 WPM (Optimal)",
-        "filler_words_count": 2,
+        "speech_pace": (
+            f"{presentation.words_per_minute:.1f} WPM"
+            if presentation and presentation.words_per_minute is not None
+            else "N/A"
+        ),
+        "filler_words_count": (
+            presentation.filler_words_count
+            if presentation
+            else 0
+        ),
         "certificate_id": f"CERT-LOGOS-{session_id}-2026"
     }
+
+
+@router.get("/export/audit/{session_id}")
+def export_audit_report(session_id: int, db: Session = Depends(get_db)):
+    session, performance, analysis, presentation = get_session_data(session_id, db)
+
+    if performance:
+        logical_consistency = performance.logical_consistency
+        rebuttal_effectiveness = performance.rebuttal_effectiveness
+        evidence_use = performance.evidence_use
+    elif analysis:
+        logical_consistency = analysis.logical_consistency
+        rebuttal_effectiveness = analysis.persuasiveness_score
+        evidence_use = analysis.evidence_strength
+    else:
+        raise HTTPException(status_code=404, detail="No performance data found")
+
+    fallacies = "None"
+    if analysis and analysis.fallacies:
+        fallacies = "; ".join(f"{item.fallacy_type}: {item.description}" for item in analysis.fallacies)
+
+    audit_content = (
+        f"Audit Report - LOGOS.AI Session {session_id}\n"
+        f"Fallacies Detected,{fallacies}\n"
+        f"Logical Consistency,{logical_consistency:.1f}\n"
+        f"Rebuttal Effectiveness,{rebuttal_effectiveness:.1f}\n"
+        f"Evidence Use,{evidence_use:.1f}\n"
+        "Audit Status,Verified\n"
+    )
+
+    return Response(
+        content=audit_content,
+        media_type="text/plain",
+        headers={
+            "Content-Disposition":
+                f"attachment; filename=logos_ai_session_{session_id}_audit.txt"
+        }
+    )
+
+
+@router.get("/export/certificate/{session_id}")
+def export_certificate(session_id: int, db: Session = Depends(get_db)):
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+
+    session, performance, analysis, presentation = get_session_data(session_id, db)
+
+    if performance:
+        overall_score = performance.overall_weighted_score
+    elif analysis:
+        overall_score = (
+            analysis.persuasiveness_score * 0.30
+            + analysis.evidence_strength * 0.20
+            + analysis.logical_consistency * 0.20
+            + analysis.persuasiveness_score * 0.15
+            + analysis.clarity_score * 0.15
+        )
+    else:
+        raise HTTPException(status_code=404, detail="No performance data found")
+
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    pdf.setTitle(f"LOGOS.AI Certificate - Session {session_id}")
+    pdf.setFont("Helvetica-Bold", 24)
+    pdf.drawCentredString(width / 2, height - 120, "LOGOS.AI")
+    pdf.setFont("Helvetica-Bold", 20)
+    pdf.drawCentredString(
+        width / 2, height - 170, "CERTIFICATE OF RHETORICAL MASTERY"
+    )
+    pdf.setFont("Helvetica", 14)
+    pdf.drawCentredString(
+        width / 2,
+        height - 230,
+        "This certifies successful completion of the debate coaching session"
+    )
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawCentredString(width / 2, height - 290, f"Session {session_id}")
+    pdf.setFont("Helvetica", 13)
+    pdf.drawCentredString(
+        width / 2,
+        height - 340,
+        f"Verified Performance Score: {overall_score:.1f} / 100"
+    )
+
+    if presentation and presentation.words_per_minute is not None:
+        pace_text = f"Speech Pace: {presentation.words_per_minute:.1f} WPM"
+    else:
+        pace_text = "Speech Pace: N/A"
+
+    pdf.drawCentredString(width / 2, height - 370, pace_text)
+    pdf.drawCentredString(width / 2, height - 400, "Fallacies Detected: None")
+
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawCentredString(
+        width / 2,
+        height - 470,
+        f"Certificate ID: CERT-LOGOS-{session_id}-2026"
+    )
+    pdf.setFont("Helvetica", 11)
+    pdf.drawCentredString(
+        width / 2,
+        80,
+        "LOGOS.AI - Agentic Debate Coach & Presentation Analysis Platform"
+    )
+
+    pdf.save()
+    buffer.seek(0)
+
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition":
+                f"attachment; filename=logos_ai_session_{session_id}_certificate.pdf"
+        }
+    )
+
+
+
 

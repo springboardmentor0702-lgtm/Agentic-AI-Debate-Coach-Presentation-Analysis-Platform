@@ -12,6 +12,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     role = Column(String, default="Learner")
+    coach_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     experience_level = Column(String, default="Intermediate")
     preferred_topics = Column(String, default="Technology, Ethics, Policy")
     presentation_domains = Column(String, default="Public Speaking, Keynotes")
@@ -121,6 +122,7 @@ class PresentationMetric(Base):
     confidence_score = Column(Float, default=0.0)
     clarity_score = Column(Float, default=0.0)
     engagement_score = Column(Float, default=0.0)
+    audio_duration_seconds = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("DebateSession", back_populates="presentation_metrics")
@@ -153,3 +155,18 @@ class CoachingPlan(Base):
     learning_path_steps = Column(Text)
     progress_status = Column(String, default="In Progress")
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+
+
+
+class CoachFeedback(Base):
+    __tablename__ = "coach_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    coach_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    learner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    feedback = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
