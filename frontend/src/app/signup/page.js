@@ -44,38 +44,32 @@ export default function SignUpPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/register", {
+      const res = await fetch("/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           password,
-          full_name: fullName,
+          name: fullName,
           role,
-          experience_level: "Intermediate",
+          experience: "Intermediate",
+          learning_goals: goal,
           preferred_topics: topics || "Technology, AI, Politics"
         })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Registration failed.");
+      if (!res.ok) throw new Error(data.detail || data.message || "Registration failed.");
 
-      if (goal || topics) {
-        await fetch(`http://localhost:8000/api/v1/auth/profile/me?learning_goals=${encodeURIComponent(goal)}&preferred_topics=${encodeURIComponent(topics)}`, {
-          method: "PUT",
-          headers: { 
-            "Authorization": `Bearer ${data.access_token}`,
-            "Content-Type": "application/json"
-          }
-        });
+      const token = data.access_token || data.token;
+      if (token) {
+        localStorage.setItem('logos_ai_jwt', token);
       }
-
-      localStorage.setItem('logos_ai_jwt', data.access_token);
       setMessage({ type: 'success', text: `Account created successfully! Redirecting...` });
       
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1200);
+      }, 800);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -87,16 +81,21 @@ export default function SignUpPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`, {
-        method: "POST"
+      const res = await fetch("/api/v1/auth/oauth2/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "Google", email: email || 'user@gmail.com', role })
       });
       const data = await res.json();
-      localStorage.setItem('logos_ai_jwt', data.access_token);
+      const token = data.access_token || data.token;
+      if (token) {
+        localStorage.setItem('logos_ai_jwt', token);
+      }
       setMessage({ type: 'success', text: "Google Sign Up successful! Redirecting..." });
       
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1200);
+      }, 800);
     } catch (e) {
       setMessage({ type: 'error', text: "OAuth2 sign up failed." });
     } finally {

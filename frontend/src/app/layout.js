@@ -2,6 +2,8 @@ import './globals.css';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: 'LOGOS.AI | Agentic AI Debate Coach & Presentation Analytics Platform',
   description: 'Detect fallacies in real-time. Simulate world-class opponents. Master the podium.',

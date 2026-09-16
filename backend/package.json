@@ -1,8 +1,25 @@
 {
-  "name": "logos-ai-backend",
-  "version": "4.0.0",
-  "description": "Logos.ai FastAPI Backend Wrapper",
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "aiService.js",
   "scripts": {
-    "dev": "uvicorn main:app --reload --port 8000"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "migrate:store": "node migrateStore.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.4",
+    "multer": "^2.2.0"
   }
 }

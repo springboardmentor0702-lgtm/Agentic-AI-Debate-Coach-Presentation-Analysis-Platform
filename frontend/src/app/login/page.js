@@ -51,25 +51,25 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
+      const res = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, role })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Authentication failed.");
-
-      if (data.role !== role) {
-        throw new Error(`Access denied. Registered role is '${data.role}', not '${role}'.`);
+      if (!res.ok || data.success === false) {
+        throw new Error(data.detail || data.message || "Authentication failed.");
       }
 
-      localStorage.setItem('logos_ai_jwt', data.access_token);
+      const token = data.access_token || data.token;
+      if (!token) throw new Error("Authentication succeeded without a session token. Please try again.");
+      localStorage.setItem('logos_ai_jwt', token);
       setMessage({ type: 'success', text: `Access granted! Redirecting to dashboard...` });
       
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1200);
+      }, 800);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -81,16 +81,21 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/oauth2/login?provider=Google&email=${encodeURIComponent(email || 'user@gmail.com')}&role=${role}`, {
-        method: "POST"
+      const res = await fetch("/api/v1/auth/oauth2/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "Google", email: email || 'user@gmail.com', role })
       });
       const data = await res.json();
-      localStorage.setItem('logos_ai_jwt', data.access_token);
+      const token = data.access_token || data.token;
+      if (token) {
+        localStorage.setItem('logos_ai_jwt', token);
+      }
       setMessage({ type: 'success', text: "Google Authentication successful!" });
       
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1200);
+      }, 800);
     } catch (e) {
       setMessage({ type: 'error', text: "OAuth2 login failed." });
     } finally {
@@ -266,7 +271,7 @@ export default function LoginPage() {
 
           {/* Sign Up Redirect */}
           <div style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6B7280', marginBottom: '0.75rem' }}>
-            Don't have an account yet?{' '}
+            Don&apos;t have an account yet?{' '}
             <Link href="/signup" style={{ color: '#111827', fontWeight: 600, textDecoration: 'underline' }}>
               Sign Up
             </Link>

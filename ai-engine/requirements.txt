@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+pydantic
+langchain
+langchain-google-genai
+langchain-community
+langgraph
+faiss-cpu
+requests
+motor
+psycopg2-binary
+python-dotenv
+python-multipart
+faster-whisper
+python-pptx
+pdfplumber

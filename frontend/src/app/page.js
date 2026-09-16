@@ -24,7 +24,7 @@ export default function Home() {
           </h1>
 
           <p className="hero-subtitle">
-            The world's first agentic AI platform for high-stakes rhetoric. Detect fallacies in real-time. Simulate world-class opponents. Master the podium.
+            The world&apos;s first agentic AI platform for high-stakes rhetoric. Detect fallacies in real-time. Simulate world-class opponents. Master the podium.
           </p>
 
           <div className="hero-cta-group">
@@ -92,7 +92,7 @@ export default function Home() {
               </div>
               <div className="terminal-line">
                 <span className="line-num">02</span>
-                <span>User Input: <span className="text-cyan">"We must immediately restrict AI deployments."</span></span>
+                <span>User Input: <span className="text-cyan">&quot;We must immediately restrict AI deployments.&quot;</span></span>
               </div>
               <div className="terminal-line">
                 <span className="line-num">03</span>
@@ -100,7 +100,7 @@ export default function Home() {
               </div>
               <div className="terminal-line">
                 <span className="line-num">04</span>
-                <span className="text-green">Opponent Rebuttal: "Asserting a binary choice ignores risk-mitigated regulatory sandboxes."</span>
+                <span className="text-green">Opponent Rebuttal: &quot;Asserting a binary choice ignores risk-mitigated regulatory sandboxes.&quot;</span>
               </div>
               <div className="terminal-line">
                 <span className="line-num">05</span>
@@ -162,7 +162,7 @@ export default function Home() {
                   &gt; Mode: Multi-turn Cross-Examination [{activePersona}]
                 </p>
                 <p style={{ marginBottom: '1rem' }}>
-                  <span className="text-red">AI Opponent:</span> "Your proposal assumes fiscal neutrality, but fails to account for implementation overhead. How do you justify the capital allocation?"
+                  <span className="text-red">AI Opponent:</span> &quot;Your proposal assumes fiscal neutrality, but fails to account for implementation overhead. How do you justify the capital allocation?&quot;
                 </p>
                 <p className="text-muted">
                   [Awaiting User Rebuttal Input...]

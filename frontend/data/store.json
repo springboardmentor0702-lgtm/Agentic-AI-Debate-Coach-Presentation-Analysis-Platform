@@ -1,0 +1,492 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "Alex Vance",
+      "email": "alex@example.com",
+      "role": "Learner",
+      "experience": "Intermediate",
+      "preferred_topics": "AI, Technology, Politics",
+      "presentation_domains": "Public Speaking, Keynotes",
+      "learning_goals": "Reduce filler words, Master counterarguments",
+      "coaching_preferences": "Real-time alerts, Detailed post-session audits",
+      "created_at": "2026-09-06T14:20:14.583Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "name": "Dr. Marcus Reed",
+      "email": "coach.reed@example.com",
+      "role": "Debate Coach",
+      "experience": "Advanced",
+      "created_at": "2026-09-06T14:20:14.583Z"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "name": "Prof. Elena Rostova",
+      "email": "elena.rostova@university.edu",
+      "role": "Educator",
+      "experience": "Advanced",
+      "created_at": "2026-09-06T14:20:14.583Z"
+    },
+    {
+      "id": 4,
+      "user_id": 4,
+      "name": "System Administrator",
+      "email": "admin@logos.ai",
+      "role": "Admin",
+      "experience": "Advanced",
+      "created_at": "2026-09-06T14:20:14.583Z",
+      "status": "Active"
+    },
+    {
+      "id": 5,
+      "user_id": 5,
+      "name": "gorasaakshara",
+      "email": "gorasaakshara@gmail.com",
+      "role": "Learner",
+      "experience": "Beginner",
+      "created_at": "2026-09-06T14:22:13.031Z",
+      "stats": {
+        "debatesCount": 0,
+        "winRate": "0%",
+        "overallScore": 0,
+        "fallaciesAvoided": 0,
+        "avgWpm": 0
+      },
+      "status": "Active"
+    },
+    {
+      "id": 6,
+      "user_id": 6,
+      "name": "admin",
+      "email": "admin@gmail.com",
+      "role": "Administrator",
+      "experience": "Intermediate",
+      "created_at": "2026-09-07T04:43:53.992Z",
+      "stats": {
+        "debatesCount": 0,
+        "winRate": "0%",
+        "overallScore": 0,
+        "fallaciesAvoided": 0,
+        "avgWpm": 0
+      }
+    },
+    {
+      "id": 7,
+      "user_id": 7,
+      "name": "aaa",
+      "email": "a@gmail.com",
+      "role": "Learner",
+      "status": "Active",
+      "experience": "Intermediate",
+      "created_at": "2026-09-07T04:44:39.399Z"
+    }
+  ],
+  "sessions": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "user_email": null,
+      "user_name": null,
+      "title": "Parliamentary Debate: Junk food is bad health...",
+      "topic": "Junk food is bad health",
+      "description": "",
+      "format": "Parliamentary Debate",
+      "assigned_position": "Affirmative",
+      "scheduled_at": "2026-09-06T14:20:14.606Z",
+      "timezone": "UTC",
+      "duration_minutes": 45,
+      "visibility": "Public",
+      "status": "Completed",
+      "team": "Creator Team",
+      "created_at": "2026-09-06T14:20:14.606Z",
+      "completed_at": "2026-09-06T14:20:59.920Z",
+      "scores": {
+        "argQuality": 45,
+        "evidence": 80,
+        "consistency": 85,
+        "rebuttal": 45,
+        "communication": 88
+      },
+      "coaching_review": "Master Coach Review: In debate formats like Parliamentary Debate, controlling the metric of evaluation is critical. When defending Affirmative on \"Junk food is bad health\", always define the decision criterion in your opening turn. By framing whether the debate hinges on pragmatic solvency or rights-based ethics, you force The Contrarian to debate on your chosen terrain rather than allowing them to shift the burden of proof. Continue refining your evidentiary citations.",
+      "report": {
+        "id": 1,
+        "user_id": 1,
+        "user_email": null,
+        "user_name": "Debater",
+        "topic": "Junk food is bad health",
+        "format": "Parliamentary Debate",
+        "position": "Affirmative",
+        "opponent_persona": "The Contrarian",
+        "score": 45,
+        "status": "Completed",
+        "date": "2026-09-06",
+        "completed_at": "2026-09-06T14:20:59.917Z",
+        "fallacies": [
+          "Sweeping Generalization (Dicto Simpliciter)"
+        ],
+        "turnsCount": 4,
+        "transcript": [
+          {
+            "speaker": "System",
+            "text": "Debate Session Initialized. Topic: \"Junk food is bad health\" | Format: Parliamentary Debate | Position: Affirmative | Opponent Persona: The Contrarian (Negative stance) | Difficulty: Intermediate",
+            "type": "system"
+          },
+          {
+            "speaker": "AI Opponent (The Contrarian)",
+            "text": "Greetings. As The Contrarian, I am strictly defending the Negative position under Parliamentary Debate rules. Deliver your opening Affirmative argument on the motion: \"Junk food is bad health\".",
+            "type": "opponent"
+          },
+          {
+            "speaker": "You",
+            "text": "junk food is bad to health",
+            "type": "user",
+            "fallacy": "Sweeping Generalization (Dicto Simpliciter)"
+          },
+          {
+            "speaker": "AI Opponent (The Contrarian)",
+            "text": "Labeling junk food as categorically harmful ignores the fundamental nutritional principle that dose dictates toxicity. In contexts of severe caloric deficit or high-energy expenditure, high-calorie, shelf-stable foods provide essential energy and accessibility that prevent acute undernourishment. Furthermore, moderate consumption within an otherwise balanced diet shows no statistically significant adverse health outcomes, making the blanket categorization of these foods as inherently destructive medically inaccurate.",
+            "type": "opponent",
+            "rebuttal_strength": 45
+          }
+        ],
+        "scores": {
+          "argQuality": 45,
+          "evidence": 80,
+          "consistency": 85,
+          "rebuttal": 45,
+          "communication": 88
+        },
+        "executive_summary": "Throughout this Parliamentary Debate round on \"Junk food is bad health\", the debater sustained an articulate Affirmative defense against The Contrarian. However, 1 rhetorical vulnerability was identified during cross-examination.",
+        "verdict": "Competitive Split Decision - Commended Effort",
+        "strengths": [
+          "Maintained consistent thematic focus on \"Junk food is bad health\" throughout the clash.",
+          "Demonstrated strong responsiveness to The Contrarian's counter-arguments without ceding core ground.",
+          "Applied effective rhetorical pacing aligned with Parliamentary Debate guidelines."
+        ],
+        "areas_for_improvement": [
+          "Remediate identified rhetorical shortcuts by providing explicit empirical data rather than speculative assumptions.",
+          "Anticipate opponent's secondary trade-off points earlier in the constructive speech."
+        ],
+        "coaching_review": "Master Coach Review: In debate formats like Parliamentary Debate, controlling the metric of evaluation is critical. When defending Affirmative on \"Junk food is bad health\", always define the decision criterion in your opening turn. By framing whether the debate hinges on pragmatic solvency or rights-based ethics, you force The Contrarian to debate on your chosen terrain rather than allowing them to shift the burden of proof. Continue refining your evidentiary citations."
+      }
+    }
+  ],
+  "debateHistory": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "user_email": "gorasaakshara@gmail.com",
+      "user_name": "Debater",
+      "topic": "Junk food is bad health",
+      "format": "Parliamentary Debate",
+      "position": "Affirmative",
+      "opponent_persona": "The Contrarian",
+      "score": 45,
+      "status": "Completed",
+      "date": "2026-09-06",
+      "completed_at": "2026-09-06T14:20:59.925Z",
+      "fallacies": [
+        "Sweeping Generalization (Dicto Simpliciter)"
+      ],
+      "turnsCount": 4,
+      "transcript": [
+        {
+          "speaker": "System",
+          "text": "Debate Session Initialized. Topic: \"Junk food is bad health\" | Format: Parliamentary Debate | Position: Affirmative | Opponent Persona: The Contrarian (Negative stance) | Difficulty: Intermediate",
+          "type": "system"
+        },
+        {
+          "speaker": "AI Opponent (The Contrarian)",
+          "text": "Greetings. As The Contrarian, I am strictly defending the Negative position under Parliamentary Debate rules. Deliver your opening Affirmative argument on the motion: \"Junk food is bad health\".",
+          "type": "opponent"
+        },
+        {
+          "speaker": "You",
+          "text": "junk food is bad to health",
+          "type": "user",
+          "fallacy": "Sweeping Generalization (Dicto Simpliciter)"
+        },
+        {
+          "speaker": "AI Opponent (The Contrarian)",
+          "text": "Labeling junk food as categorically harmful ignores the fundamental nutritional principle that dose dictates toxicity. In contexts of severe caloric deficit or high-energy expenditure, high-calorie, shelf-stable foods provide essential energy and accessibility that prevent acute undernourishment. Furthermore, moderate consumption within an otherwise balanced diet shows no statistically significant adverse health outcomes, making the blanket categorization of these foods as inherently destructive medically inaccurate.",
+          "type": "opponent",
+          "rebuttal_strength": 45
+        }
+      ],
+      "scores": {
+        "argQuality": 45,
+        "evidence": 80,
+        "consistency": 85,
+        "rebuttal": 45,
+        "communication": 88
+      },
+      "executive_summary": "Debate practice round on \"Junk food is bad health\".",
+      "verdict": "Affirmative Ballot Awarded",
+      "strengths": [
+        "Consistent thesis defense",
+        "Solid evidentiary points"
+      ],
+      "areas_for_improvement": [
+        "Elaborate rebuttal links",
+        "Minimize rhetorical assumptions"
+      ],
+      "coaching_review": "Great round. Continue sharpening cross-examination precision."
+    }
+  ],
+  "presentationHistory": [
+    {
+      "id": 1788706434200,
+      "user_id": 5,
+      "user_email": "gorasaakshara@gmail.com",
+      "user_name": "gorasaakshara",
+      "title": "Vocal AI Policy Speech",
+      "transcript": "Clear vocal presentation without registered speech artifacts.",
+      "duration": "8s",
+      "duration_seconds": 8,
+      "wpm": 53,
+      "fillerWords": 0,
+      "fillerBreakdown": "None",
+      "confidence": 78,
+      "clarity": 92,
+      "engagement": 80,
+      "pace_status": "Too Slow",
+      "date": "2026-09-06"
+    },
+    {
+      "id": 1788706416938,
+      "date": "2026-09-06",
+      "user_id": 5,
+      "user_email": "gorasaakshara@gmail.com",
+      "user_name": "gorasaakshara",
+      "title": "Vocal AI Policy Speech",
+      "transcript": "Clear vocal presentation without registered speech artifacts.",
+      "duration": "18s",
+      "duration_seconds": 18,
+      "wpm": 23,
+      "fillerWords": 0,
+      "fillerBreakdown": "None",
+      "confidence": 78,
+      "clarity": 92,
+      "engagement": 80,
+      "pace_status": "Too Slow"
+    },
+    {
+      "id": 1788706353204,
+      "user_id": 5,
+      "user_email": "gorasaakshara@gmail.com",
+      "user_name": "gorasaakshara",
+      "title": "Vocal AI Policy Speech",
+      "transcript": "Um",
+      "duration": "30s",
+      "duration_seconds": 30,
+      "wpm": 2,
+      "fillerWords": 1,
+      "fillerBreakdown": "um:1",
+      "confidence": 76,
+      "clarity": 89,
+      "engagement": 80,
+      "pace_status": "Too Slow",
+      "date": "2026-09-06"
+    },
+    {
+      "id": 1788704556888,
+      "user_id": 5,
+      "user_email": "gorasaakshara@gmail.com",
+      "user_name": "gorasaakshara",
+      "title": "Vocal AI Policy Speech",
+      "transcript": "Um, so basically, we believe that AI policy, you know, must be strictly enforced. Uh, without proper controls, like, risks could increase.",
+      "duration": "30s",
+      "duration_seconds": 30,
+      "wpm": 44,
+      "fillerWords": 5,
+      "fillerBreakdown": "um:1, uh:1, like:1, you know:1, basically:1",
+      "confidence": 68,
+      "clarity": 79,
+      "engagement": 80,
+      "pace_status": "Too Slow",
+      "date": "2026-09-06"
+    },
+    {
+      "id": 1788704816324,
+      "user_id": 5,
+      "user_email": "gorasaakshara@gmail.com",
+      "user_name": "gorasaakshara",
+      "title": "Vocal AI Policy Speech",
+      "transcript": "We love to communicate.",
+      "duration": "30s",
+      "duration_seconds": 30,
+      "wpm": 8,
+      "fillerWords": 0,
+      "fillerBreakdown": "None",
+      "confidence": 78,
+      "clarity": 92,
+      "engagement": 80,
+      "pace_status": "Too Slow",
+      "date": "2026-09-06"
+    },
+    {
+      "id": 1788706284233,
+      "user_id": 5,
+      "user_email": "gorasaakshara@gmail.com",
+      "user_name": "gorasaakshara",
+      "title": "Vocal AI Policy Speech",
+      "transcript": "Hello everyone my name is Akshara",
+      "duration": "30s",
+      "duration_seconds": 30,
+      "wpm": 12,
+      "fillerWords": 0,
+      "fillerBreakdown": "None",
+      "confidence": 78,
+      "clarity": 92,
+      "engagement": 80,
+      "pace_status": "Too Slow",
+      "date": "2026-09-06"
+    }
+  ],
+  "participants": [
+    {
+      "id": 1,
+      "session_id": 1,
+      "user_id": 1,
+      "display_name": "You (Creator)",
+      "invited_email": "creator@logos.ai",
+      "position": "Affirmative",
+      "team": "Creator Team",
+      "participant_role": "Debater",
+      "invitation_status": "Accepted"
+    }
+  ],
+  "invitations": [],
+  "recordings": [],
+  "notifications": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "category": "System Ready",
+      "title": "AI Debate Engine Online",
+      "message": "Your AI Debate and Presentation Analysis Engine is active and ready for your first practice session.",
+      "timestamp": "Just now",
+      "read": false
+    },
+    {
+      "id": 101,
+      "user_id": null,
+      "category": "Debate Reminder",
+      "title": "Upcoming Oxford Debate Round",
+      "message": "Scheduled clash on 'Autonomous AI Systems Liability' begins in 30 minutes.",
+      "timestamp": "10m ago",
+      "read": false
+    },
+    {
+      "id": 102,
+      "user_id": null,
+      "category": "Coaching Feedback Alert",
+      "title": "Coach Feedback Available",
+      "message": "Coach Marcus Reed posted tactical notes on your latest constructive speech.",
+      "timestamp": "1h ago",
+      "read": false
+    },
+    {
+      "id": 103,
+      "user_id": null,
+      "category": "Practice Session Reminder",
+      "title": "Daily Prosody & Vocal Drill",
+      "message": "Complete today's 2-minute filler-word reduction drill to maintain speech momentum.",
+      "timestamp": "3h ago",
+      "read": false
+    },
+    {
+      "id": 104,
+      "user_id": null,
+      "category": "Skill Milestone Notification",
+      "title": "Milestone Reached: Logic Shield L2",
+      "message": "Congratulations! You successfully completed 3 debates without committing a False Dilemma.",
+      "timestamp": "Yesterday",
+      "read": false
+    },
+    {
+      "id": 105,
+      "user_id": null,
+      "category": "Platform Announcement",
+      "title": "LOGOS.AI v4.0 Rhetoric Engine Active",
+      "message": "Multi-turn AI debate simulation, speech cadence audio analysis, and live fallacies detection are live.",
+      "timestamp": "2d ago",
+      "read": true
+    }
+  ],
+  "debateTurns": {
+    "1": [
+      {
+        "turn_number": 3,
+        "user_input": "junk food is bad to health",
+        "opponent_response": "Labeling junk food as categorically harmful ignores the fundamental nutritional principle that dose dictates toxicity. In contexts of severe caloric deficit or high-energy expenditure, high-calorie, shelf-stable foods provide essential energy and accessibility that prevent acute undernourishment. Furthermore, moderate consumption within an otherwise balanced diet shows no statistically significant adverse health outcomes, making the blanket categorization of these foods as inherently destructive medically inaccurate.",
+        "fallacies": [
+          "Sweeping Generalization (Dicto Simpliciter)"
+        ],
+        "timestamp": "2026-09-06T14:20:40.707Z"
+      }
+    ]
+  },
+  "coachStudents": [
+    {
+      "id": 1,
+      "name": "Alex Mercer",
+      "email": "alex.mercer@example.com",
+      "topic": "AI Governance & Liability",
+      "grade": "A",
+      "gap": "Slippery Slope",
+      "feedback": "Strong opening framing. Work on qualifying causal links during cross-examination."
+    },
+    {
+      "id": 2,
+      "name": "Sofia Chen",
+      "email": "sofia.chen@example.com",
+      "topic": "Climate Policy & Carbon Tax",
+      "grade": "A-",
+      "gap": "Straw Man",
+      "feedback": "Excellent evidentiary citations. Avoid misrepresenting opposition warrants."
+    },
+    {
+      "id": 3,
+      "name": "David Kim",
+      "email": "david.kim@example.com",
+      "topic": "Universal Basic Income",
+      "grade": "B+",
+      "gap": "Circular Reasoning",
+      "feedback": "Pacing is solid (140 WPM). Ensure premise does not assume the conclusion."
+    },
+    {
+      "id": 4,
+      "name": "Marcus Aurelius",
+      "email": "marcus.a@example.com",
+      "topic": "Space Priorities & Colonization",
+      "grade": "A",
+      "gap": "False Dilemma",
+      "feedback": "Compelling delivery. Consider nuanced middle-ground positions instead of binary dichotomies."
+    }
+  ],
+  "coachingPlans": {
+    "1": {
+      "id": 1,
+      "studentId": 1,
+      "studentName": "Alex Vance",
+      "coachName": "AI Rhetorical Engine",
+      "primaryFocus": "Adaptive Rhetorical Mastery",
+      "strengths": [
+        "Strong articulation",
+        "Good structural logic"
+      ],
+      "weaknesses": [
+        "Filler word control",
+        "Rebuttal tempo"
+      ],
+      "skillGaps": [],
+      "actionItems": [],
+      "notes": "Dynamic plan calibrated by real debate runs."
+    }
+  }
+}

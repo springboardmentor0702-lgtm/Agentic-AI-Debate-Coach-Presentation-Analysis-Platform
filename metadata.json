@@ -1,0 +1,6 @@
+{
+  "name": "Logos AI",
+  "description": "Agentic AI platform for high-stakes rhetoric, live debate simulation, prosody analysis, and logic auditing.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

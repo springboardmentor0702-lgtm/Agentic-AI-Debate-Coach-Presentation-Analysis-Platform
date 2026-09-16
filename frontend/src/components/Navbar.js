@@ -7,14 +7,16 @@ import { useState, useEffect, useRef } from 'react';
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
+    setMounted(true);
     const checkLoginStatus = () => {
-      const token = localStorage.getItem('logos_ai_jwt');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('logos_ai_jwt') : null;
       setIsLoggedIn(!!token);
       if (token) {
         fetchNotifications();
@@ -41,7 +43,7 @@ export default function Navbar() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/notifications/my-alerts");
+      const res = await fetch("/api/v1/notifications/my-alerts");
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
@@ -71,7 +73,7 @@ export default function Navbar() {
 
   const handleMarkAsRead = async (id) => {
     try {
-      await fetch(`http://localhost:8000/api/v1/notifications/read/${id}`, {
+      await fetch(`/api/v1/notifications/read/${id}`, {
         method: "POST"
       });
     } catch (err) {}
@@ -126,7 +128,7 @@ export default function Navbar() {
       <div className="nav-actions" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
         
         {/* Interactive Notification Bell */}
-        {isLoggedIn && (
+        {mounted && isLoggedIn && (
           <div ref={dropdownRef} style={{ position: 'relative' }}>
             <button 
               onClick={() => setShowDropdown(!showDropdown)}
@@ -194,7 +196,7 @@ export default function Navbar() {
           </div>
         )}
 
-        {isLoggedIn ? (
+        {mounted && isLoggedIn ? (
           <button 
             onClick={handleLogout}
             className="btn btn-login" 

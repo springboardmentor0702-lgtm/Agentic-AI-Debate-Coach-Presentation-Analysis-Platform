@@ -115,9 +115,11 @@ export default function DebateDetailsPage() {
     if (transcript) formData.append('transcript', transcript);
     if (recordingPath) formData.append('recording_path', recordingPath);
     if (file) formData.append('file', file);
+    if (currentUser?.user_id) formData.append('user_id', String(currentUser.user_id));
+    if (currentUser?.email) formData.append('user_email', String(currentUser.email));
 
     await requestForm(`/api/v1/sessions/${sessionId}/recording`, formData, { method: 'POST' });
-    setNotice('Recording saved.');
+    setNotice('Recording saved to debate archive and analytics.');
     await refreshData();
   };
 

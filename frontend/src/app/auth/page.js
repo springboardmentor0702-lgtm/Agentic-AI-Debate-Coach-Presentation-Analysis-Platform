@@ -9,7 +9,7 @@ export default function AuthPage() {
   useEffect(() => {
     // Redirect to the new dedicated Login page
     router.push('/login');
-  }, []);
+  }, [router]);
 
   return null;
 }
