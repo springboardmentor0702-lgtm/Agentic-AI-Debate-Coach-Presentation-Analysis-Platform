@@ -5,7 +5,8 @@ from database import get_db
 from config import settings
 import models, schemas
 import hashlib
-import jwt
+from jose import jwt
+from jose.exceptions import ExpiredSignatureError, JWTError
 from datetime import datetime, timedelta
 from typing import Optional, List
 
@@ -30,9 +31,9 @@ def decode_access_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="JWT Token has expired. Please log in again.")
-    except jwt.PyJWTError:
+    except JWTError:
         raise HTTPException(status_code=401, detail="Could not validate JWT signature.")
 
 def get_current_user(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)) -> models.User:

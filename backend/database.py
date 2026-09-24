@@ -3,6 +3,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config import settings
 import logging
+from pathlib import Path
+import os
 
 # Primary Database Setup (PostgreSQL with SQLite fallback)
 try:
@@ -17,7 +19,10 @@ try:
         logging.info("Connected to PostgreSQL Primary Database.")
 except Exception as e:
     logging.warning(f"PostgreSQL connection failed ({e}). Falling back to SQLite primary database.")
-    fallback_url = "sqlite:///./logos_ai.db"
+    fallback_dir = Path(os.getenv("LOGOS_DB_DIR", "D:/logos_ai"))
+    fallback_dir.mkdir(parents=True, exist_ok=True)
+    fallback_db = fallback_dir / "logos_ai.db"
+    fallback_url = f"sqlite:///{fallback_db.as_posix()}"
     engine = create_engine(fallback_url, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
