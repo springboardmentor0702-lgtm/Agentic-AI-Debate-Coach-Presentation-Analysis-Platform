@@ -1,5 +1,7 @@
 # ClashLab
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **AI-powered debate coaching and presentation analysis platform.**
 
 A full-stack application combining conventional coaching tools with
@@ -121,9 +123,12 @@ debate-coach-platform/
 ├── TEST_PLAN.md
 ├── SETUP.md
 ├── DEPLOYMENT_GUIDE.md
+├── LICENSE
 └── render.yaml
 ```
 
 ## License
 
-Built as a learning project. Not currently licensed for reuse.
+MIT — see [`LICENSE`](LICENSE) for the full text. You're free to use,
+modify, and distribute this project, provided the original copyright
+notice and license text are kept intact.
