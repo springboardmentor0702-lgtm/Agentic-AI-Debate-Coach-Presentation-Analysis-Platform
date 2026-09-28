@@ -178,5 +178,4 @@ Springboard-Project/
 
 ## License
 
-Built as part of the Infosys Springboard Virtual Internship 7.0.
-Not currently licensed for reuse.
+This project is licensed under the MIT License. See the LICENSE file for details.
